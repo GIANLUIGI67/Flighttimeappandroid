@@ -3,6 +3,7 @@ package it.grg.flighttimeapp.training
 import android.content.Context
 import android.media.MediaPlayer
 import android.widget.Toast
+import java.util.Locale
 
 class TrainingAudioPlayer(private val context: Context) {
 
@@ -18,16 +19,20 @@ class TrainingAudioPlayer(private val context: Context) {
             toastMissing(baseName)
             return
         }
-        player = MediaPlayer.create(context, resId)
-        player?.isLooping = loop
-        player?.start()
+        try {
+            player = MediaPlayer.create(context, resId)
+            player?.isLooping = loop
+            player?.start()
+        } catch (e: Exception) {
+            toastMissing(baseName)
+        }
     }
 
     fun playAll(baseNames: List<String>, loop: Boolean) {
         stop()
         val ids = baseNames.map { resolveResId(it) }.filter { it != 0 }
         if (ids.isEmpty()) {
-            toastMissing("audio")
+            toastMissing("audio list")
             return
         }
         queue = ids
@@ -38,8 +43,10 @@ class TrainingAudioPlayer(private val context: Context) {
 
     fun stop() {
         player?.setOnCompletionListener(null)
-        player?.stop()
-        player?.release()
+        try {
+            player?.stop()
+            player?.release()
+        } catch (e: Exception) { }
         player = null
         queue = emptyList()
         index = 0
@@ -57,16 +64,24 @@ class TrainingAudioPlayer(private val context: Context) {
             }
         }
         val resId = queue[index]
-        player = MediaPlayer.create(context, resId)
-        player?.setOnCompletionListener {
+        try {
+            player = MediaPlayer.create(context, resId)
+            player?.setOnCompletionListener {
+                index += 1
+                playNextInQueue()
+            }
+            player?.start()
+        } catch (e: Exception) {
             index += 1
             playNextInQueue()
         }
-        player?.start()
     }
 
     private fun resolveResId(baseName: String): Int {
-        val resName = baseName.lowercase()
+        // Resources in Android must be lowercase.
+        val resName = baseName.lowercase(Locale.US)
+            .replace("-", "_")
+            .trim()
         return context.resources.getIdentifier(resName, "raw", context.packageName)
     }
 

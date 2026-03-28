@@ -19,3 +19,11 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Keep Salary Calculator classes to avoid release-only ClassCastException.
+-keep class it.grg.flighttimeapp.salary.** { *; }
+-keepclassmembers class it.grg.flighttimeapp.salary.** { *; }
+
+# Gson models rely on reflection and type signatures.
+-keepattributes Signature
+-keepattributes *Annotation*
