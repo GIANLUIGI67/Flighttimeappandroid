@@ -1,0 +1,18 @@
+If the T.A.W.S. triggers one of the PULL UP alerts:
+"PULL UP" or "TERRAIN AHEAD PULL UP" or "TERRAIN TERRAIN PULL UP"
+or "OBSTACLE AHEAD PULL UP" or "OBSTACLE OBSTACLE PULL UP"
+
+Simultaneously:
+
+PULL UP TOGA
+
+AUTO PILOT ....OFF
+PITCH ....PULL UP
+THRUST LEVERS ....TOGA
+SPEED BRAKE LEVER ....CHECK RETRACTED
+BANK ....WINGS LEVEL or ADJUST
+
+Aircraft obtains the best climb performance when the wings are as level as possible.
+The flight crew can adjust bank while climbing if turning is the safest action.
+
+DO NOT CHANGE CONFIGURATION (SLATS/FLAPS/GEAR) UNTIL CLEAR OF OBSTACLE.

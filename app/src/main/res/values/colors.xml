@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="purple_200">#BB86FC</color>
+    <color name="purple_500">#6200EE</color>
+    <color name="purple_700">#3700B3</color>
+    <color name="teal_200">#03DAC5</color>
+    <color name="teal_700">#018786</color>
+    <color name="black">#000000</color>
+    <color name="white">#FFFFFF</color>
+
+    <color name="green_ok">#2DBE60</color>
+    <color name="ios_blue">#0A84FF</color>
+    <color name="button_bg_light">#E9EEF6</color>
+    <color name="iosBlue">#007AFF</color>
+    <color name="iosGreen">#34C759</color>
+    <color name="iosRed">#FF3B30</color>
+
+    <color name="iosText">#111111</color>
+    <color name="iosHint">#8E8E93</color>
+
+    <color name="iosCardBg">#F2F2F7</color>
+    <color name="iosCardStroke">#E5E5EA</color>
+
+    <color name="iosFieldBg">#F2F2F7</color>
+    <color name="iosFieldStroke">#D1D1D6</color>
+
+    <color name="iosChevron">#B0B0B5</color>
+    <color name="iosIcon">#111111</color>
+
+    <color name="iosPillLight">#E9E9EE</color>
+    <color name="iosRipple">#22007AFF</color>
+    <color name="iosBackground">#FFFFFF</color>
+    <color name="iosButtonGrey">#E9E9EE</color>
+    <color name="ic_launcher_background">#0B1E3D</color>
+
+    <color name="qbOptionNormalBg">@color/iosBackground</color>
+    <color name="qbOptionNormalStroke">@color/iosCardStroke</color>
+    <color name="qbOptionSelectedBg">#EEF4FF</color>
+    <color name="qbOptionSelectedStroke">@color/iosBlue</color>
+    <color name="qbOptionCorrectBg">#DFF5E1</color>
+    <color name="qbOptionCorrectStroke">@color/iosGreen</color>
+    <color name="qbOptionWrongBg">#FADBD8</color>
+    <color name="qbOptionWrongStroke">@color/iosRed</color>
+</resources>

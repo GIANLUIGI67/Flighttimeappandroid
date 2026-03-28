@@ -1,0 +1,8 @@
+FUEL CONTROL switch (affected side) ....CUT OFF
+
+Condition: On the ground an aborted engine start is needed.
+
+FUEL CONTROL switch (affected side) ....CUT OFF
+START selector (affected side) ....START
+Motor the engine for 30 seconds
+START selector (affected side) ....NORMAL

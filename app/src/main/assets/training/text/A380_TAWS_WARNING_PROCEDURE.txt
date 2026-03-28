@@ -1,0 +1,21 @@
+ANNUNCIATIONS
+
+Triggering conditions:
+The T.A.W.S. (in the SURV system) detects:
+An excessive rate of descent at low altitude (PULL UP alert), or A terrain collision threat ahead of the aircraft (TERRAIN AHEAD, PULL UP alert). An obstacle collision threat ahead of the aircraft (OBSTACLE AHEAD, PULL UP alert).
+
+For more information on the aural alerts, Refer to DSC-34-20-20-20 Aural alerts.
+
+If TAWS triggers a PULL UP alert:
+Simultaneously:
+PULL UP TOGA
+
+AUTO PILOT ....OFF
+PITCH ....PULL UP
+Pull up to full backstick and mantain in that position.
+THRUST LEVERS ....TOGA
+SPEED BRAKE LEVER ....CHECK RETRACTED
+BANK ....WINGS LEVEL OR ADJUST
+Aircraft obtain the best climb performance when the wings are as level as possible.The flight crew can adjust bank while climbing, provided that turning is the safest action.
+
+DO NOT CHANGE CONFIGURATION (SLATS/FLAPS/GEAR) UNTIL CLEAR OF OBSTACLE

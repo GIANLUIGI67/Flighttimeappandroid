@@ -1,0 +1,17 @@
+AUTO THRUST ARM switch (affected side) ....OFF
+Thrust lever (affected side) ....IDLE
+FUEL CONTROL switch (affected side) ....CUT OFF
+Engine fire switch (affected side) ....PULL
+
+Condition: Engine fire detected.
+
+AUTO THRUST ARM switch (affected side) ....CONFIRM OFF
+Thrust lever (affected side) .... CONFIRM IDLE
+FUEL CONTROL switch (affected side) ....CONFIRM CUT OFF
+Engine fire switch (affected side) ....CONFIRM PULL
+
+If FIRE ENGINE message remains:
+Engine fire switch ....ROTATE to stop and hold 1 second
+
+If after 30 seconds message remains:
+Engine fire switch ....ROTATE to other stop and hold 1 second

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="qb_bottom_bar_padding">16dp</dimen>
+    <dimen name="qb_scroll_extra_bottom">104dp</dimen>
+</resources>

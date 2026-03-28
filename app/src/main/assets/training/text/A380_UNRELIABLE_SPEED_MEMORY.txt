@@ -1,0 +1,46 @@
+
+IF SAFE CONDUCT OF FLIGHT IMPACTED:
+
+AUTO PILOT ....OFF
+AUTO THRUST ....OFF
+FLIGHT DIRECTOR ....OFF
+
+Before thrust reduction:
+
+ALL THRUST LEVERS ....TOGA
+PITCH TARGET
+
+The ECAM displays only the appropriate pitch, if the GPS altitude is available.
+
+
+Below 10 thousand feet....Pitch TARGET 12.5°
+Above 10 thousand feet....Pitch TARGET 10°
+
+After thrust reduction:
+
+If derated climb engaged:
+
+ALL THR LEVERS ....MCT
+
+ALL THR LEVERS ....CLB
+PITCH TARGET
+
+Below 10 thousand feet....12.5°
+Between 10 thousand feet and 25 thousand feet....10°
+Above 25 thousand feet....5°
+
+Below FLIGHT LEVEL 250 or if the GPS altitude is not available:
+
+Below FLIGHT LEVEL 100....12.5°
+Between FLIGHT LEVEL 100 & FLIGHT LEVEL 250....10°
+Above FLIGHT LEVEL 250....5°
+
+IN CLIMB: ADJUST PITCH TARGET
+
+If the flaps lever is set to FULL:
+FLAPS ....SELECT CONFIGURATION 3
+
+FLAPS & LANDING GEAR: MAINTAIN CURRENT CONFIGURATION
+
+SPEED BRAKES ....CHECK RETRACTED
+

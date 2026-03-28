@@ -1,0 +1,7 @@
+STAB cut out switches (both) ....CUTOUT
+Do not exceed current airspeed
+
+Condition: Stabilizer movement without trim command or stabilizer failure.
+
+STAB cut out switches (both) ....CUTOUT
+Do not exceed current airspeed

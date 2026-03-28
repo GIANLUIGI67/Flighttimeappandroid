@@ -1,0 +1,37 @@
+Always follow RA orders, even if this results in crossing the intruder altitude, because these orders ensure the best altitude separation.
+
+CAUTION Be aware that the intruder may have a T.CAS, and may manouver in response to a coordinated R.A. order. Therefore not following an R.A, order could compromise safe separation.
+
+All R.A., except any CLIMB R.A. during approach in CONF 3 or FULL:
+
+TCAS R.A.
+
+AUTO PILOT (if engaged) ....OFF
+BOTH FLIGHT DIRECTORs ....OFF
+VERTICAL SPEED ....ADJUST or MAINTAIN
+
+Adjust or mantain the vertical speed as required, depending on the green area, and/or to avoid the red area of the vertical speed scale.
+NOTE: Avoide excessive manouvers while attempting to mantain the vertical speed just outside the red area of the vertical speed scale, and wthin the green area. if necessary use the full speed range between V alpha max and V MAX.
+
+Any CLIMB R.A. during approach in CONF 3 or FULL:
+
+GO‑AROUND ....PERFORM
+
+Follow the s.r.s. Go AROUND mode
+
+VERTICAL SPEED ....MONITOR
+Check that the vertical speed remains out of the red area of the vertical speed scale and take over if necessary.
+
+Respect stall, G.P.W.S., or windshear warnings.
+
+A.T.C. ....NOTIFY
+
+When the "CLEAR OF CONFLICT" alert sounds:
+
+A.T.C. ....NOTIFY
+LATERAL AND VERTICAL GUIDANCE ....ADJUST
+
+Adjust the lateral and vertical guidance to resume normal navigation, in accordance with A.T.C. clearance.
+
+AUTO PILOT FLIGHT DIRECTOR....AS REQUIRED
+If necessary, reengage the AUTO PILOT/FLIGHT DIRECTOR.

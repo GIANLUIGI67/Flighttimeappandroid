@@ -1,0 +1,191 @@
+
+IF SAFE CONDUCT OF FLIGHT IMPACTED:
+
+AUTO PILOT ....OFF
+AUTO THRUST ....OFF
+FLIGHT DIRECTOR ....OFF
+
+Before thrust reduction:
+
+ALL THRUST LEVERS ....TOGA
+PITCH TARGET
+
+The ECAM displays only the appropriate pitch, if the GPS altitude is available.
+
+
+Below 10 thousand feet....Pitch TARGET 12.5°
+Above 10 thousand feet....Pitch TARGET 10°
+
+After thrust reduction:
+
+If derated climb engaged:
+
+ALL THR LEVERS ....MCT
+
+Set all thrust levers to MCT in order to cancel the derated climb.
+
+ALL THR LEVERS ....CLB
+PITCH TARGET
+
+The ECAM displays only the appropriate pitch, if the GPS altitude is available.
+
+Below 10 thousand feet....12.5°
+Between 10 thousand feet and 25 thousand feet....10°
+Above 25 thousand feet....5°
+
+Below FLIGHT LEVEL 250 or if the GPS altitude is not available:
+
+Below FLIGHT LEVEL 100....12.5°
+Between FLIGHT LEVEL 100 & FLIGHT LEVEL 250....10°
+Above FLIGHT LEVEL 250....5°
+
+IN CLIMB: ADJUST PITCH TARGET
+
+If the flaps lever is set to FULL:
+FLAPS ....SELECT CONFIGURATION 3
+
+FLAPS & LANDING GEAR: MAINTAIN CURRENT CONFIGURATION
+
+SPEED BRAKES ....CHECK RETRACTED
+
+RISK OF UNDUE OVERSPEED WARNING
+
+The overspeed warning is not inhibited, if A.D.R.s are rejected by flight controls.
+
+F.M.S. POSITION / G.P.S. PAGE ....SELECT
+
+Below FLIGHT LEVEL 250:
+
+WHEN ALTITUDE PERMITS LEVEL FLIGHT:
+
+FOR LEVEL FLIGHT:
+
+AP ....OFF
+A/THR ....OFF
+FD ....OFF
+PITCH TARGET ....°
+ALL ENG THRUST ....%
+
+RESULTING SPEED ....KNOT
+
+The ECAM displays only the appropriate pitch, thrust, and resulting speed values
+in accordance with the aircraft weight, aircraft configuration and the flight level.
+
+ADJUST THRUST FOR LEVEL FLIGHT:
+
+IF ALTITUDE INCREASES: REDUCE THRUST
+IF ALTITUDE DECREASES: INCREASE THRUST
+
+AIR DATA (A.D.R.s/STAND BY INSTRUMENTS) ....CROSS CHECK
+
+Crosscheck all speeds and altitudes indications.
+
+Alternate sources may be used to evaluate the air data:
+- GPS altitude
+- GPS and IRS Ground Speeds, taking into account altitude and wind effect.
+
+The resulting speed computed by F.W.S. on ECAM can help the crew.
+
+IF AT LEAST ONE AIR DATA RELIABLE:
+
+RELIABLE AIR DATA ....USE
+AT LEAST ONE A.D.R.:.... KEEP ON
+UNRELIABLE A.D.R.s ....OFF
+
+This prevents the flight control laws from using unreliable ADR data.
+
+IF NO AIR DATA RELIABLE:
+
+A.D.R. 1+2+3 PUSH BUTTONs ....OFF
+
+All ADRs must be switched off to replace the P.F.D.’s normal speed scale and altitude
+indication by the BUSS and GPS altitude indication.
+
+SPEED ....FLY THE GREEN
+
+Fly within the green area of the speed scale to ensure safe flight.
+
+For slats/flaps retraction, it is recommended to fly at the top of the green area
+of the speed scale.
+
+Before extending the slats/flaps, it is recommended to fly at the bottom of the
+speed scale green area, and to be in straight flight.
+
+FLIGHT PATH VECTOR / VV AVAILABLE
+
+In order to display the FLIGHT PATH VECTOR(VV), select TRACK-FLIGHT PATH ANGLE via the HEADING VERTICAL SPEED /TRACK FLIGHT PATH ANGLE push button on the A.F.S. CONTROL PANEL.
+
+SPEED BRAKE: DO NOT USE
+
+The BUSS is tuned for the aerodynamic model with the speed brake retracted.
+The speed brake extension must be avoided as it would affect the relation between
+ANGLE OF ATTACK and airspeed, therefore making the BUSS unreliable.
+
+If at least two M.F.P.s heating are failed:
+AVOID ICING CONDITIONS
+
+CABIN ALTITUDE MODE ....MANUAL
+
+The flight crew manually controls the cabin altitude.
+
+AIRCRAFT CRUIZE FLIGHT LEVEL → CABIN ALTITUDE TARGET
+FLIGHT LEVEL 250 → 2900 feet
+FLIGHT LEVEL 200 → 2150 feet
+FLIGHT LEVEL 150 → 1500 feet
+FLIGHT LEVEL 100 → 900 feet
+
+CABIN ALTITUDE TARGET ....AS REQUIRED
+
+If the soft go-around function is lost:
+GO AROUND THRUST: TOGA ONLY
+
+Above FLIGHT LEVEL 250:
+
+FOR LEVEL FLIGHT:
+
+AUTO PILOT ....OFF
+AUTO THRUST ....OFF
+FLIGHT DIRECTOR ....OFF
+PITCH TARGET ....3°
+ALL ENG THRUST 
+
+RESULTING SPEED ....KNOTS
+
+The ECAM displays only the appropriate pitch, thrust, and resulting speed values in accordance with the aircraft weight, aircraft configuration and the flight level.
+
+ADJUST THRUST FOR LEVEL FLIGHT:
+
+IF ALTITUDE INCREASES: REDUCE THRUST
+IF ALTITUDE DECREASES: INCREASE THRUST
+
+AIR DATA (A.D.R.s/STAND BY INSTRUMENTS) ....CROSS CHECK
+
+Crosscheck all speeds and altitudes indications.
+
+Alternate sources may be used to evaluate the air data:
+- G.P.S. altitude
+- G.P.S. and I.R.S. Ground Speeds, taking into account altitude and wind effect.
+
+The resulting speed computed by FLIGHT WARNING SYSTEM on ECAM can help the crew.
+
+IF AT LEAST ONE AIR DATA RELIABLE:
+
+RELIABLE AIR DATA ....USE
+AT LEAST ONE A.D.R.: KEEP ON
+UNRELIABLE A.D.R.s ....OFF
+
+This prevents the flight control laws from using unreliable A.D.R. data.
+
+IF NO AIR DATA RELIABLE:
+
+ONE ADR: KEEP ON
+TWO ADR PUSH BUTTONs ....OFF
+
+This prevents the flight control laws from using two coherent but unreliable A.D.R. data.
+
+If the soft go-around function is lost:
+GO AROUND THRUST: TOGA ONLY
+
+If all A.D.R.s are set to OFF:
+
+The flight control laws revert to direct laws.

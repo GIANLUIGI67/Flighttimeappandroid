@@ -1,0 +1,34 @@
+EMERGENCY DESCENT
+
+CREW OXYGEN MASKS ....USE
+SIGNS ....ON
+EMERGENCY DESCENT ....INITIATE
+
+ALL THRUST LEVERS ....IDLE
+SPEED BRAKE LEVER....FULL
+SPEED : MAX/APPROPRIATE
+
+CAUTION Descend at the maximum appropriate speed. If structoral damage is suspected, use the flight controls with care and limit speed as appropriate.
+The flight crew can extend the landing gear when the speed is below V.L.O..
+
+A.T.C. ....NOTIFY
+Notify A.T.C. of the nature of the emergency and state intention.
+
+EMERGENCY DESCENT (P.A.) ....ANNOUNCE
+The flight crew must inform the cabin of emergency descent on the P.A. system.
+
+SQUAWK 7700 ....CONSIDER
+sqawk 7700 unless otherwise specified by a.t.c..
+
+MAXIMUM FLIGHT LEVEL: 100/M.E.A.-MORA
+
+If CABIN ALTITUDE ABOVE 14 thousand FEET:
+PAX OXYGEN MASK MANUAL ON .... PRESS
+If the cabin altitude is above 13 thousand 800 feet, the passenger oxygen mask will automatically drop.
+If the automatic drop did not operate, pressing the PAX OXIGEN MASK MANUAL ON push button will release the passenger masks. In addition, contact the cabin crew to confirm that passenger masks are released.
+Notofy the cabin crew when the aircraft reaches a safe flight level, and when the use of oxygen masks is no more necessary.
+WHEN DESCENT ESTABLISHED:
+CREW OXYGEN MASKS DILUTION....NORMAL
+To save oxygen, set the N/100% selector to N.
+With the N/100% selector set to 100% oxygen quantity may be insufficient to cover the entire emergency descent profile.
+Ensure that crew communication is established with oxygen masks. Avoid the continuos use of the inter phone to minimize interference with the breathing noise in the oxygen mask.....DEACTIVATE.

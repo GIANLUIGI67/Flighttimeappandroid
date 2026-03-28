@@ -1,0 +1,5 @@
+FUEL CONTROL switch (affected side) ....CONFIRM CUT OFF
+
+Condition: Autostart did not start the engine.
+
+FUEL CONTROL switch (affected side) ....CONFIRM CUT OFF

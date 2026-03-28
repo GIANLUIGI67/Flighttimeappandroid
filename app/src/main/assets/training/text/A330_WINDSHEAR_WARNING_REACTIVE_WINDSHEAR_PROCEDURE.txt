@@ -1,0 +1,41 @@
+If windshear is detected both P.F.D.s display a WINDSHEAR message. An associated aural WINDSHEAR alert sounds three times.
+
+If the systems or the flight crew detect windshear, apply the following procedure:
+
+AT Takeoff:
+
+During the take off roll, "WINDSHEAR,WINDSHEAR,WINDSHEAR" alert is inhibited. Windshear recognition is based on the flight crew observation.
+
+Before V1:
+If there are significant variations in airspeed and airspeed trend below indicated V.one:
+REJECT TAKEOFF.
+
+If windshear occurs during the take off roll, the aircraft may reach V. one later (or sooner) than expected. The flight crew should ensure that there is sufficient runway remaining to stop the aircraft, if necessary.
+
+After V1:
+
+WINDSHEAR TOGA
+
+THRUST LEVERS ....TOGA
+REACHING V.R. ....ROTATE
+S.R.S. ORDERS ....FOLLOW
+If necessary, the flight crew may apply full backstick.
+NOTE: If the Flight Director bars are not displayed, move forward an initial pitch attitude of 17.5 degrees. Than if necessary, to prevent a loss of altitude, increase the pitch attitude.
+
+When airborne, during initial climb, or landing:
+
+WINDSHEAR TOGA
+
+THRUST LEVERS AT TOGA ....SET OR CONFIRM
+AUTO PILOT (if engaged) ....KEEP ON
+SRS ORDERS ....FOLLOW
+If necessary, the flight crew may apply full backstick.
+
+Note: 1. The auto pilot disengages, if the angle of attack value goes above alpha prot.
+      2. If the flight director bars are not displayed, move torward an initial pitch attitude of seventeen point five degrees.
+      Than, if necessary, to prevent a loss of altitude, increase the pitch attitude.
+
+DO NOT CHANGE CONFIGURATION (SLATS/FLAPS/GEAR) UNTIL OUT OF WINDSHEAR.
+
+CAREFULLY MONITOR FLIGHT PATH AND SPEED.
+WHEN OUT OF WINDSHEAR, SMOOTHLY RECOVER NORMAL CLIMB.

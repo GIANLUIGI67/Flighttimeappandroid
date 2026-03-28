@@ -1,0 +1,50 @@
+OBSTACLE AHEAD, TERRAIN AHEAD, TERRAIN TERRAIN, TOO LOW TERRAIN
+During night or I.M.C. conditions:
+Simultaneously:
+
+PULL UP TOGA
+
+AUTO PILOT....OFF
+PITCH....PULL UP
+Pull up to full backstick and mantain in that position
+
+THRUST LEVERS....TOGA
+SPEED BRAKE LEVER....CHECK RETRACTED
+BANK....WINGS LEVEL or ADJUST
+The aircraft obtains the best climb performance when the wings are as level as possible.The flight crew can adjust bank while climbing, provided that turning is the safest action. Note: For some airports, the operator may define a specific procedure.
+
+DO NOT CHANGE CONFIGURATION (SLATS/FLEPS/GEAR) UNTIL CLEAR OF OBSTACLE.
+
+During daylight and V.M.C. conditions,with terrain and obstacles clearly in sight:
+FLIGHT PATH....ADJUST
+Adjust pitch, bank and thrust to silence the alert.
+Note: For some airports, the operator may define a specific procedure.
+
+SINK RATE
+Above 1 thousand feet A.A.L. I.M.C. or above 500 feet A.A.L. V.M.C.
+FLIGHT PATH....ADJUST
+Adjust pitch, bank and thrust to silence the alert.
+
+Below 1 thousand feet A.A.L. IMC or below 500 feet A.A.L. V.M.C.
+GO AROUND....CONSIDER
+
+DON'T SINK
+FLIGHT PATH....ADJUST
+Adjust pitch, bank and thrust to silence the alert.
+
+GLIDE SLOPE
+Above 1 thousand feet A.A.L. I.M.C. or above 500 feet A.A.L. V.M.C.
+FLIGHT PATH....ADJUST
+Adjust pitch and thrust to reduce the vertical deviation from the glide slope.
+
+when conditions require a deliberate approach below glideslope:
+GLIDE SLOPE MODE....OFF
+Below 1 thousand feet A.A.L. IMC or below 500 feet A.A.L. V.M.C.
+GO AROUND....CONSIDER
+
+TOO LOW GEAR, TOO LOW FLAPS
+GO AROUND....PERFORM
+
+
+
+

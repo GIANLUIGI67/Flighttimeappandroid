@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <EditText
+        android:id="@+id/layoverInfoTitleInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_ios_field"
+        android:hint="@string/cl_layover_info_add_title"
+        android:padding="12dp"
+        android:textColor="@color/iosText"
+        android:textColorHint="@color/iosHint" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <EditText
+            android:id="@+id/layoverInfoLocationInput"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@drawable/bg_ios_field"
+            android:hint="@string/cl_layover_info_add_location"
+            android:padding="12dp"
+            android:textColor="@color/iosText"
+            android:textColorHint="@color/iosHint" />
+
+        <ImageButton
+            android:id="@+id/layoverInfoLocationBtn"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="8dp"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/cl_layover_info_add_location"
+            android:src="@android:drawable/ic_input_add"
+            android:tint="@color/iosBlue" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <EditText
+            android:id="@+id/layoverInfoCityInput"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@drawable/bg_ios_field"
+            android:hint="@string/cl_layover_info_add_city"
+            android:padding="12dp"
+            android:textColor="@color/iosText"
+            android:textColorHint="@color/iosHint" />
+
+        <ImageButton
+            android:id="@+id/layoverInfoCityBtn"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="8dp"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/cl_layover_info_add_city"
+            android:src="@android:drawable/ic_input_add"
+            android:tint="@color/iosBlue" />
+    </LinearLayout>
+
+    <EditText
+        android:id="@+id/layoverInfoDetailsInput"
+        android:layout_width="match_parent"
+        android:layout_height="120dp"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/bg_ios_field"
+        android:gravity="top"
+        android:hint="@string/cl_layover_info_add_details"
+        android:inputType="textMultiLine"
+        android:padding="12dp"
+        android:textColor="@color/iosText"
+        android:textColorHint="@color/iosHint" />
+
+</LinearLayout>

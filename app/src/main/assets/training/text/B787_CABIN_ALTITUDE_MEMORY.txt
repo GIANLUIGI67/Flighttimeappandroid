@@ -1,0 +1,18 @@
+Don oxygen masks
+Establish crew communications
+
+Condition: Cabin altitude excessive.
+
+Don oxygen masks
+Establish crew communications
+Check cabin altitude and rate
+
+If cabin altitude uncontrollable:
+PASSENGER OXYGEN switch .... PUSH ON
+
+Descend to lowest safe altitude or 10thousand feet whichever higher
+
+To descend:
+Thrust levers ....IDLE
+Extend speedbrakes
+Descend at V.m.o./M.m.o.

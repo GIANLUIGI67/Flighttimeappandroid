@@ -1,0 +1,7 @@
+AUTO THRUST ARM switch (affected side) ....OFF
+Thrust lever (affected side) ....RETARD
+
+Condition: Engine surge or stall detected.
+
+AUTO THRUST ARM switch (affected side) ....CONFIRM OFF
+Thrust lever (affected side) ....RETARD until ENG SURGE message blanks or thrust lever at idle

@@ -1,0 +1,43 @@
+
+
+If no braking:
+
+LOSS OF BRAKING.
+
+REVERSE .......... MAXIMUM.
+
+If needed, the flight crew may keep maximum reverse thrust until full aircraft stop.
+
+BRAKE PEDALS .......... RELEASE.
+
+When the flight crew set the ANTI SKID & NOSE WHEEL STEERING switch to OFF, the alternate braking mode is activated.
+Consequently the PILOT FLYING should release the brake pedals before the PILOT MONITORING selects the ANTI SKID OFF.
+This action avoids brake locking.
+Refer to DSC-32-30 Alternate Braking Without Antiskid.
+
+ANTI SKID OFF .......... ORDER
+
+The PILOT FLYING orders the PILOT MONITORING to set the ANTI SKID & NOSE WHEEL STEERING switch to OFF.
+if no braking:
+
+LOSS OF BRAKING
+
+REVERSE....MAXIMUM
+
+BRAKE PEDALS.... RELEASE
+
+ANTI SKID OFF ....ORDER
+
+ANTI SKID & NOSE WHEEL STEERING ....OFF
+
+BRAKE PEDALS ....PRESS
+
+MAXIMUM BRAKE PRESSURE ....1 thousand P.S.I.
+Limit brake pressure to approximately 1 thousand P.S.I.. Monitor brake pressure on the BRAKES PRESSURE indicator.
+
+If still no braking:
+
+PARKING BRAKE ....USE
+
+Use short successive parking brake applications to stop the aircraft.
+For more information on the parking brake, Refer to DSC-32-30-10 Parking Brake.

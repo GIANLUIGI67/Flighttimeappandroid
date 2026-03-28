@@ -1,0 +1,41 @@
+OBSTACLE AHEAD, TERRAIN AHEAD, TERRAIN TERRAIN, TOO LOW TERRAIN
+During night or I.M.C. conditions:
+Simultaneously:
+
+PULL UP TOGA
+
+AUTO PILOT....OFF
+PITCH....PULL UP
+
+THRUST LEVERS....TOGA
+SPEED BRAKE LEVER....CHECK RETRACTED
+BANK....WINGS LEVEL or ADJUST
+
+DO NOT CHANGE CONFIGURATION (SLATS/FLEPS/GEAR) UNTIL CLEAR OF OBSTACLE.
+
+During daylight and V.M.C. conditions,with terrain and obstacles clearly in sight:
+FLIGHT PATH....ADJUST
+
+SINK RATE
+Above 1 thousand feet A.A.L. I.M.C. or above 500 feet A.A.L. V.M.C.
+FLIGHT PATH....ADJUST
+
+Below 1 thousand feet A.A.L. IMC or below 500 feet A.A.L. V.M.C.
+GO AROUND....CONSIDER
+
+DON'T SINK
+FLIGHT PATH....ADJUST
+
+GLIDE SLOPE
+Above 1 thousand feet A.A.L. I.M.C. or above 500 feet A.A.L. V.M.C.
+FLIGHT PATH....ADJUST
+when conditions require a deliberate approach below glideslope:
+GLIDE SLOPE MODE....OFF
+Below 1 thousand feet A.A.L. IMC or below 500 feet A.A.L. V.M.C.
+GO AROUND....CONSIDER
+
+TOO LOW GEAR, TOO LOW FLAPS
+GO AROUND....PERFORM
+
+
+

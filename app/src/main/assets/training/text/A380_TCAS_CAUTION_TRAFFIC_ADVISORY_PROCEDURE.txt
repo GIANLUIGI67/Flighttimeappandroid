@@ -1,0 +1,16 @@
+ANNUNCIATIONS
+Triggering conditions:
+The T.CAS (in the SURV system) detects a Traffic Advisory (T.A.)
+
+if the AUTO PILOT/FLIGHT DIRECTOR TCAS mode is available, the AUTO PILOT/FLIGHT DIRECTOR TCAS mode arms. For more information, Refer to DSC-22-FG-70-110-40 Introduction.
+
+T.CAS mode.... CHECK ARMED(blue)
+When the AUTO PILOT/FLIGHT DIRECTOR mode arms, the flight crew must be prepared to apply the AUTO PILOT/FLIGHT DIRECTOR T.CAS procedure in the case of a Resolution Advisory.
+If the AUTO PILOT/FLIGHT DIRECTOR T.CAS mode does not arm, the flight crew must be prepared to apply the basic T.CAS procedure in the case of a Resolution Advisory.
+If the AUTO THRUST is OFF:
+
+AUTO THRUST....ON
+The flight crew should set the AUTO THRUST ON to avoid the triggering of the AUTO FLIGHT AUTO THRUST LIMITED alert at th AUTO THRUST activation, in the case of a Resolution Advisory.
+
+DO NOT PERFORM A MANEUVER BASED ON TA ALONE
+

@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/iosBackground">
+
+    <ImageButton
+        android:id="@+id/qbBack"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:background="@android:color/transparent"
+        android:contentDescription="@string/training_back_button"
+        android:src="@drawable/ic_back"
+        app:tint="@color/iosText"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:layout_margin="16dp" />
+
+    <TextView
+        android:id="@+id/qbTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/a320_question_bank_title"
+        android:textColor="@color/iosText"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        app:layout_constraintTop_toTopOf="@id/qbBack"
+        app:layout_constraintBottom_toBottomOf="@id/qbBack"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <ImageButton
+        android:id="@+id/qbSearch"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:background="@android:color/transparent"
+        android:contentDescription="@string/training_search_accessibility"
+        android:src="@android:drawable/ic_menu_search"
+        app:tint="@color/iosText"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/qbBack"
+        app:layout_constraintBottom_toBottomOf="@id/qbBack"
+        android:layout_marginEnd="16dp" />
+
+    <TextView
+        android:id="@+id/qbProgress"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="1/30"
+        android:textColor="@color/iosChevron"
+        android:textSize="14sp"
+        app:layout_constraintTop_toBottomOf="@id/qbBack"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="10dp" />
+
+    <TextView
+        android:id="@+id/qbScore"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Score: 0/0"
+        android:textColor="@color/iosChevron"
+        android:textSize="14sp"
+        app:layout_constraintTop_toTopOf="@id/qbProgress"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginEnd="16dp" />
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/qbScroll"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        app:layout_constraintTop_toBottomOf="@id/qbProgress"
+        app:layout_constraintBottom_toTopOf="@id/qbBottomBar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:id="@+id/qbQuestion"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Question"
+                android:textSize="28sp"
+                android:textStyle="bold"
+                android:textColor="@color/iosText" />
+
+            <LinearLayout
+                android:id="@+id/qbResultContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <ImageView
+                    android:id="@+id/qbResultIcon"
+                    android:layout_width="64dp"
+                    android:layout_height="64dp"
+                    android:contentDescription="@string/training_score_format" />
+
+                <TextView
+                    android:id="@+id/qbResultTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="FAIL"
+                    android:textSize="30sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/iosRed" />
+
+                <TextView
+                    android:id="@+id/qbResultDetail"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textSize="16sp"
+                    android:textColor="@color/iosText" />
+
+                <TextView
+                    android:id="@+id/qbResultScore"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textSize="16sp"
+                    android:textColor="@color/iosHint" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/qbOptionsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="16dp" />
+
+        </LinearLayout>
+
+    </androidx.core.widget.NestedScrollView>
+
+    <LinearLayout
+        android:id="@+id/qbBottomBar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:background="@color/iosBackground"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <Button
+            android:id="@+id/qbStartNew"
+            style="@style/Widget.FlightTimeApp.TrainingButton.GrayLarge"
+            android:layout_width="0dp"
+            android:layout_height="56dp"
+            android:layout_weight="1"
+            android:text="@string/training_start_new_quiz" />
+
+        <Space
+            android:layout_width="12dp"
+            android:layout_height="0dp" />
+
+        <Button
+            android:id="@+id/qbNext"
+            style="@style/Widget.FlightTimeApp.TrainingButton.BlueLarge"
+            android:layout_width="0dp"
+            android:layout_height="56dp"
+            android:layout_weight="1"
+            android:text="@string/training_next" />
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

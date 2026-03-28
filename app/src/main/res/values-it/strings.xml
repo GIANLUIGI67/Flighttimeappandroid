@@ -1,0 +1,242 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    
+    <string name="app_name">Flight Time</string>
+
+    
+    <string name="pro_label">PRO</string>
+    <string name="pro_active">ATTIVO</string>
+    <string name="update_access">Aggiorna accesso</string>
+    <string name="details">Dettagli</string>
+    <string name="restore_purchases">Ripristina</string>
+
+    
+    <string name="salary_calculator">Salary Calculator</string>
+    <string name="crew_layover">Crew Layover</string>
+    <string name="training">Training</string>
+
+    
+    <string name="cd_salary_icon">Salary</string>
+    <string name="cd_crew_icon">Crew</string>
+    <string name="cd_training_icon">Training</string>
+    <string name="cd_chevron">Open</string>
+    <string name="cd_pro_icon">Pro Active</string>
+
+    
+    <string name="total_flight_time">Totale ore di volo</string>
+    <string name="total_time_default">00:00</string>
+    <string name="total_time_format">%1$s%2$02d:%3$02d</string>
+
+    
+    <string name="enable_negative_totals">Abilita totali negativi</string>
+
+    
+    <string name="hours_hint">hh</string>
+    <string name="minutes_hint">mm</string>
+    <string name="note_hint">Nota (o...</string>
+    <string name="colon">:</string>
+    <string name="plus">+</string>
+    <string name="minus">−</string>
+    <string name="enter_valid_time">Inserisci un orario valido (ore o minuti)</string>
+
+    
+    <string name="flights_title">Voli</string>
+    <string name="no_flights_added">Nessun volo aggiunto.</string>
+    <string name="entry_time_format">%1$s%2$02d:%3$02d</string>
+
+    
+    <string name="contact_hint">Per segnalare anomalie o consigliare nuove funzionalità utili contattami qui</string>
+    <string name="contact_me">Contattami</string>
+    <string name="share_hint">Condividi l\'app per ampliare la nostra comunita\', raggiunti 20 downloads ti qualifichi per un\'offerta esclusiva a FlightTime for life Pro</string>
+    <string name="share_app">Condividi l\'app</string>
+
+    
+    <string name="delete">Elimina</string>
+    <string name="training_title">Training</string>
+    <string name="training_nav_title">Training</string>
+    <string name="a320_question_bank_title">A320 Family Question bank</string>
+        <string name="a320_cabin_crew_question_bank_title">Domande equipaggio di cabina A320</string>
+<string name="a320_memory_items_title">A320 Memory Items</string>
+    <string name="a320_memory_items_nav_title">A320 Memory Items</string>
+    <string name="a320_memory_items_header">A320 MEMORY ITEMS</string>
+    <string name="a320_disclaimer_title">DISCLAIMER:</string>
+    <string name="a320_disclaimer">ALWAYS REFER TO AIRPLANE FLIGHT MANUAL.\nTHIS IS A GUIDE FOR STUDY AID ONLY</string>
+    <string name="support_app_donate_title">Supporta l’app (Dona €1,99)</string>
+    <string name="training_send_offer_email">Invia email per offerta speciale</string>
+    <string name="training_reached_100_shares">Hai raggiunto 100 condivisioni. Invia una email per ricevere un\'offerta Pro speciale.</string>
+    <string name="training_configure_mail">Configura un account Mail su questo dispositivo per inviare la richiesta.</string>
+    <string name="training_pro_required">Pro richiesto</string>
+    <string name="training_usage_limit_format">Hai usato %1$s per 5 mesi. Passa a Pro per continuare a usare questa sezione.</string>
+    <string name="training_tap_start_quiz">Tocca Avvia nuovo quiz</string>
+    <string name="training_start_new_quiz">Avvia nuovo quiz</string>
+    <string name="training_next">Avanti</string>
+    <string name="training_back_to_menu">Torna al menu</string>
+    <string name="training_search_accessibility">Cerca</string>
+    <string name="training_score_format">Punteggio: %1$d/%2$d</string>
+    <string name="training_score_need_format">%1$d%% (%2$d/%3$d) — servono %4$d corrette</string>
+    <string name="training_search_placeholder">Cerca domanda…</string>
+    <string name="training_search_title">Cerca</string>
+    <string name="training_back_button">Indietro</string>
+    <string name="training_correct_format">Corrette: %1$s</string>
+    <string name="done_button_generic">Fine</string>
+<string name="a320_emer_descent_title">A320 EMER DESCENT</string><string name="a320_loss_of_braking_title">A320 LOSS OF BRAKING</string><string name="a320_stall_recovery_title">A320 STALL RECOVERY</string><string name="a320_stall_warning_lift_off_title">A320 STALL WARNING AT LIFT OFF</string><string name="a320_unreliable_speed_title">A320 UNRELIABLE SPEED INDICATION</string><string name="a320_windshear_reactive_title">A320 WINDSHEAR REACTIVE</string><string name="a320_taws_caution_title">A320 TAWS CAUTION</string><string name="a320_taws_warning_title">A320 TAWS WARNING</string><string name="a320_tcas_caution_title">A320 TCAS CAUTION TRAFFIC ADVISORY</string><string name="a320_tcas_warning_title">A320 TCAS WARNING</string>
+
+    <string name="crew_layover_title">Crew Layover</string>
+    <string name="cl_under_construction">IN COSTRUZIONE</string>
+    <string name="cl_online_nearby_default">Crew online nelle vicinanze: 0</string>
+    <string name="cl_online_nearby_format">Crew online nelle vicinanze: %1$d</string>
+    <string name="cl_near_me">Vicino a me</string>
+    <string name="cl_community_dev_title">Community</string>
+    <string name="cl_community_share_hint">Condividi l\'app per ampliare la nostra community.</string>
+    <string name="cl_share_button">Condividi</string>
+    <string name="cl_share_sheet_text">Unisciti a Crew Layover su FlightTime</string>
+    <string name="cl_donate_button">Dona</string>
+    <string name="cl_profile_settings">Impostazioni profilo</string>
+    <string name="cl_visibility">Visibilità</string>
+    <string name="cl_role">Ruolo</string>
+    <string name="cl_nickname">Nickname</string>
+    <string name="cl_nickname_hint">Nickname</string>
+    <string name="cl_company_hint">Compagnia</string>
+    <string name="cl_base_hint">Base (codice paese)</string>
+    <string name="cl_phone_hint">Numero di telefono</string>
+    <string name="cl_enable">Abilita Crew Layover</string>
+    <string name="cl_create_event">Crea evento</string>
+    <string name="cl_where_hint">Dove</string>
+    <string name="cl_pick_date">Scegli data e ora</string>
+    <string name="cl_send_to_all">Invia a tutti nelle vicinanze</string>
+    <string name="cl_active_events">Eventi attivi</string>
+    <string name="cl_join">Partecipa</string>
+    <string name="cl_leave">Esci</string>
+    <string name="cl_event">Evento</string>
+    <string name="cl_event_created">Evento creato</string>
+    <string name="cl_online_now">Online ora</string>
+    <string name="cl_active_last_24h">Attivi ultime 24h</string>
+    <string name="cl_message_hint">Messaggio</string>
+    <string name="cl_send">Invia</string>
+    <string name="cl_chat">Chat</string>
+    <string name="cl_chats">Chat</string>
+    <string name="cl_pick_photo">Scegli foto</string>
+    <string name="cl_clear_photo">Rimuovi foto</string>
+    <string name="cl_profile_photo">Foto profilo</string>
+    <string name="cl_auth_failed">Autenticazione fallita</string>
+    <string name="settings_button">Impostazioni</string>
+
+    <string name="cl_role_cabin_crew">Cabin crew</string>
+    <string name="cl_role_flight_deck">Flight deck</string>
+
+    <string name="cl_visibility_everyone">Tutti</string>
+    <string name="cl_visibility_same_role">Solo stesso ruolo</string>
+    <string name="cl_visibility_same_country_code">Solo stesso codice paese</string>
+    <string name="cl_visibility_same_base">Solo stessa base</string>
+    <string name="cl_visibility_cabin_crew_all">Cabin crew (tutti)</string>
+    <string name="cl_visibility_flight_deck_all">Flight deck (tutti)</string>
+    <string name="cl_visibility_cabin_crew_not_base">Cabin crew (non base)</string>
+    <string name="cl_visibility_flight_deck_not_base">Flight deck (non base)</string>
+
+    <string name="cl_meeting_coffee">Caffè</string>
+    <string name="cl_meeting_dinner">Cena</string>
+    <string name="cl_meeting_walk">Passeggiata</string>
+    <string name="cl_meeting_other">Altro</string>
+
+    <string name="cl_alarm_none">Nessun promemoria</string>
+    <string name="cl_alarm_15_min">15 minuti</string>
+    <string name="cl_alarm_30_min">30 minuti</string>
+    <string name="cl_alarm_1_hour">1 ora</string>
+    <string name="cl_alarm_2_hours">2 ore</string>
+    <string name="cl_profile_nav_title">Profilo</string>
+    <string name="cl_photo_section">Foto</string>
+    <string name="cl_tap_to_change_photo">Tocca per cambiare foto</string>
+    <string name="cl_choose_photo">Scegli foto</string>
+    <string name="cl_profile_section">Profilo</string>
+    <string name="cl_company_optional">Compagnia (opzionale)</string>
+    <string name="cl_phone_optional">Telefono (opzionale)</string>
+    <string name="cl_visibility_section">Visibilità</string>
+    <string name="cl_excluded_bases_header">Basi escluse</string>
+    <string name="cl_excluded_bases_footer">Aggiungi basi da escludere dalla visibilità.</string>
+    <string name="cl_add_base_placeholder">Aggiungi codice base</string>
+    <string name="cl_add">Aggiungi</string>
+    <string name="cl_no_exclusions">Nessuna esclusione</string>
+    <string name="cl_profile_required_warning">Completa il profilo per usare questa funzione.</string>
+    <string name="cl_no_events_available">Nessun evento disponibile al momento.</string>
+    <string name="cl_joined_badge">Iscritto</string>
+    <string name="share_app_card_text">Condividi l\'app per far crescere la community. Al raggiungimento di 20 download, avrai diritto a un\'offerta esclusiva FlightTime for Life Pro.</string>
+    <string name="share_app_button">Condividi app</string>
+    <string name="cl_community_section_title">Community</string>
+    <string name="cl_visibility_section_title">Visibilità</string>
+    <string name="cl_who_can_see_me">Chi può vedermi</string>
+    <string name="cl_meeting_type_section_title">Tipo di incontro</string>
+    <string name="cl_meeting_type_picker">Tipo</string>
+    <string name="cl_create_event_section_title">Crea evento</string>
+    <string name="cl_create_event_toggle">Crea evento</string>
+    <string name="cl_event_date_time">Data e ora evento</string>
+    <string name="cl_event_expires_at">Scadenza evento</string>
+    <string name="cl_event_where">Dove</string>
+    <string name="cl_event_send_to_all">Invia a tutti nelle vicinanze</string>
+    <string name="cl_create_event_now">Crea evento</string>
+    <string name="cl_available_events_title">Eventi disponibili</string>
+
+    <string name="sub_details_title">Dettagli Abbonamento</string>
+    <string name="sub_details_body">L’abbonamento si rinnova automaticamente finché non viene annullato almeno 24 ore prima della scadenza. Puoi gestire o annullare l’abbonamento nelle impostazioni del Google Play Store.</string>
+    <string name="sub_details_info_header">Informazioni Abbonamento</string>
+    <string name="sub_details_done">Fine</string>
+    <string name="sub_details_privacy">Privacy Policy</string>
+    <string name="sub_details_terms">Termini di utilizzo</string>
+    <string name="sub_details_google_terms">Termini e condizioni Google (in arrivo)</string>
+    <string name="sub_details_coming_soon">In arrivo</string>
+    <string name="no_browser_app">Nessuna app del browser trovata.</string>
+    <string name="cl_photo_message_preview">Foto</string>
+    <string name="cl_photo_expired">Foto scaduta</string>
+    <string name="cl_new_message_from">Messaggio da %1$s</string>
+    <string name="cl_profile_incomplete_chat_message">Inserisci una foto, il tuo nickname e il tuo ruolo per permettere agli altri di vederti correttamente.</string>
+    <string name="cl_system_sender_name">Supporto FlightTime</string>
+    <string name="cl_distance_max_label">Distanza massima</string>
+    <string name="cl_distance_unlimited_toggle">Senza limite</string>
+    <string name="cl_distance_km_format">%1$d km</string>
+    <string name="a330_question_bank_title">Banco domande A330</string>
+    <string name="a380_question_bank_title">A380 Question bank</string>
+    <string name="b737_question_bank_title">B737 Question bank</string>
+    <string name="b777_question_bank_title">B777 Question bank</string>
+    <string name="b787_question_bank_title">B787 Question bank</string>
+    <string name="cl_event_reminders_toggle">Event reminders</string>
+    <string name="cl_event_alarm_title">Crew event reminder</string>
+    <string name="cl_event_alarm_body">Event starting soon: %1$s</string>
+    <string name="cl_event_alarm_channel_name">Event reminders</string>
+    <string name="cl_event_alarm_channel_desc">Notifications for upcoming crew layover events.</string>
+    <string name="cl_alarm_5_min">5 minutes before</string>
+    <string name="cl_alarm_10_min">10 minutes before</string>
+<string name="my_layover_info_title">My layover info</string>
+    <string name="my_layover_info_detecting">Detecting your city...</string>
+    <string name="my_layover_info_city_format">Città: %1$s</string>
+    <string name="cl_location_required_title">Location Required</string>
+    <string name="cl_location_required_message">Enable location to detect your layover city.</string>
+    <string name="cl_location_open_settings">Open Settings</string>
+    <string name="cl_location_cancel">Cancel</string>
+    <string name="cl_layover_info_transport">Transport</string>
+    <string name="cl_layover_info_places">Places of interest</string>
+    <string name="cl_layover_info_restaurants">Restaurants</string>
+    <string name="cl_layover_info_clubs">Clubs</string>
+    <string name="cl_layover_info_other">Other</string>
+    <string name="cl_layover_info_options">Options</string>
+    <string name="cl_layover_info_categories">Categories</string>
+    <string name="cl_layover_info_no_city">City unavailable. Enable location to view layover info.</string>
+    <string name="cl_layover_info_empty">No info yet. Be the first to add one.</string>
+    <string name="cl_layover_info_add_button">Add</string>
+    <string name="cl_layover_info_add_title">Title</string>
+    <string name="cl_layover_info_add_details">Details</string>
+    <string name="cl_layover_info_add_city">Città</string>
+    <string name="cl_layover_info_edit">Modifica</string>
+    <string name="cl_layover_info_warnings">Avvisi</string>
+    <string name="cl_layover_info_add_location">Posizione</string>
+    <string name="cl_layover_info_save">Save</string>
+    <string name="cl_layover_info_cancel">Cancel</string>
+    <string name="cl_layover_info_delete">Delete</string>
+<string name="cl_layover_info_shopping">Shopping</string>
+<string name="cl_layover_info_entertainment">Entertainment</string>
+    <string name="cl_layover_info_edit_city">Modifica città</string>
+    <string name="cl_layover_info_edit_city_message">Imposta una città personalizzata o ripristina quella rilevata.</string>
+    <string name="cl_layover_info_reset_city">Ripristina</string>
+    <string name="cl_layover_info_hotels">Hotel</string>
+    <string name="cl_layover_info_crew_discounts">Sconti equipaggio</string>
+    <string name="cl_event_alarm">Promemoria</string>
+    <string name="cl_event_open_chat_hint">Per accedere alla chat evento clicca qui.</string>
+</resources>

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingVertical="6dp">
+
+    <TextView
+        android:id="@+id/timeLabel"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="@string/salary_month_scheduled_block"
+        android:textColor="@color/iosText"
+        android:textSize="15sp"
+        tools:text="Scheduled Block" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <EditText
+            android:id="@+id/timeH"
+            android:layout_width="40dp"
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
+            android:inputType="number"
+            android:textColor="@color/iosText"
+            android:textSize="15sp"
+            android:textAlignment="viewEnd" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="4dp"
+            android:text="@string/colon"
+            android:textColor="@color/iosText"
+            android:textSize="15sp" />
+
+        <EditText
+            android:id="@+id/timeM"
+            android:layout_width="40dp"
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
+            android:inputType="number"
+            android:textColor="@color/iosText"
+            android:textSize="15sp"
+            android:textAlignment="viewEnd" />
+    </LinearLayout>
+</LinearLayout>

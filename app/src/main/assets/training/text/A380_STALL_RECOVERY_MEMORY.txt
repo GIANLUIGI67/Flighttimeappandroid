@@ -1,0 +1,12 @@
+STALL I HAVE CONTROL
+
+NOSE DOWN PITCH CONTROL ....APPLY
+BANK ....WINGS LEVEL
+
+WHEN OUT OF STALL:
+THRUST ....INCREASE SMOOTHLY AS NEEDED
+SPEEDBRAKES ....CHECK RETRACTED
+FLIGHT PATH ....RECOVER SMOOTHLY
+If in clean configuration and below 20 thousand feet:
+FLAP 1....SELECT
+Note If a risk of ground contact exists, once clearly out of stall (no longer stall indications), establish smoothly a positive climb gradient.

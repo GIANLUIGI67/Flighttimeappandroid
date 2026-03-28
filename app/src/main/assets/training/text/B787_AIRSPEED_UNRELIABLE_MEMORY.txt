@@ -1,0 +1,14 @@
+AUTOPILOT DISCONNECT ....PUSH
+AUTO THRUST ARM switches (both) ....OFF
+FLIGHT DIRECTOR switches (both) ....OFF
+
+Condition: Airspeed or Mach disagree with ANGLE OF ATTACK calculated airspeed.
+
+Autopilot disconnect switch ....PUSH
+AUTO THRUST ARM switches (both) ....OFF
+FLIGHT DIRECTOR switches (both) ....OFF
+
+Set pitch and thrust:
+
+Flaps extended ....10° and 85% N.1
+Flaps up ....4° and 70% N.1

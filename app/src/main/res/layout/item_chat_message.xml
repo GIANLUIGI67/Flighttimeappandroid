@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginVertical="6dp">
+
+    <LinearLayout
+        android:id="@+id/messageRow"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="top">
+
+        <ImageView
+            android:id="@+id/messageAvatar"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/bg_ios_pill_light"
+            android:scaleType="centerCrop" />
+
+        <LinearLayout
+            android:id="@+id/messageContent"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/messageName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/iosHint"
+                android:textSize="12sp"
+                android:layout_marginBottom="2dp" />
+
+            <ImageView
+                android:id="@+id/messageImage"
+                android:layout_width="220dp"
+                android:layout_height="220dp"
+                android:layout_marginBottom="4dp"
+                android:background="@drawable/bg_ios_row_12"
+                android:padding="4dp"
+                android:scaleType="centerCrop"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/messageText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:padding="10dp"
+                android:textColor="@color/iosText"
+                android:background="@drawable/bg_ios_pill_light" />
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

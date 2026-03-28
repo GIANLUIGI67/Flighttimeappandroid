@@ -1,0 +1,47 @@
+EMERGENCY DESCENT
+
+CREW OXYGEN MASKS ....USE
+SIGNS ....ON
+EMERGENCY DESCENT ....INITIATE
+
+If AUTO THRUST not active:
+THRUST LEVERS ....IDLE
+
+SPEED BRAKE ....FULL
+
+When descent established:
+SPEED ....MAXIMUM APPROPRIATE
+
+If structural damage suspected: MANEUVER WITH CARE
+
+CONSIDER LANDING GEAR EXTENSION
+Landing gear may be extended. In such a case, speed must be reduced to V.L.O./V.L.E.
+
+ENGINE START SELECTOR ....IGNITION
+A.T.C. ....NOTIFY
+
+Notify A.T.C. of the nature of the emergency, and state intention. The flight crew can
+communicate with the A.T.C. using voice, or C.P.D.L.C. when the voice contact cannot be
+established or has poor quality.
+
+EMERGENCY DESCENT (P.A.) ....ANNOUNCE
+The flight crew must inform the cabin of emergency descent on the PA system.
+
+A.T.C. TRANSPONDER 7700 ....CONSIDER
+Squawk 7700 unless otherwise specified by A.T.C.
+
+CREW OXYIGEN MASKS DILUTION ....NORMAL
+
+- To save oxygen, set the oxygen diluter selector to the N position
+- If the oxygen diluter selector remains set to 100 %, oxygen quantity may be insufficient to
+cover the entire emergency descent profile
+- Ensure that crew communication is established with oxygen masks. Avoid the continuous
+use of the inter phone to minimize interference with the breathing noise in the oxygen mask.
+
+MAXIMUM FLIGHT LEVEL: 100 / M.E.A. - MORA
+
+If CABIN ALTITUDE above 14 THOUSAND feet:
+OXYGEN PAX MASK MANUAL ON ....PRESS
+
+Note: Notify the cabin crew, when the aircraft reaches a safe flight level, and when
+cabin oxygen is no more necessary.

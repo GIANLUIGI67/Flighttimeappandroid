@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <TextView
+        android:id="@+id/qbSearchQuestion"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Question"
+        android:textColor="@color/iosText"
+        android:textSize="15sp"
+        android:maxLines="2" />
+
+    <TextView
+        android:id="@+id/qbSearchCorrect"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="Correct: A"
+        android:textColor="@color/iosGreen"
+        android:textSize="12sp" />
+</LinearLayout>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="iosText">#FFFFFF</color>
+    <color name="iosHint">#8E8E93</color>
+    <color name="iosCardBg">#1C1C1E</color>
+    <color name="iosCardStroke">#2C2C2E</color>
+    <color name="iosFieldBg">#1C1C1E</color>
+    <color name="iosFieldStroke">#2C2C2E</color>
+    <color name="iosChevron">#8E8E93</color>
+    <color name="iosIcon">#FFFFFF</color>
+    <color name="iosPillLight">#2C2C2E</color>
+    <color name="iosRipple">#22007AFF</color>
+    <color name="iosBlue">#0A84FF</color>
+    <color name="iosGreen">#30D158</color>
+    <color name="iosRed">#FF453A</color>
+    <color name="iosBackground">#000000</color>
+    <color name="iosButtonGrey">#2C2C2E</color>
+
+    <color name="qbOptionNormalBg">@color/iosCardBg</color>
+    <color name="qbOptionNormalStroke">@color/iosCardStroke</color>
+    <color name="qbOptionSelectedBg">#0A1B33</color>
+    <color name="qbOptionSelectedStroke">@color/iosBlue</color>
+    <color name="qbOptionCorrectBg">#0F2A1B</color>
+    <color name="qbOptionCorrectStroke">@color/iosGreen</color>
+    <color name="qbOptionWrongBg">#2A0F0F</color>
+    <color name="qbOptionWrongStroke">@color/iosRed</color>
+</resources>

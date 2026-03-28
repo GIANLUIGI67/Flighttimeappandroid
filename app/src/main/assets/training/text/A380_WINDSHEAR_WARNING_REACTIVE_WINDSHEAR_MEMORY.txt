@@ -1,0 +1,24 @@
+Before V1:
+If there are significant variations in airspeed, and in airspeed trend below the indicated V1, reject the takeoff.
+
+After V1:
+
+WINDSHEAR TOGA
+
+THR LEVERS ....TOGA
+REACHING VR ....ROTATE NORMALLY
+SRS ORDERS ....FOLLOW
+
+
+When airborne, during initial climb, or at landing:
+
+THR LEVERS AT TOGA ....SET OR CONFIRM
+AUTOPILOT (if engaged) ....KEEP ON
+SRS ORDERS ....FOLLOW
+
+DO NOT CHANGE CONFIGURATION (SLATS/FLAPS/GEAR) UNTIL OUT OF WINDSHEAR.
+
+CAREFULLY MONITOR FLIGHT PATH AND SPEED.
+
+RECOVER SMOOTHLY TO CLIMB, WHEN OUT OF WINDSHEAR.
+

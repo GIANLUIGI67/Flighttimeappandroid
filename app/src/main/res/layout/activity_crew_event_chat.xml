@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/iosBackground"
+    android:padding="12dp"
+    android:fitsSystemWindows="true">
+
+    <ImageButton
+        android:id="@+id/eventChatBack"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:background="@android:color/transparent"
+        android:contentDescription="@string/training_back_button"
+        android:src="@drawable/ic_back"
+        app:tint="@color/iosText"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/eventChatTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/iosText"
+        android:textStyle="bold"
+        android:textSize="18sp"
+        app:layout_constraintTop_toTopOf="@id/eventChatBack"
+        app:layout_constraintBottom_toBottomOf="@id/eventChatBack"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <Button
+        android:id="@+id/eventJoinLeaveBtn"
+        style="@style/Widget.FlightTimeApp.TrainingButton.Blue"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
+        android:textStyle="bold"
+        android:text="@string/cl_join"
+        app:layout_constraintTop_toTopOf="@id/eventChatBack"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <Button
+        android:id="@+id/eventDeleteBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
+        android:layout_marginEnd="8dp"
+        android:background="@drawable/bg_ios_row_12"
+        android:paddingHorizontal="12dp"
+        android:text="@string/cl_delete_event"
+        android:textColor="@color/iosRed"
+        android:textStyle="bold"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="@id/eventChatBack"
+        app:layout_constraintEnd_toStartOf="@id/eventJoinLeaveBtn" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/eventChatRecycler"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="12dp"
+        android:clipToPadding="false"
+        app:layout_constraintTop_toBottomOf="@id/eventChatBack"
+        app:layout_constraintBottom_toTopOf="@id/eventChatInputRow"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <LinearLayout
+        android:id="@+id/eventChatInputRow"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="8dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <ImageButton
+            android:id="@+id/eventChatPhotoBtn"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@drawable/bg_ios_row_12"
+            android:contentDescription="@string/cl_photo_section"
+            android:src="@android:drawable/ic_menu_camera"
+            app:tint="@color/iosText" />
+
+        <Button
+            android:id="@+id/eventChatPhotoExpiryBtn"
+            android:layout_width="48dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/bg_ios_btn_grey"
+            android:backgroundTint="@null"
+            android:text="∞"
+            android:textColor="@color/iosBlue"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/eventChatInput"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@drawable/bg_ios_field"
+            android:padding="10dp"
+            android:hint="@string/cl_message_hint"
+            android:textColor="@color/iosText"
+            android:textColorHint="@color/iosHint" />
+
+        <Button
+            android:id="@+id/eventChatSend"
+            style="@style/Widget.FlightTimeApp.TrainingButton.Blue"
+            android:layout_width="wrap_content"
+            android:layout_height="44dp"
+            android:layout_marginStart="8dp"
+            android:text="@string/cl_send"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

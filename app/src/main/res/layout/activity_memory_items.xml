@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/iosBackground"
+    android:fillViewport="true">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="18dp">
+
+        <ImageButton
+            android:id="@+id/memoryBack"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/training_back_button"
+            android:src="@drawable/ic_back"
+            app:tint="@color/iosText"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/memoryTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/a320_memory_items_nav_title"
+            android:textColor="@color/iosText"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            app:layout_constraintTop_toTopOf="@id/memoryBack"
+            app:layout_constraintBottom_toBottomOf="@id/memoryBack"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <LinearLayout
+            android:id="@+id/memoryContent"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="18dp"
+            app:layout_constraintTop_toBottomOf="@id/memoryBack"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <TextView
+                android:id="@+id/memoryHeader"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/a320_memory_items_header"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:textColor="@color/iosText"
+                android:gravity="center"
+                android:paddingHorizontal="24dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="12dp"
+                android:paddingHorizontal="24dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/a320_disclaimer_title"
+                    android:textStyle="bold"
+                    android:textColor="@color/iosRed" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/a320_disclaimer"
+                    android:textSize="12sp"
+                    android:textColor="@color/iosRed" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/memoryGlobalControls"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="14dp"
+                android:paddingHorizontal="24dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/btnPlayAllMemory"
+                        style="@style/Widget.FlightTimeApp.TrainingButton.Blue"
+                        android:layout_width="0dp"
+                        android:layout_height="44dp"
+                        android:layout_weight="1"
+                        android:textSize="12sp"
+                        android:gravity="center"
+                        android:paddingVertical="6dp"
+                        android:maxLines="1"
+                        android:ellipsize="end"
+                        android:text="@string/training_play_all_memory" />
+
+                    <Space
+                        android:layout_width="12dp"
+                        android:layout_height="0dp" />
+
+                    <Button
+                        android:id="@+id/btnLoopAllMemory"
+                        style="@style/Widget.FlightTimeApp.TrainingButton.Gray"
+                        android:layout_width="0dp"
+                        android:layout_height="44dp"
+                        android:layout_weight="1"
+                        android:textSize="12sp"
+                        android:gravity="center"
+                        android:paddingVertical="6dp"
+                        android:maxLines="1"
+                        android:ellipsize="end"
+                        android:text="@string/training_loop_memory" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="10dp">
+
+                    <Button
+                        android:id="@+id/btnPlayAllProcedure"
+                        style="@style/Widget.FlightTimeApp.TrainingButton.Blue"
+                        android:layout_width="0dp"
+                        android:layout_height="44dp"
+                        android:layout_weight="1"
+                        android:textSize="12sp"
+                        android:gravity="center"
+                        android:paddingVertical="6dp"
+                        android:maxLines="1"
+                        android:ellipsize="end"
+                        android:text="@string/training_play_all_procedure" />
+
+                    <Space
+                        android:layout_width="12dp"
+                        android:layout_height="0dp" />
+
+                    <Button
+                        android:id="@+id/btnLoopAllProcedure"
+                        style="@style/Widget.FlightTimeApp.TrainingButton.Gray"
+                        android:layout_width="0dp"
+                        android:layout_height="44dp"
+                        android:layout_weight="1"
+                        android:textSize="12sp"
+                        android:gravity="center"
+                        android:paddingVertical="6dp"
+                        android:maxLines="1"
+                        android:ellipsize="end"
+                        android:text="@string/training_loop_procedure" />
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/btnStopAll"
+                    style="@style/Widget.FlightTimeApp.TrainingButton.Gray"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:layout_marginTop="10dp"
+                    android:textSize="12sp"
+                    android:gravity="center"
+                    android:paddingVertical="6dp"
+                    android:text="@string/training_stop" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="16dp"
+                android:background="@color/iosCardStroke" />
+
+            <LinearLayout
+                android:id="@+id/memoryItemsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="16dp" />
+
+        </LinearLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.core.widget.NestedScrollView>

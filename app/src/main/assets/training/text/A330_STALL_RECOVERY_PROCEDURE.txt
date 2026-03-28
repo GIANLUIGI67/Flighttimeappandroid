@@ -1,0 +1,30 @@
+
+
+As soon as any stall indication (could be aural warning, "STALL STALL" red message on P.F.D., buffet, etc.) is recognized, apply the immediate actions:
+
+
+STALL I HAVE CONTROL
+
+NOSE DOWN PITCH CONTROL ....APPLY
+
+This will reduce angle of attack
+
+Note: In the case of lack of pitch down authority, reducing thrust may be necessary.
+
+BANK ....WINGS LEVEL
+
+When out of stall (no longer stall indications):
+
+THRUST ....INCREASE SMOOTHLY AS NEEDED
+
+Note: In the case of one engine inoperative, progressively compensate the thrust asymmetry with rudder.
+
+SPEED BRAKES ....CHECK RETRACTED
+
+FLIGHT PATH ....RECOVER SMOOTHLY
+
+If in clean configuration and below Twenty thousand  feet:
+
+FLAPS 1 ....SELECT
+
+Note: If a risk of ground contact exists, once clearly out of stall (no longer stall indications), establish smoothly a positive climb gradient.

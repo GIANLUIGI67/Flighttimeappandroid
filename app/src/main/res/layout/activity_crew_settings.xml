@@ -1,0 +1,550 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/iosBackground"
+    android:fillViewport="true">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="12dp">
+
+        <ImageButton
+            android:id="@+id/settingsBack"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/training_back_button"
+            android:src="@drawable/ic_back"
+            app:tint="@color/iosText"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/settingsTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/crew_layover_title"
+            android:textColor="@color/iosText"
+            android:textStyle="bold"
+            android:textSize="18sp"
+            app:layout_constraintTop_toTopOf="@id/settingsBack"
+            app:layout_constraintBottom_toBottomOf="@id/settingsBack"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/shareCard"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            app:cardBackgroundColor="@color/iosCardBg"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/iosCardStroke"
+            app:layout_constraintTop_toBottomOf="@id/settingsBack"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:id="@+id/shareCardText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/share_app_card_text"
+                    android:textColor="@color/iosText"
+                    android:textSize="13sp"
+                    android:gravity="center" />
+
+                <Button
+                    android:id="@+id/shareAppBtn"
+                    style="@style/Widget.FlightTimeApp.TrainingButton.Blue"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/share_app_button"
+                    android:textStyle="bold"
+                    android:textAllCaps="false"
+                    android:paddingHorizontal="16dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <LinearLayout
+            android:id="@+id/profileRow"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_ios_row_12"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="12dp"
+            app:layout_constraintTop_toBottomOf="@id/shareCard"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:src="@drawable/ic_settings"
+                android:contentDescription="@string/cl_profile_settings"
+                app:tint="@color/iosIcon" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:text="@string/cl_profile_settings"
+                android:textColor="@color/iosText"
+                android:textStyle="bold"
+                android:textSize="16sp" />
+
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:src="@drawable/ic_chevron_right"
+                app:tint="@color/iosChevron" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/communityTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/cl_community_section_title"
+            android:textColor="@color/iosHint"
+            android:textStyle="bold"
+            android:layout_marginTop="12dp"
+            app:layout_constraintTop_toBottomOf="@id/profileRow"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <TextView
+            android:id="@+id/communityWarning"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="@string/cl_profile_required_warning"
+            android:textColor="@color/iosHint"
+            android:textSize="12sp"
+            android:visibility="gone"
+            android:layout_marginTop="4dp"
+            app:layout_constraintTop_toBottomOf="@id/communityTitle"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/communityCard"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            app:cardBackgroundColor="@color/iosCardBg"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/iosCardStroke"
+            app:layout_constraintTop_toBottomOf="@id/communityWarning"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:id="@+id/nearMeRow"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="12dp">
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:src="@drawable/ic_location"
+                        android:contentDescription="@string/cl_near_me"
+                        app:tint="@color/iosIcon" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:text="@string/cl_near_me"
+                        android:textColor="@color/iosText"
+                        android:textStyle="bold"
+                        android:textSize="16sp" />
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_chevron_right"
+                        app:tint="@color/iosChevron" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/iosCardStroke" />
+
+                <LinearLayout
+                    android:id="@+id/chatsRow"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="12dp">
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:src="@drawable/ic_chat"
+                        android:contentDescription="@string/cl_chats"
+                        app:tint="@color/iosIcon" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:text="@string/cl_chats"
+                        android:textColor="@color/iosText"
+                        android:textStyle="bold"
+                        android:textSize="16sp" />
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_chevron_right"
+                        app:tint="@color/iosChevron" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/iosCardStroke" />
+
+                <LinearLayout
+                    android:id="@+id/myLayoverInfoRow"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="12dp">
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:src="@drawable/ic_settings"
+                        android:contentDescription="@string/my_layover_info_title"
+                        app:tint="@color/iosIcon" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:text="@string/my_layover_info_title"
+                        android:textColor="@color/iosText"
+                        android:textStyle="bold"
+                        android:textSize="16sp" />
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_chevron_right"
+                        app:tint="@color/iosChevron" />
+                </LinearLayout>
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:id="@+id/visibilityTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/cl_visibility_section_title"
+            android:textColor="@color/iosHint"
+            android:textStyle="bold"
+            android:layout_marginTop="12dp"
+            app:layout_constraintTop_toBottomOf="@id/communityCard"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <LinearLayout
+            android:id="@+id/visibilityRow"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_ios_row_12"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="12dp"
+            app:layout_constraintTop_toBottomOf="@id/visibilityTitle"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/cl_who_can_see_me"
+                android:textColor="@color/iosText"
+                android:textSize="15sp" />
+
+            <Spinner
+                android:id="@+id/visibilitySpinner"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@null"
+                android:spinnerMode="dropdown" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/meetingTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/cl_meeting_type_section_title"
+            android:textColor="@color/iosHint"
+            android:textStyle="bold"
+            android:layout_marginTop="12dp"
+            app:layout_constraintTop_toBottomOf="@id/visibilityRow"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <LinearLayout
+            android:id="@+id/meetingRow"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_ios_row_12"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="12dp"
+            app:layout_constraintTop_toBottomOf="@id/meetingTitle"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/cl_meeting_type_picker"
+                android:textColor="@color/iosText"
+                android:textSize="15sp" />
+
+            <Spinner
+                android:id="@+id/meetingSpinner"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@null"
+                android:spinnerMode="dropdown" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/eventSectionTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/cl_create_event_section_title"
+            android:textColor="@color/iosHint"
+            android:textStyle="bold"
+            android:layout_marginTop="12dp"
+            app:layout_constraintTop_toBottomOf="@id/meetingRow"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <TextView
+            android:id="@+id/eventWarning"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="@string/cl_profile_required_warning"
+            android:textColor="@color/iosHint"
+            android:textSize="12sp"
+            android:visibility="gone"
+            android:layout_marginTop="4dp"
+            app:layout_constraintTop_toBottomOf="@id/eventSectionTitle"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <LinearLayout
+            android:id="@+id/createEventRow"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_ios_row_12"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="12dp"
+            app:layout_constraintTop_toBottomOf="@id/eventWarning"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/cl_create_event_toggle"
+                android:textColor="@color/iosText"
+                android:textSize="15sp" />
+
+            <com.google.android.material.materialswitch.MaterialSwitch
+                android:id="@+id/createEventSwitch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:thumbTint="@color/switch_thumb_white"
+                app:trackTint="@color/switch_track_green" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/eventDetailsContainer"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:orientation="vertical"
+            android:visibility="gone"
+            app:layout_constraintTop_toBottomOf="@id/createEventRow"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/eventDateBtn"
+                    style="@style/Widget.FlightTimeApp.TrainingButton.Blue"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:text="@string/cl_event_date_time"
+                    android:textStyle="bold" />
+
+                <View
+                    android:layout_width="8dp"
+                    android:layout_height="0dp" />
+
+                <Button
+                    android:id="@+id/eventTimeBtn"
+                    style="@style/Widget.FlightTimeApp.TrainingButton.Blue"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:text="@string/cl_event_time_only"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="6dp"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/expiresDateBtn"
+                    style="@style/Widget.FlightTimeApp.TrainingButton.Blue"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:text="@string/cl_event_expires_at"
+                    android:textStyle="bold" />
+
+                <View
+                    android:layout_width="8dp"
+                    android:layout_height="0dp" />
+
+                <Button
+                    android:id="@+id/expiresTimeBtn"
+                    style="@style/Widget.FlightTimeApp.TrainingButton.Blue"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:text="@string/cl_event_time_only"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <EditText
+                android:id="@+id/whereInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:background="@drawable/bg_ios_row_12"
+                android:padding="10dp"
+                android:hint="@string/cl_event_where"
+                android:textColor="@color/iosText"
+                android:textColorHint="@color/iosHint" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="6dp"
+                android:background="@drawable/bg_ios_row_12"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="12dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/cl_event_send_to_all"
+                    android:textColor="@color/iosText" />
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/sendToAllSwitch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:thumbTint="@color/switch_thumb_white"
+                    app:trackTint="@color/switch_track_green" />
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/createEventBtn"
+                style="@style/Widget.FlightTimeApp.TrainingButton.Blue"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="8dp"
+                android:text="@string/cl_create_event_now"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/activeEventsTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/cl_available_events_title"
+            android:textColor="@color/iosHint"
+            android:textStyle="bold"
+            android:layout_marginTop="12dp"
+            app:layout_constraintTop_toBottomOf="@id/eventDetailsContainer"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/eventsRecycler"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            app:layout_constraintTop_toBottomOf="@id/activeEventsTitle"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <TextView
+            android:id="@+id/eventsEmptyText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="@string/cl_no_events_available"
+            android:textColor="@color/iosHint"
+            android:textSize="13sp"
+            android:visibility="gone"
+            android:layout_marginTop="4dp"
+            app:layout_constraintTop_toBottomOf="@id/eventsRecycler"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.core.widget.NestedScrollView>

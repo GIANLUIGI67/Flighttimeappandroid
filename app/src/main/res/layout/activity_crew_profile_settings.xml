@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/iosBackground"
+    android:fillViewport="true">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <ImageButton
+            android:id="@+id/profileBack"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/training_back_button"
+            android:src="@drawable/ic_back"
+            app:tint="@color/iosText"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/profileTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/cl_profile_nav_title"
+            android:textColor="@color/iosText"
+            android:textStyle="bold"
+            android:textSize="18sp"
+            app:layout_constraintTop_toTopOf="@id/profileBack"
+            app:layout_constraintBottom_toBottomOf="@id/profileBack"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <TextView
+            android:id="@+id/photoSectionTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/cl_photo_section"
+            android:textColor="@color/iosHint"
+            android:textStyle="bold"
+            android:layout_marginTop="16dp"
+            app:layout_constraintTop_toBottomOf="@id/profileBack"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <LinearLayout
+            android:id="@+id/photoRow"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_ios_row_12"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="12dp"
+            app:layout_constraintTop_toBottomOf="@id/photoSectionTitle"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <ImageView
+                android:id="@+id/profilePhoto"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="@drawable/bg_ios_pill_light"
+                android:contentDescription="@string/cl_profile_photo" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/cl_tap_to_change_photo"
+                    android:textColor="@color/iosText"
+                    android:textSize="14sp" />
+
+                <Button
+                    android:id="@+id/pickPhotoBtn"
+                    style="@style/Widget.FlightTimeApp.TrainingButton.Blue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:layout_marginTop="6dp"
+                    android:text="@string/cl_choose_photo"
+                    android:textStyle="bold"
+                    android:textAllCaps="false"
+                    android:paddingHorizontal="16dp"
+                    android:includeFontPadding="false"
+                    android:minWidth="120dp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/clearPhotoBtn"
+            style="@style/Widget.FlightTimeApp.TrainingButton.Blue"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_marginTop="8dp"
+            android:text="@string/cl_clear_photo"
+            android:textStyle="bold"
+            android:textAllCaps="false"
+            android:paddingHorizontal="16dp"
+            app:layout_constraintTop_toBottomOf="@id/photoRow"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <TextView
+            android:id="@+id/profileSectionTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/cl_profile_section"
+            android:textColor="@color/iosHint"
+            android:textStyle="bold"
+            android:layout_marginTop="18dp"
+            app:layout_constraintTop_toBottomOf="@id/clearPhotoBtn"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <EditText
+            android:id="@+id/nicknameInput"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_ios_row_12"
+            android:padding="10dp"
+            android:hint="@string/cl_nickname"
+            android:textColor="@color/iosText"
+            android:textColorHint="@color/iosHint"
+            android:importantForAutofill="no"
+            android:inputType="textPersonName"
+            app:layout_constraintTop_toBottomOf="@id/profileSectionTitle"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <EditText
+            android:id="@+id/companyInput"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_ios_row_12"
+            android:padding="10dp"
+            android:hint="@string/cl_company_optional"
+            android:textColor="@color/iosText"
+            android:textColorHint="@color/iosHint"
+            android:importantForAutofill="no"
+            android:inputType="text"
+            app:layout_constraintTop_toBottomOf="@id/nicknameInput"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <Spinner
+            android:id="@+id/baseSpinner"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_ios_row_12"
+            app:layout_constraintTop_toBottomOf="@id/companyInput"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <EditText
+            android:id="@+id/phoneInput"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_ios_row_12"
+            android:padding="10dp"
+            android:hint="@string/cl_phone_optional"
+            android:textColor="@color/iosText"
+            android:textColorHint="@color/iosHint"
+            android:inputType="phone"
+            android:importantForAutofill="no"
+            app:layout_constraintTop_toBottomOf="@id/baseSpinner"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <Spinner
+            android:id="@+id/roleSpinner"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_ios_row_12"
+            app:layout_constraintTop_toBottomOf="@id/phoneInput"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <TextView
+            android:id="@+id/visibilitySectionTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/cl_visibility_section"
+            android:textColor="@color/iosHint"
+            android:textStyle="bold"
+            android:layout_marginTop="18dp"
+            app:layout_constraintTop_toBottomOf="@id/roleSpinner"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <Spinner
+            android:id="@+id/visibilitySpinner"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_ios_row_12"
+            app:layout_constraintTop_toBottomOf="@id/visibilitySectionTitle"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <TextView
+            android:id="@+id/excludedSectionTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/cl_excluded_bases_header"
+            android:textColor="@color/iosHint"
+            android:textStyle="bold"
+            android:layout_marginTop="18dp"
+            app:layout_constraintTop_toBottomOf="@id/visibilitySpinner"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <LinearLayout
+            android:id="@+id/excludedInputRow"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_ios_row_12"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="10dp"
+            app:layout_constraintTop_toBottomOf="@id/excludedSectionTitle"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <EditText
+                android:id="@+id/excludedInput"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@null"
+                android:hint="@string/cl_add_base_placeholder"
+                android:textColor="@color/iosText"
+                android:textColorHint="@color/iosHint"
+                android:importantForAutofill="no"
+                android:inputType="textCapCharacters" />
+
+            <Button
+                android:id="@+id/excludedAddBtn"
+                style="@style/Widget.FlightTimeApp.TrainingButton.Blue"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="@string/cl_add"
+                android:textStyle="bold"
+                android:textAllCaps="false"
+                android:paddingHorizontal="16dp"
+                android:includeFontPadding="false"
+                android:minWidth="64dp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/excludedList"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="vertical"
+            app:layout_constraintTop_toBottomOf="@id/excludedInputRow"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <TextView
+            android:id="@+id/excludedFooter"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/cl_excluded_bases_footer"
+            android:textColor="@color/iosHint"
+            android:textSize="12sp"
+            app:layout_constraintTop_toBottomOf="@id/excludedList"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.core.widget.NestedScrollView>

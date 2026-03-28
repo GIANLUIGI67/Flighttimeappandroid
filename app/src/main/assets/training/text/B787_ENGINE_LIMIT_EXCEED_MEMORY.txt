@@ -1,0 +1,7 @@
+Auto Thrust ARM switch (affected side) ....OFF
+Thrust lever (affected side) ....RETARD
+
+Condition: Engine limit exceedance occurs.
+
+Auto Thrust ARM switch (affected side) ....CONFIRM OFF
+Thrust lever (affected side) ....RETARD until ENG LIMIT EXCEED message blanks or thrust lever at idle

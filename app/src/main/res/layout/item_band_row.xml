@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingVertical="6dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/salary_settings_from"
+            android:textColor="@color/iosText"
+            android:textSize="14sp" />
+
+        <EditText
+            android:id="@+id/bandStart"
+            android:layout_width="60dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:background="@android:color/transparent"
+            android:inputType="number"
+            android:textColor="@color/iosText" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:text="@string/salary_settings_to"
+            android:textColor="@color/iosText"
+            android:textSize="14sp" />
+
+        <EditText
+            android:id="@+id/bandEnd"
+            android:layout_width="60dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:background="@android:color/transparent"
+            android:inputType="number"
+            android:textColor="@color/iosText" />
+
+        <TextView
+            android:id="@+id/bandHr"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:text="@string/salary_settings_hr"
+            android:textColor="@color/iosHint"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="6dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/salary_settings_rate"
+            android:textColor="@color/iosText"
+            android:textSize="14sp" />
+
+        <EditText
+            android:id="@+id/bandRate"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:background="@android:color/transparent"
+            android:inputType="numberDecimal"
+            android:textColor="@color/iosText" />
+
+        <TextView
+            android:id="@+id/bandCurrency"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/salary_rate_per_hour_placeholder"
+            android:textColor="@color/iosHint"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/bandDelete"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="@string/salary_settings_delete"
+            android:textColor="@android:color/holo_red_dark"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="10dp"
+        android:background="@color/iosCardStroke" />
+</LinearLayout>

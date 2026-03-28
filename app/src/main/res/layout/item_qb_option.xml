@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/qbOptionCard"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="12dp"
+    app:cardCornerRadius="14dp"
+    app:cardElevation="0dp"
+    app:strokeWidth="1dp"
+    app:strokeColor="#B0B0B0"
+    app:cardBackgroundColor="@color/iosBackground">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="14dp">
+
+        <TextView
+            android:id="@+id/qbOptionLetter"
+            android:layout_width="34dp"
+            android:layout_height="wrap_content"
+            android:text="A."
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="@color/iosText" />
+
+        <TextView
+            android:id="@+id/qbOptionText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Option text"
+            android:textSize="20sp"
+            android:textColor="@color/iosText" />
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

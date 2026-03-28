@@ -1,0 +1,107 @@
+If the safe conduct of the flight is impacted:
+
+UNRELIABLE SPEED
+
+AUTO PILOT ....OFF
+AUTO THRUST ....OFF
+FLIGHT DIRECTOR ....OFF
+
+PITCH / THRUST
+
+Below THRUST REDUCTION ALTITUDE ....15° / TOGA
+Above THRUST REDUCTION ALTITUDE and Below FLIGHT LEVEL  1 hundred ....10° / CLIMB
+Above THRUST REDUCTION ALTITUDE and Above FLIGHT LEVEL 1 hundred ....5° / CLIMB
+
+FLAPS (if CONFIGURATION 0(1)(2)(3)) ....MAINTAIN CURRENT CONFIGURATION
+FLAPS (if CONFIGURATION FULL) ....SELECT CONFIGURATION 3 AND MAINTAIN
+SPEED BRAKES ....CHECK RETRACTED
+LANDING GEAR ....UP
+
+When at or above M.S.A. or Circuit Altitude: Level off for troubleshooting
+
+
+To level off:
+
+AUTO PILOT ....OFF
+AUTO THRUST ....OFF
+FD ....OFF
+SPEED BRAKES ....CHECK RETRACTED
+PITCH THRUST TABLE ....APPLY
+
+refer to table
+
+FLYING TECHNIQUE TO STABILIZE SPEED
+
+Stabilize the altitude. When altitude is stabilized:
+- If the pitch is above the target pitch, increase the thrust and maintain the altitude.
+- If the pitch is below the target pitch, decrease the thrust and maintain the altitude.
+
+When the pitch reaches the target pitch, adjust the thrust to keep this target pitch.
+
+
+When flight path is stabilized:
+
+AUTO PILOT ....OFF
+AUTO THRUST ....OFF
+FLIGHT DIRECTORS ....OFF
+SPEED BRAKES ....CHECK RETRACTED
+FLIGHT PATH ....KEEP STABILIZED
+
+RESPECT STALL WARNING
+
+AFFECTED A.D.R. IDENTIFICATION
+
+PROBE WINDOW HEAT ....ON
+ALL SPEED INDICATIONS ....CROSSCHECK
+
+A.D.R. 3 and STAND BY speeds use the data of the same probe.
+
+If at least one ADR confirmed reliable:
+
+RELIABLE AIR DATA ....USE
+UNRELIABLE ADR push button(s) ....OFF
+
+
+If affected A.D.R.(s) cannot be identified, or all A.D.R.s affected:
+
+When above FLight level  250:
+
+KEEP ONE A.D.R. ON
+TWO A.D.R. push buttons ....OFF
+
+This prevents the flight control laws from using two coherent but unreliable A.D.R. data.
+
+ATC transponder....ALTITUDE REPORTING OFF
+
+For flight continuation: USE PITCH THRUST TABLE
+
+When below FLIGHT LEVEL 250, if speed still unreliable:
+
+ALL A.D.R. push buttons ....OFF
+SPEED ....FLY THE GREEN
+
+Note:
+If the BUSS does not react to longitudinal stick input when flying the green area of the speed scale,
+the flight crew must disregard the BUSS and use pitch/thrust tables.
+
+A.T.C./TRANSPONDER ....ALTITUDE REPORTING OFF
+NAV A.D.R. 1+2+3 FAULT ECAM PROCEDURE ....APPLY
+
+
+CLIMB
+refer to table
+
+CRUISE
+refer to table
+
+DESCENT
+refer to table
+
+INITIAL / INTERMEDIATE APPROACH
+APPLY FLYING TECHNIQUE TO STABILIZE SPEED
+
+LEVEL FLIGHT
+refer to table
+
+FINAL APPROACH AT -3° DESCENT FLIGHT PATH
+refer to table

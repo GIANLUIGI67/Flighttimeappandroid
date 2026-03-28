@@ -1,0 +1,37 @@
+If windshear is detected, either by the systems, or by the flight crew, apply the following recovery techniques:
+
+On ground, at takeoff:
+During the takeoff roll, WINDSHEAR, WINDSHEAR, WINDSHEAR alert is inhibited. Windshear recognition is based on the flight crew observation.
+
+Before V1:
+If there are significant variations in airspeed, and in airspeed trend below the indicated V1, reject the takeoff.
+
+If windshear occurs during the takeoff roll, the aircraft may reach V1 later (or sooner) than expected. The flight crew should ensure that there is sufficient runway remaining to stop the aircraft, if necessary.
+
+After V1:
+
+WINDSHEAR TOGA
+
+THR LEVERS ....TOGA
+REACHING VR ....ROTATE NORMALLY
+SRS ORDERS ....FOLLOW
+
+
+When airborne, during initial climb, or at landing:
+
+THR LEVERS AT TOGA ....SET OR CONFIRM
+AUTOPILOT (if engaged) ....KEEP ON
+SRS ORDERS ....FOLLOW
+
+If necessary, the flight crew may apply full backstick.
+
+Note:
+- If the angle-of-attack value goes above alpha prot, the autopilot disengages.
+- If the FLIGHT DIRECTOR is not available, select an initial pitch attitude of 12.5°. Then, if necessary, increase the pitch attitude, in order to minimize the decrease in altitude.
+
+
+DO NOT CHANGE CONFIGURATION (SLATS/FLAPS/GEAR) UNTIL OUT OF WINDSHEAR.
+
+CAREFULLY MONITOR FLIGHT PATH AND SPEED.
+
+RECOVER SMOOTHLY TO CLIMB, WHEN OUT OF WINDSHEAR.

@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <application
+        android:name=".FlightTimeApplication"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.FlightTimeApp">
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+        <activity
+            android:name=".salary.SalaryHomeActivity"
+            android:exported="false" />
+        <activity
+            android:name=".salary.SalaryLockedActivity"
+            android:exported="false" />
+        <activity
+            android:name=".salary.SalarySettingsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".salary.AllowanceEditorActivity"
+            android:exported="false" />
+        <activity
+            android:name=".salary.DeductionEditorActivity"
+            android:exported="false" />
+        <activity
+            android:name=".salary.BlockBandsEditorActivity"
+            android:exported="false" />
+        <activity
+            android:name=".salary.SalaryMonthDetailActivity"
+            android:exported="false" />
+        <activity
+            android:name=".salary.PayslipActivity"
+            android:exported="false" />
+        <activity
+            android:name=".salary.FlightEditorActivity"
+            android:exported="false" />
+        <activity
+            android:name=".salary.OvertimeListActivity"
+            android:exported="false" />
+        <activity
+            android:name=".salary.LayoverListActivity"
+            android:exported="false" />
+        <activity
+            android:name=".salary.OvertimeEditorActivity"
+            android:exported="false" />
+        <activity
+            android:name=".salary.LayoverEditorActivity"
+            android:exported="false" />
+        <activity
+            android:name=".training.TrainingActivity"
+            android:exported="false" />
+        <activity
+            android:name=".training.MemoryItemsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".training.A330MemoryItemsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".training.A380MemoryItemsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".training.B787MemoryItemsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".training.TrainingTextActivity"
+            android:exported="false" />
+        <activity
+            android:name=".training.QuestionBankActivity"
+            android:exported="false" />
+        <activity
+            android:name=".training.DonateActivity"
+            android:exported="false" />
+        <activity
+            android:name=".SubscriptionDetailsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".crewl.CrewLayoverActivity"
+            android:exported="false" />
+        <activity
+            android:name=".crewl.CrewSettingsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".crewl.CrewProfileSettingsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".crewl.CrewNearbyActivity"
+            android:exported="false" />
+        <activity
+            android:name=".crewl.CrewChatsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".crewl.CrewChatActivity"
+            android:exported="false" />
+        <activity
+            android:name=".crewl.CrewEventChatActivity"
+            android:exported="false" />
+        <activity
+            android:name=".crewl.MyLayoverInfoActivity"
+            android:exported="false" />
+        <activity
+            android:name=".crewl.LayoverInfoCategoryActivity"
+            android:exported="false" />
+        <receiver
+            android:name=".crewl.EventAlarmReceiver"
+            android:exported="false" />
+        <receiver
+            android:name=".crewl.EventExpiryReceiver"
+            android:exported="false" />
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

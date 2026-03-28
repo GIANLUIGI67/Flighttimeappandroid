@@ -1,0 +1,49 @@
+All RA, except any CLIMB R.A. during approach in CONFIGURATION 3 or FULL:
+
+If the AUTO PILOT is off:
+FLIGHT DIRECTOR ORDERS ....FOLLOW
+The AUTO PILOT can be engaged.
+
+Any CLIMB R.A. during approach in CONFIGURATION 3 or FULL:
+
+GO-AROUND ....PERFORM
+
+VERTICAL SPEED ....MONITOR
+
+Respect stall, G.P.W.S., or wind shear warning.
+
+A.T.C. ....NOTIFY
+
+When the "CLEAR OF CONFLICT" aural alert sounds:
+
+AUTO PILOT FLIGHT DIRECTOR ....MONITOR/FOLLOW
+A.T.C. ....NOTIFY
+LATERAL AND VERTICAL GUIDANCE ....ADJUST
+
+SPEED ....ADJUST
+
+All R.A., except any CLIMB R.A. during approach in CONFIGURATION 3 or FULL:
+
+AUTO PILOT (if engaged) ....OFF
+FLIGHT DIRECTORs ....OFF
+
+Respond promptly and smoothly.
+
+VERTICAL SPEED ....ADJUST or MAINTAIN
+
+Any CLIMB R.A. during approach in CONFIGURATION 3 or FULL:
+
+GO-AROUND ....PERFORM
+
+VERTICAL SPEED ....MONITOR
+
+Respect stall, G.P.W.S., or wind shear warnings.
+
+A.T.C.....NOTIFY
+
+When the "CLEAR OF CONFLICT" aural alert sounds:
+
+A.T.C. ....NOTIFY
+LATERAL AND VERTICAL GUIDANCE....ADJUST
+
+AUTO PILOT FLIGHT DIRECTOR ....AS RQUIRED

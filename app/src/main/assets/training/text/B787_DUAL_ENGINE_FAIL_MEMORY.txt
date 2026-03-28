@@ -1,0 +1,7 @@
+FUEL CONTROL switches (both)....CUT OFF then RUN
+RAM AIR TURBINE switch ....PUSH and HOLD 1 second
+
+Condition: Engine speed for both engines below idle.
+
+FUEL CONTROL switches (both) ....CUT OFF then RUN
+RAM AIR TURBINE switch ....PUSH and HOLD for 1 second

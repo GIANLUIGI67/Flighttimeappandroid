@@ -1,0 +1,95 @@
+Always follow RA orders, even if this results in crossing the intruder altitude, because these orders ensure the best altitude separation.
+
+CAUTION
+Be aware that the intruder may have a TCAS, and may maneuver in response to a coordinated RA order. Therefore, not following an RA order could compromise safe separation.
+
+If the AUTO PILOT FLIGHT DIRECTOR TCAS mode is available (AUTO PILOT FLIGHT DIRECTOR T.CAS Procedure):
+The flight crew applies this procedure, when a Resolution Advisory (R.A.) is triggered, and the AUTO PILOT FLIGHT DIRECTOR T.CAS mode engages. The AUTO PILOT FLIGHT DIRECTOR TCAS mode follows the R.A. orders.
+For more information on the AUTP PILOT FLIGHT DIRECTOR TCAS mode engagement following a R.A., Refer to DSC-22-FG-70-110-40 Introduction.
+
+All RA, except any CLIMB R.A. during approach in CONFIGURATION 3 or FULL:
+
+If the AUTO PILOT is off:
+FLIGHT DIRECTOR ORDERS ....FOLLOW
+The AUTO PILOT can be engaged.
+
+VERTICAL SPEED ....MONITOR
+
+If a preventive R.A. was triggered: Check that the vertical speed remains out of the red area of the vertical speed scale.
+If a corrective R.A. was triggered: Check that the vertical speed gets out of the red area, and remains in the green area of the vertical speed scale.
+
+CAUTION
+If for any reason during an RA, the aircraft vertical speed does not reach the green area of the vertical speed scale, the Pilot Flying (P.F.) should disconnect the AUTO PILOT, and override the FLIGHT DIRECTOR orders, in order to lead the aircraft vertical speed out of the red area of the vertical speed scale.
+If necessary, the PILOT FLYING must use the full speed range between Vαmax and VMAX.
+
+Any CLIMB R.A. during approach in CONFIGURATION 3 or FULL:
+
+GO-AROUND ....PERFORM
+
+The AUTO PILOT FLIGHT DIRECTOR T.CAS mode disengages (the AUTO PILOT FLIGHT DIRECTOR does no longer follow the R.A. orders).
+Follow the S.R.S. GO AROUND mode.
+
+VERTICAL SPEED ....MONITOR
+
+Check that the vertical speed remains out of the red area of the vertical speed scale, and take over if necessary.
+
+Respect stall, G.P.W.S., or wind shear warning.
+
+A.T.C. ....NOTIFY
+
+When the "CLEAR OF CONFLICT" aural alert sounds:
+
+The AUTO PILOT FLIGHT DIRECTOR TCAS mode, if engaged, disengages. For more information, Refer to DSC-22-FG-70-110-40 Introduction.
+
+AUTO PILOT FLIGHT DIRECTOR ....MONITOR/FOLLOW
+A.T.C. ....NOTIFY
+LATERAL AND VERTICAL GUIDANCE ....ADJUST
+
+The flight crew should engage an appropriate vertical mode, or adjust the vertical speed target, in accordance with the latest A.T.C. clearance.
+
+SPEED ....ADJUST
+
+The flight crew should adjust the speed target, and revert to managed speed, as appropriate.
+
+If the AUTO PILOT FLIGHT DIRECTOR TCAS mode is not available (Basic T.CAS Procedure):
+
+The flight crew must apply the basic TCAS procedure, if an R.A. is triggered, and the AUTO PILOT FLIGHT DIRECTOR T.CAS does not engage.
+
+All R.A., except any CLIMB R.A. during approach in CONFIGURATION 3 or FULL:
+
+AUTO PILOT (if engaged) ....OFF
+FLIGHT DIRECTORs ....OFF
+
+Respond promptly and smoothly.
+
+VERTICAL SPEED ....ADJUST or MAINTAIN
+
+Adjust or maintain vertical speed as required, depending on the green area, and/or to avoid the red area of the vertical speed scale.
+
+Note:
+Avoid excessive maneuvers while attempting to maintain the vertical speed just outside the red area of the scale, and within the green area. If necessary, use the full speed range between Vαmax and VMAX.
+
+Any CLIMB R.A. during approach in CONFIGURATION 3 or FULL:
+
+GO-AROUND ....PERFORM
+
+Follow the S.R.S. GO AROUND mode.
+
+VERTICAL SPEED ....MONITOR
+
+Check that the vertical speed remains out of the red area of the vertical speed scale, and take over if necessary.
+
+Respect stall, G.P.W.S., or wind shear warnings.
+
+A.T.C.....NOTIFY
+
+When the "CLEAR OF CONFLICT" aural alert sounds:
+
+A.T.C. ....NOTIFY
+LATERAL AND VERTICAL GUIDANCE....ADJUST
+
+Adjust the lateral and vertical guidance to resume normal navigation, in accordance with A.T.C. clearance.
+
+AUTO PILOT FLIGHT DIRECTOR ....AS RQUIRED
+
+If necessary, reengage the AUTO PILOT/FLIGHT DIRECTOR.

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="14dp"
+    app:cardBackgroundColor="@color/iosCardBg"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="0dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="14dp">
+
+        <TextView
+            android:id="@+id/memoryItemTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="B787 MEMORY"
+            android:textColor="@color/iosRed"
+            android:textStyle="bold"
+            android:textSize="16sp" />
+
+        <Button
+            android:id="@+id/btnReadMemory"
+            style="@style/Widget.FlightTimeApp.TrainingButton.Gray"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginTop="10dp"
+            android:textSize="12sp"
+            android:text="@string/training_read_memory" />
+
+        <Button
+            android:id="@+id/btnPlayMemory"
+            style="@style/Widget.FlightTimeApp.TrainingButton.Blue"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginTop="10dp"
+            android:textSize="12sp"
+            android:text="@string/training_play_memory" />
+
+        <Button
+            android:id="@+id/btnLoopMemory"
+            style="@style/Widget.FlightTimeApp.TrainingButton.Gray"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginTop="10dp"
+            android:textSize="12sp"
+            android:text="@string/training_loop_memory" />
+
+        <Button
+            android:id="@+id/btnStopSingle"
+            style="@style/Widget.FlightTimeApp.TrainingButton.Gray"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginTop="10dp"
+            android:textSize="12sp"
+            android:text="@string/training_stop" />
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

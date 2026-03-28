@@ -1,0 +1,9 @@
+If stall warning triggers at liftoff, apply the following immediate actions:
+
+STALL TOGA
+
+THRUST ....TOGA
+
+At the same time:
+PITCH ATTITUDE ....12.5°
+BANK ....WINGS LEVEL

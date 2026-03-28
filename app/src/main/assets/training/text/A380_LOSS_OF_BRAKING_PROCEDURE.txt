@@ -1,0 +1,26 @@
+
+This emergency procedure is not displayed on the ECAM and should be performed by memory if the braking system does not automatically reconfigureafter a significant failure.
+
+IF NO BRAKING:
+
+LOSS OF BRAKING
+
+REVERSE ....MAXIMUM
+If needed keep maximum reverse thrust until aircraft stops.
+
+BRAKE PEDALS ....RELEASE
+When the flight crew sets the ANT SKID to OFF, the control of the braking system is transferred from the B.C.S. to the EB.CU, and the emergency braking mode is activated. Consequently the PILOT FLYING should release the brake pedals before the PILOT MONITORING selects the ANTI SKID off. This action avoids brutal braking application.
+For information on the emergency braking mode, Refer to DSC 32-10-30-30 Emergency braking.
+
+ANTI SKID OFF ....ORDER
+The PILOT FLYING orders the PILOT MONITORING to select the ANTI SKID off.
+ANTI SKID ....OFF
+BRAKE PEDALS ....PRESS
+The pressure on the brakes is automatically limited.
+
+IF STILL NO BRAKING:
+
+PARKING BRAKE ....ON
+The ultimate braking mode is activated.If the ground spoilers are not extended, the parking brake only is activated.
+For information on the ultimate braking mode, Refer to DSC-32-10-30-30 Ultimate braking.
+For information on the parking brake, Refer to DSC-32-10-30-30 Parking Brake
