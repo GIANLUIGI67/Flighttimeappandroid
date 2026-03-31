@@ -1,8 +1,6 @@
 package it.grg.flighttimeapp.crewl
 
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.util.Base64
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -10,13 +8,15 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import it.grg.flighttimeapp.R
 
 class CrewChatMessagesAdapter(
-    private var items: List<CrewChatMessage>
+    private var items: List<CrewChatMessage>,
+    private val onImageClick: ((CrewChatMessage) -> Unit)? = null
 ) : RecyclerView.Adapter<CrewChatMessagesAdapter.MsgVH>() {
 
     private val myUid: String? = FirebaseAuth.getInstance().currentUser?.uid
@@ -26,14 +26,22 @@ class CrewChatMessagesAdapter(
     private val expandedIds: MutableSet<String> = mutableSetOf()
 
     fun submit(newItems: List<CrewChatMessage>) {
+        val diffResult = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
+            override fun getOldListSize(): Int = items.size
+            override fun getNewListSize(): Int = newItems.size
+            override fun areItemsTheSame(oldPos: Int, newPos: Int): Boolean =
+                items[oldPos].id == newItems[newPos].id
+            override fun areContentsTheSame(oldPos: Int, newPos: Int): Boolean =
+                items[oldPos] == newItems[newPos]
+        })
         items = newItems
-        notifyDataSetChanged()
+        diffResult.dispatchUpdatesTo(this)
     }
 
     fun setMyProfile(name: String?, photo: Bitmap?) {
         myName = name
         myPhoto = photo
-        notifyDataSetChanged()
+        notifyItemRangeChanged(0, itemCount)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MsgVH {
@@ -45,7 +53,7 @@ class CrewChatMessagesAdapter(
     override fun getItemCount(): Int = items.size
 
     override fun onBindViewHolder(holder: MsgVH, position: Int) {
-        holder.bind(items[position], myUid, myName, myPhoto, userCache, expandedIds) { uid ->
+        holder.bind(items[position], myUid, myName, myPhoto, userCache, expandedIds, onImageClick) { uid ->
             if (userCache.containsKey(uid)) return@bind
             fetchUser(uid)
         }
@@ -59,7 +67,13 @@ class CrewChatMessagesAdapter(
                 val nickname = dict["nickname"] as? String
                 val photoB64 = dict["photoB64"] as? String
                 userCache[uid] = CrewUserInfo(nickname, photoB64)
-                notifyDataSetChanged()
+                
+                // Notify only items from this user
+                items.forEachIndexed { index, msg ->
+                    if (msg.senderUid == uid) {
+                        notifyItemChanged(index)
+                    }
+                }
             }
     }
 
@@ -80,6 +94,7 @@ class CrewChatMessagesAdapter(
             myPhoto: Bitmap?,
             cache: Map<String, CrewUserInfo>,
             expanded: MutableSet<String>,
+            onImageClick: ((CrewChatMessage) -> Unit)?,
             onNeedUser: (String) -> Unit
         ) {
             val isMe = msg.senderUid == myUid
@@ -90,15 +105,17 @@ class CrewChatMessagesAdapter(
             if (hasImage && !isExpired) {
                 tv.visibility = View.GONE
                 image.visibility = View.VISIBLE
-                image.setImageBitmap(decodeBase64(msg.imageBase64!!))
+                image.setImageBitmap(CrewPhotoLoader.shared.decodeBase64ToBitmap(msg.imageBase64))
+                image.setOnClickListener { onImageClick?.invoke(msg) }
             } else {
                 image.visibility = View.GONE
                 tv.visibility = View.VISIBLE
-                tv.text = if (hasImage && isExpired) {
+                tv.text = if (hasImage) { // Simplified as isExpired is always true if hasImage is true here
                     tv.context.getString(R.string.cl_photo_expired)
                 } else {
                     msg.text
                 }
+                image.setOnClickListener(null)
             }
 
             if (isMe) {
@@ -163,15 +180,6 @@ class CrewChatMessagesAdapter(
 
         private fun dpToPx(dp: Int, v: View): Int {
             return (dp * v.resources.displayMetrics.density).toInt()
-        }
-
-        private fun decodeBase64(b64: String): Bitmap? {
-            return try {
-                val bytes = Base64.decode(b64, Base64.DEFAULT)
-                BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-            } catch (e: Exception) {
-                null
-            }
         }
     }
 }

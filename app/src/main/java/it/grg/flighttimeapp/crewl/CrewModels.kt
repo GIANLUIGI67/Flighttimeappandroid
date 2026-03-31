@@ -57,7 +57,8 @@ data class NearbyCrewUser(
     val lat: Double,
     val lon: Double,
     val distanceKm: Double,
-    val photoB64: String?
+    val photoB64: String?,
+    val photosB64: List<String>
 )
 
 enum class MeetingType(val raw: String, val labelResId: Int) {

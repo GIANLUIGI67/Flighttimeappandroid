@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
@@ -11,7 +12,9 @@
         android:id="@+id/crewPhoto"
         android:layout_width="44dp"
         android:layout_height="44dp"
-        android:background="@drawable/bg_ios_pill_light"
+        android:background="@drawable/bg_ios_circle"
+        android:clipToOutline="true"
+        android:scaleType="centerCrop"
         android:contentDescription="@string/cl_profile_photo" />
 
     <LinearLayout
@@ -21,13 +24,36 @@
         android:orientation="vertical"
         android:layout_marginStart="12dp">
 
-        <TextView
-            android:id="@+id/crewName"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="@color/iosText"
-            android:textStyle="bold"
-            android:textSize="16sp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/crewName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/iosText"
+                android:textStyle="bold"
+                android:textSize="16sp" />
+
+            <TextView
+                android:id="@+id/crewOnlineChip"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/bg_online_chip"
+                android:paddingStart="6dp"
+                android:paddingEnd="6dp"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp"
+                android:text="@string/cl_online_chip"
+                android:textColor="@android:color/white"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/crewSubtitle"
@@ -37,12 +63,12 @@
             android:textSize="13sp" />
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/crewDistance"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textColor="@color/iosBlue"
-        android:textStyle="bold"
-        android:textSize="12sp" />
+    <ImageView
+        android:id="@+id/crewChevron"
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:src="@drawable/ic_chevron_right"
+        android:contentDescription="@string/cl_open_chat"
+        app:tint="@color/iosHint" />
 
 </LinearLayout>

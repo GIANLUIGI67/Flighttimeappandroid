@@ -1,5 +1,6 @@
 package it.grg.flighttimeapp.crewl
 
+import android.Manifest
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
@@ -7,6 +8,8 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.util.Base64
 import android.location.Location
+import android.util.Log
+import androidx.annotation.RequiresPermission
 import androidx.core.content.edit
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -22,12 +25,13 @@ class CrewLayoverStore private constructor() {
     private val root: DatabaseReference = FirebaseDatabase.getInstance().reference
 
     private var isStarted = false
+    private var isStarting = false
     private var appContext: Context? = null
 
     private var myUserId: String? = null
     private var lastLocation: Location? = null
 
-    private var usersHandle: ValueEventListener? = null
+    private var usersChildHandle: ChildEventListener? = null
     private var eventsHandle: ValueEventListener? = null
     private var eventMembersHandle: ValueEventListener? = null
     private var invitesHandle: ValueEventListener? = null
@@ -36,6 +40,8 @@ class CrewLayoverStore private constructor() {
     private var eventMessagesRef: DatabaseReference? = null
 
     private val usersCache: MutableMap<String, Map<String, Any?>> = mutableMapOf()
+    private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private var nearbyRebuildRunnable: Runnable? = null
 
     private val _settingsLive = MutableLiveData(CrewLayoverSettings())
     val settingsLive: LiveData<CrewLayoverSettings> = _settingsLive
@@ -69,6 +75,36 @@ class CrewLayoverStore private constructor() {
     private var distanceUnlimited: Boolean = true
     private var distanceMaxKm: Double = 50.0
 
+    data class CrewUserSummary(
+        val userId: String,
+        val nickname: String,
+        val companyName: String?,
+        val photoB64: String?,
+        val photosB64: List<String>
+    )
+
+    fun getUserSummary(uid: String): CrewUserSummary? {
+        val dict = usersCache[uid] ?: return null
+        val nickname = (dict["nickname"] as? String)?.ifBlank { "Crew" } ?: "Crew"
+        val company = (dict["companyName"] as? String)?.ifBlank { null }
+        val photoB64 = dict["photoB64"] as? String
+        val photosB64 = (dict["photosB64"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList()
+        return CrewUserSummary(uid, nickname, company, photoB64, photosB64)
+    }
+
+    fun fetchUserOnce(uid: String, onDone: (() -> Unit)? = null) {
+        root.child("crew_users").child(uid)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                val dictAny = snapshot.value as? Map<*, *> ?: return@addOnSuccessListener
+                val dict = dictAny.entries
+                    .mapNotNull { (k, v) -> (k as? String)?.let { it to v } }
+                    .toMap()
+                usersCache[uid] = dict
+                onDone?.invoke()
+            }
+    }
+
     fun isUserProfileComplete(userId: String): Boolean {
         val dict = usersCache[userId] ?: return false
         val nickname = (dict["nickname"] as? String)?.trim().orEmpty()
@@ -81,10 +117,25 @@ class CrewLayoverStore private constructor() {
     }
 
     fun init(context: Context) {
-        if (appContext != null) return
-        appContext = context.applicationContext
-        CrewPhotoLoader.init(appContext!!)
-        loadSettings()
+        if (appContext == null) {
+            appContext = context.applicationContext
+            CrewPhotoLoader.init(appContext!!)
+            loadSettings()
+        }
+        startIfPossible()
+    }
+
+    private fun startIfPossible() {
+        if (isStarted || isStarting) return
+        isStarting = true
+        Log.d(TAG, "startIfPossible begin")
+        CrewAuthManager.ensureSignedIn { uid ->
+            isStarting = false
+            Log.d(TAG, "startIfPossible uid=${uid ?: "null"}")
+            if (uid.isNullOrBlank()) return@ensureSignedIn
+            CrewPresenceService.shared.start(uid)
+            start(uid)
+        }
     }
 
     fun start(userId: String) {
@@ -93,6 +144,8 @@ class CrewLayoverStore private constructor() {
         if (isStarted) return
         isStarted = true
         myUserId = uid
+
+        Log.d(TAG, "start store uid=$uid")
 
         refreshNow()
         maybeSendProfileReminder()
@@ -117,6 +170,7 @@ class CrewLayoverStore private constructor() {
 
     fun refreshNow() {
         val uid = myUserId ?: FirebaseAuth.getInstance().currentUser?.uid ?: return
+        Log.d(TAG, "refreshNow uid=$uid")
         upsertMyProfile(uid)
         updateMyPresence(uid)
         rebuildNearbyListsFromCache()
@@ -376,7 +430,6 @@ class CrewLayoverStore private constructor() {
             }, expiresInSeconds * 1000L)
         }
     }
-
     fun openEventChat(eventId: String) {
         closeEventChat()
         val ref = root.child("event_messages").child(eventId)
@@ -412,9 +465,13 @@ class CrewLayoverStore private constructor() {
     }
 
     private fun startUsersObserver() {
+        if (usersChildHandle != null) return
         val ref = root.child("crew_users")
-        val listener = object : ValueEventListener {
+        ref.keepSynced(true)
+
+        ref.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
+                Log.d(TAG, "crew_users initial snapshot count=${snapshot.childrenCount}")
                 usersCache.clear()
                 snapshot.children.forEach { c ->
                     val key = c.key ?: return@forEach
@@ -424,13 +481,49 @@ class CrewLayoverStore private constructor() {
                         .toMap()
                     usersCache[key] = dict
                 }
+                Log.d(TAG, "crew_users cache size=${usersCache.size} (initial)")
                 rebuildNearbyListsFromCache()
             }
 
-            override fun onCancelled(error: DatabaseError) {}
+            override fun onCancelled(error: DatabaseError) {
+                Log.e(TAG, "crew_users initial onCancelled: ${error.message}")
+            }
+        })
+
+        val childListener = object : ChildEventListener {
+            override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
+                val dictAny = snapshot.value as? Map<*, *> ?: return
+                val dict = dictAny.entries
+                    .mapNotNull { (k, v) -> (k as? String)?.let { it to v } }
+                    .toMap()
+                usersCache[snapshot.key ?: return] = dict
+                Log.d(TAG, "crew_users childAdded uid=${snapshot.key} cacheSize=${usersCache.size}")
+                scheduleNearbyRebuild()
+            }
+
+            override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {
+                val dictAny = snapshot.value as? Map<*, *> ?: return
+                val dict = dictAny.entries
+                    .mapNotNull { (k, v) -> (k as? String)?.let { it to v } }
+                    .toMap()
+                usersCache[snapshot.key ?: return] = dict
+                Log.d(TAG, "crew_users childChanged uid=${snapshot.key} cacheSize=${usersCache.size}")
+                scheduleNearbyRebuild()
+            }
+
+            override fun onChildRemoved(snapshot: DataSnapshot) {
+                usersCache.remove(snapshot.key)
+                Log.d(TAG, "crew_users childRemoved uid=${snapshot.key} cacheSize=${usersCache.size}")
+                scheduleNearbyRebuild()
+            }
+
+            override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {}
+            override fun onCancelled(error: DatabaseError) {
+                Log.e(TAG, "crew_users child onCancelled: ${error.message}")
+            }
         }
-        ref.addValueEventListener(listener)
-        usersHandle = listener
+        ref.addChildEventListener(childListener)
+        usersChildHandle = childListener
     }
 
     private fun startEventsObserver() {
@@ -474,14 +567,14 @@ class CrewLayoverStore private constructor() {
     }
 
     private fun stopAllObservers() {
-        usersHandle?.let { root.child("crew_users").removeEventListener(it) }
+        usersChildHandle?.let { root.child("crew_users").removeEventListener(it) }
         eventsHandle?.let { root.child("events").removeEventListener(it) }
         eventMembersHandle?.let { root.child("event_members").removeEventListener(it) }
         val uid = myUserId
         if (uid != null) {
             invitesHandle?.let { root.child("user_event_invites").child(uid).removeEventListener(it) }
         }
-        usersHandle = null
+        usersChildHandle = null
         eventsHandle = null
         eventMembersHandle = null
         invitesHandle = null
@@ -525,6 +618,7 @@ class CrewLayoverStore private constructor() {
             val visibility = CrewVisibilityMode.fromRaw(visRaw)
             val excluded = (dict["excludedBaseCodes"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList()
             val photoB64 = dict["photoB64"] as? String
+            val photosB64 = (dict["photosB64"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList()
 
             if (!viewerCanSeeOther(
                     viewerRole = myRole,
@@ -555,7 +649,8 @@ class CrewLayoverStore private constructor() {
                 lat = lat,
                 lon = lon,
                 distanceKm = dist,
-                photoB64 = photoB64
+                photoB64 = photoB64,
+                photosB64 = photosB64
             )
             visibleUsers.add(user)
         }
@@ -564,9 +659,18 @@ class CrewLayoverStore private constructor() {
         val online = visibleUsers.filter { it.isOnline }
         val last24 = visibleUsers.filter { !it.isOnline && it.lastSeenMs >= cutoffMs }
 
+        Log.d(TAG, "nearby users visible=${visibleUsers.size} online=${online.size} last24=${last24.size}")
+
         _onlineNow.postValue(online)
         _activeLast24h.postValue(last24)
         _onlineNearbyCount.postValue(online.size)
+    }
+
+    private fun scheduleNearbyRebuild() {
+        nearbyRebuildRunnable?.let { mainHandler.removeCallbacks(it) }
+        val r = Runnable { rebuildNearbyListsFromCache() }
+        nearbyRebuildRunnable = r
+        mainHandler.postDelayed(r, 150L)
     }
 
     private fun rebuildEventsList(snapshot: DataSnapshot) {
@@ -650,6 +754,8 @@ class CrewLayoverStore private constructor() {
         val settings = _settingsLive.value ?: CrewLayoverSettings()
         val loc = lastLocation
 
+        Log.d(TAG, "upsertMyProfile uid=$uid hasLoc=${loc != null}")
+
         val payload = mutableMapOf<String, Any?>()
         payload["nickname"] = settings.nickname.trim().ifEmpty { "Crew" }
         payload["companyName"] = settings.companyName?.trim()?.ifEmpty { null }
@@ -659,6 +765,7 @@ class CrewLayoverStore private constructor() {
         payload["visibilityMode"] = settings.visibilityMode.raw
         payload["excludedBaseCodes"] = settings.excludedBaseCodes
         payload["isEnabled"] = settings.isEnabled
+        payload["isOnline"] = true
         payload["lat"] = loc?.latitude ?: 0.0
         payload["lon"] = loc?.longitude ?: 0.0
         payload["lastSeenMs"] = ServerValue.TIMESTAMP
@@ -696,9 +803,21 @@ class CrewLayoverStore private constructor() {
 
     private fun updateMyPresence(uid: String) {
         val loc = lastLocation
+        val lat = loc?.latitude ?: 0.0
+        val lon = loc?.longitude ?: 0.0
+
+        Log.d(TAG, "updateMyPresence uid=$uid hasLoc=${loc != null} lat=$lat lon=$lon")
+
+        if (lat != 0.0 && lon != 0.0) {
+            CrewPresenceService.shared.updateLocation(lat, lon)
+        } else {
+            Log.w(TAG, "⚠️ No valid location to update")
+        }
+
         val update = mutableMapOf<String, Any?>()
-        update["lat"] = loc?.latitude ?: 0.0
-        update["lon"] = loc?.longitude ?: 0.0
+        update["isOnline"] = true
+        update["lat"] = lat
+        update["lon"] = lon
         update["lastSeenMs"] = ServerValue.TIMESTAMP
         root.child("crew_users").child(uid).updateChildren(update)
     }
@@ -868,7 +987,7 @@ class CrewLayoverStore private constructor() {
         val now = System.currentTimeMillis()
 
         val msgRef = root.child("chatMessages").child(threadId).push()
-        val msgId = msgRef.key ?: java.util.UUID.randomUUID().toString()
+        val msgId = msgRef.key ?: UUID.randomUUID().toString()
         val msgPayload = mapOf(
             "senderUid" to "system",
             "text" to message,
@@ -900,6 +1019,7 @@ class CrewLayoverStore private constructor() {
         events.forEach { cancelEventReminder(it.id) }
     }
 
+    @RequiresPermission(Manifest.permission.SCHEDULE_EXACT_ALARM)
     private fun scheduleEventReminder(
         eventId: String,
         eventTitle: String,
@@ -978,6 +1098,7 @@ class CrewLayoverStore private constructor() {
     companion object {
         val shared = CrewLayoverStore()
 
+        private const val TAG = "CrewLayover"
         private const val PREFS_NAME = "crew_layover_settings"
         private const val KEY_NICK = "nick"
         private const val KEY_COMPANY = "company"

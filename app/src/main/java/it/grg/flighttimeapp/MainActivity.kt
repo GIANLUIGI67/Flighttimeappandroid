@@ -1,23 +1,23 @@
 package it.grg.flighttimeapp
 
-import android.os.Bundle
 import android.content.ActivityNotFoundException
-import android.net.Uri
+import android.content.Intent
+import android.os.Bundle
 import android.view.View
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.google.android.material.materialswitch.MaterialSwitch
+import androidx.core.net.toUri
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import kotlin.math.abs
-import android.content.Intent
+import com.google.android.material.materialswitch.MaterialSwitch
+import it.grg.flighttimeapp.crewl.CrewLayoverChatStore
+import it.grg.flighttimeapp.crewl.CrewSettingsActivity
 import it.grg.flighttimeapp.salary.SalaryHomeActivity
 import it.grg.flighttimeapp.training.TrainingActivity
-import it.grg.flighttimeapp.crewl.CrewSettingsActivity
-import it.grg.flighttimeapp.crewl.CrewLayoverChatStore
+import kotlin.math.abs
 
 class MainActivity : AppCompatActivity() {
 
@@ -82,7 +82,7 @@ class MainActivity : AppCompatActivity() {
             val rawEmail = "innovative.aviation.gg@gmail.com"
             val email = rawEmail.replace("\\s+".toRegex(), "")
             try {
-                val mailto = Uri.parse("mailto:$email")
+                val mailto = "mailto:$email".toUri()
                 val intent = Intent(Intent.ACTION_SENDTO, mailto).apply {
                     putExtra(Intent.EXTRA_EMAIL, arrayOf(email))
                     putExtra(Intent.EXTRA_SUBJECT, "FlightTimeAppAndroid")

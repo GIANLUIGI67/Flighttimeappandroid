@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "it.grg.flighttimeapp"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "it.grg.flighttimeapp"
@@ -51,6 +51,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.livedata.ktx)
     implementation(libs.androidx.lifecycle.process)
     implementation(libs.gson)
+    implementation("androidx.viewpager2:viewpager2:1.0.0")
+    implementation("androidx.exifinterface:exifinterface:1.3.7")
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
     implementation(libs.firebase.database)

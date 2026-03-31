@@ -56,7 +56,9 @@ class CrewChatActivity : AppCompatActivity() {
 
         val recycler = findViewById<RecyclerView>(R.id.chatRecycler)
         recycler.layoutManager = LinearLayoutManager(this)
-        adapter = CrewChatMessagesAdapter(emptyList())
+        adapter = CrewChatMessagesAdapter(emptyList()) { msg ->
+            showChatImagePreview(msg)
+        }
         recycler.adapter = adapter
 
         crewStore.settingsLive.observe(this, Observer { s ->
@@ -113,7 +115,8 @@ class CrewChatActivity : AppCompatActivity() {
                 lat = 0.0,
                 lon = 0.0,
                 distanceKm = 0.0,
-                photoB64 = null
+                photoB64 = null,
+                photosB64 = emptyList()
             )
             threadId = chatStore.ensureThread(user)
         }
@@ -141,6 +144,35 @@ class CrewChatActivity : AppCompatActivity() {
         val expires = if (photoExpires) 20 else null
         chatStore.sendImageMessage(tid, pid, bitmap, expires, preview)
         chatStore.markThreadRead(tid)
+    }
+
+    private fun showChatImagePreview(msg: CrewChatMessage) {
+        val tid = threadId ?: return
+        val base64 = msg.imageBase64 ?: return
+        if (base64.isBlank()) return
+        val summary = crewStore.getUserSummary(msg.senderUid)
+        if (summary == null) {
+            crewStore.fetchUserOnce(msg.senderUid) {
+                runOnUiThread { showChatImagePreview(msg) }
+            }
+            return
+        }
+        val profilePhotos = summary.photosB64
+        val avatarB64 = summary.photoB64 ?: profilePhotos.firstOrNull()
+        val photos = ArrayList<String>()
+        photos.add(base64)
+        profilePhotos.forEach { if (it != base64) photos.add(it) }
+        CrewPhotoPreviewDialog.show(
+            fragmentManager = supportFragmentManager,
+            ownerUid = msg.senderUid,
+            photosB64 = photos,
+            initialIndex = 0,
+            threadId = tid,
+            messageId = msg.id,
+            avatarB64 = avatarB64,
+            peerName = peerName ?: getString(R.string.cl_chat),
+            peerCompany = ""
+        )
     }
 
     companion object {

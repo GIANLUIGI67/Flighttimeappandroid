@@ -3,8 +3,12 @@ package it.grg.flighttimeapp.crewl
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
 import android.util.Base64
 import android.util.LruCache
+import androidx.exifinterface.media.ExifInterface
+import java.io.ByteArrayInputStream
+import androidx.core.content.edit
 
 class CrewPhotoLoader private constructor(context: Context) {
     private val appContext = context.applicationContext
@@ -22,7 +26,7 @@ class CrewPhotoLoader private constructor(context: Context) {
 
     fun upsertFromBase64(userId: String, b64: String) {
         val data = try { Base64.decode(b64, Base64.DEFAULT) } catch (_: Exception) { null }
-        val bmp = data?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+        val bmp = data?.let { decodeBitmapWithExif(it) }
         if (bmp != null) {
             cache.put(userId, bmp)
         }
@@ -36,7 +40,7 @@ class CrewPhotoLoader private constructor(context: Context) {
         val bytes = BitmapUtils.toJpeg(bitmap, 88)
         if (bytes != null) {
             val prefs = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            prefs.edit().putString(KEY_PROFILE_B64, Base64.encodeToString(bytes, Base64.NO_WRAP)).apply()
+            prefs.edit { putString(KEY_PROFILE_B64, Base64.encodeToString(bytes, Base64.NO_WRAP)) }
         }
     }
 
@@ -44,7 +48,33 @@ class CrewPhotoLoader private constructor(context: Context) {
         val prefs = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val b64 = prefs.getString(KEY_PROFILE_B64, null) ?: return null
         val data = try { Base64.decode(b64, Base64.DEFAULT) } catch (_: Exception) { null }
-        return data?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+        return data?.let { decodeBitmapWithExif(it) }
+    }
+
+    fun decodeBase64ToBitmap(b64: String?): Bitmap? {
+        if (b64.isNullOrBlank()) return null
+        val data = try { Base64.decode(b64, Base64.DEFAULT) } catch (_: Exception) { null }
+        return data?.let { decodeBitmapWithExif(it) }
+    }
+
+    private fun decodeBitmapWithExif(bytes: ByteArray): Bitmap? {
+        val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return null
+        return try {
+            val exif = ExifInterface(ByteArrayInputStream(bytes))
+            when (exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)) {
+                ExifInterface.ORIENTATION_ROTATE_90 -> rotate(bmp, 90f)
+                ExifInterface.ORIENTATION_ROTATE_180 -> rotate(bmp, 180f)
+                ExifInterface.ORIENTATION_ROTATE_270 -> rotate(bmp, 270f)
+                else -> bmp
+            }
+        } catch (_: Exception) {
+            bmp
+        }
+    }
+
+    private fun rotate(src: Bitmap, degrees: Float): Bitmap {
+        val matrix = Matrix().apply { postRotate(degrees) }
+        return Bitmap.createBitmap(src, 0, 0, src.width, src.height, matrix, true)
     }
 
     companion object {
