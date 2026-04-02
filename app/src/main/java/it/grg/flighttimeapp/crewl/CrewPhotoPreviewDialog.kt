@@ -140,7 +140,7 @@ class CrewPhotoPreviewDialog : DialogFragment() {
 
         if (threadId != null && messageId != null) {
             startChatImageReactionsObserver()
-        } else {
+        } else if (photosB64.isNotEmpty()) {
             startReactionsObserver(pager.currentItem)
         }
     }
