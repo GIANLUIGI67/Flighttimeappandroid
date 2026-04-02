@@ -207,6 +207,11 @@
     <string name="cl_layover_info_crew_discounts">Sconti equipaggio</string>
     <string name="cl_event_alarm">Promemoria</string>
     <string name="cl_event_open_chat_hint">Per accedere alla chat evento clicca qui.</string>
+    <string name="cl_open_chat">Apri chat →</string>
+    <string name="cl_refresh">Aggiorna</string>
+    <string name="cl_hearts">Cuori</string>
+    <string name="cl_likes">Mi piace</string>
+    <string name="cl_no_users_nearby">Nessun utente crew nelle vicinanze.</string>
     <string name="cl_chat_arrow">Chat →</string>
     <string name="cl_clear_chat">Cancella chat</string>
     <string name="cl_clear_chats">Cancella tutte le chat</string>
