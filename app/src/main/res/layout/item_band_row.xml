@@ -92,7 +92,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:text="@string/salary_settings_delete"
-            android:textColor="@android:color/holo_red_dark"
+            android:textColor="@color/iosRed"
             android:textSize="12sp" />
     </LinearLayout>
 
