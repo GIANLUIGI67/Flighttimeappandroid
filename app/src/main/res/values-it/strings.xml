@@ -239,4 +239,14 @@
     <string name="cl_layover_info_crew_discounts">Sconti equipaggio</string>
     <string name="cl_event_alarm">Promemoria</string>
     <string name="cl_event_open_chat_hint">Per accedere alla chat evento clicca qui.</string>
+    <string name="cl_near_me">Crew vicini</string>
+    <string name="cl_online_now">Online nelle vicinanze</string>
+    <string name="cl_active_last_24h">Attivi ultime 24 ore</string>
+    <string name="cl_open_chat">Apri chat →</string>
+    <string name="cl_refresh">Aggiorna</string>
+    <string name="cl_distance_max_label">Distanza max (km)</string>
+    <string name="cl_distance_unlimited_toggle">Senza limite</string>
+    <string name="cl_hearts">Cuori</string>
+    <string name="cl_likes">Mi piace</string>
+    <string name="cl_no_users_nearby">Nessun utente crew nelle vicinanze.</string>
 </resources>

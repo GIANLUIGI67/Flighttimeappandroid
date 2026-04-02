@@ -84,7 +84,9 @@ class CrewPhotoPreviewDialog : DialogFragment() {
         likeCount = view.findViewById(R.id.likeCount)
 
         pager.adapter = PhotoPagerAdapter(photosB64)
-        pager.setCurrentItem(initialIndex.coerceIn(0, photosB64.lastIndex), false)
+        if (photosB64.isNotEmpty()) {
+            pager.setCurrentItem(initialIndex.coerceIn(0, photosB64.lastIndex), false)
+        }
         updateIndicator(pager.currentItem)
 
         val avatarSource = avatarB64 ?: photosB64.firstOrNull()
