@@ -1,36 +1,36 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    
+
     <string name="app_name">Flight Time</string>
 
-    
+
     <string name="pro_label">PRO</string>
     <string name="pro_active">ATTIVO</string>
     <string name="update_access">Aggiorna accesso</string>
     <string name="details">Dettagli</string>
     <string name="restore_purchases">Ripristina</string>
 
-    
+
     <string name="salary_calculator">Salary Calculator</string>
     <string name="crew_layover">Crew Layover</string>
     <string name="training">Training</string>
 
-    
+
     <string name="cd_salary_icon">Salary</string>
     <string name="cd_crew_icon">Crew</string>
     <string name="cd_training_icon">Training</string>
     <string name="cd_chevron">Open</string>
     <string name="cd_pro_icon">Pro Active</string>
 
-    
+
     <string name="total_flight_time">Totale ore di volo</string>
     <string name="total_time_default">00:00</string>
     <string name="total_time_format">%1$s%2$02d:%3$02d</string>
 
-    
+
     <string name="enable_negative_totals">Abilita totali negativi</string>
 
-    
+
     <string name="hours_hint">hh</string>
     <string name="minutes_hint">mm</string>
     <string name="note_hint">Nota (o...</string>
@@ -39,18 +39,18 @@
     <string name="minus">−</string>
     <string name="enter_valid_time">Inserisci un orario valido (ore o minuti)</string>
 
-    
+
     <string name="flights_title">Voli</string>
     <string name="no_flights_added">Nessun volo aggiunto.</string>
     <string name="entry_time_format">%1$s%2$02d:%3$02d</string>
 
-    
+
     <string name="contact_hint">Per segnalare anomalie o consigliare nuove funzionalità utili contattami qui</string>
     <string name="contact_me">Contattami</string>
     <string name="share_hint">Condividi l\'app per ampliare la nostra comunita\', raggiunti 20 downloads ti qualifichi per un\'offerta esclusiva a FlightTime for life Pro</string>
     <string name="share_app">Condividi l\'app</string>
 
-    
+
     <string name="delete">Elimina</string>
     <string name="done_button_generic">Fine</string>
 
@@ -58,7 +58,6 @@
     <string name="cl_under_construction">IN COSTRUZIONE</string>
     <string name="cl_online_nearby_default">Crew online nelle vicinanze: 0</string>
     <string name="cl_online_nearby_format">Crew online nelle vicinanze: %1$d</string>
-    <string name="cl_near_me">Vicino a me</string>
     <string name="cl_community_dev_title">Community</string>
     <string name="cl_community_share_hint">Condividi l\'app per ampliare la nostra community.</string>
     <string name="cl_share_button">Condividi</string>
@@ -176,7 +175,7 @@
     <string name="cl_event_alarm_channel_desc">Notifiche per eventi crew layover in arrivo.</string>
     <string name="cl_alarm_5_min">5 minuti prima</string>
     <string name="cl_alarm_10_min">10 minuti prima</string>
-<string name="my_layover_info_title">Info sulla mia sosta</string>
+    <string name="my_layover_info_title">Info sulla mia sosta</string>
     <string name="my_layover_info_detecting">Rilevamento della città…</string>
     <string name="my_layover_info_city_format">Città: %1$s</string>
     <string name="cl_location_required_title">Posizione richiesta</string>
@@ -202,8 +201,8 @@
     <string name="cl_layover_info_save">Salva</string>
     <string name="cl_layover_info_cancel">Annulla</string>
     <string name="cl_layover_info_delete">Elimina</string>
-<string name="cl_layover_info_shopping">Shopping</string>
-<string name="cl_layover_info_entertainment">Intrattenimento</string>
+    <string name="cl_layover_info_shopping">Shopping</string>
+    <string name="cl_layover_info_entertainment">Intrattenimento</string>
     <string name="cl_layover_info_edit_city">Modifica città</string>
     <string name="cl_layover_info_edit_city_message">Imposta una città personalizzata o ripristina quella rilevata.</string>
     <string name="cl_layover_info_reset_city">Ripristina</string>
@@ -212,12 +211,8 @@
     <string name="cl_event_alarm">Promemoria</string>
     <string name="cl_event_open_chat_hint">Per accedere alla chat evento clicca qui.</string>
     <string name="cl_near_me">Crew vicini</string>
-    <string name="cl_online_now">Online nelle vicinanze</string>
-    <string name="cl_active_last_24h">Attivi ultime 24 ore</string>
     <string name="cl_open_chat">Apri chat →</string>
     <string name="cl_refresh">Aggiorna</string>
-    <string name="cl_distance_max_label">Distanza max (km)</string>
-    <string name="cl_distance_unlimited_toggle">Senza limite</string>
     <string name="cl_hearts">Cuori</string>
     <string name="cl_likes">Mi piace</string>
     <string name="cl_no_users_nearby">Nessun utente crew nelle vicinanze.</string>
