@@ -122,7 +122,11 @@
     <string name="cl_photo_section">写真</string>
     <string name="cl_tap_to_change_photo">タップして写真を変更</string>
     <string name="cl_choose_photo">写真を選択</string>
+    <string name="cl_additional_photos_title">追加の写真</string>
+    <string name="cl_add_photo">写真を追加</string>
+    <string name="cl_max_photos_hint">最大5枚（プロフィール1枚 + 追加4枚）</string>
     <string name="cl_profile_section">プロフィール</string>
+    <string name="cl_bio_title">自己紹介</string>
     <string name="cl_company_optional">会社（任意）</string>
     <string name="cl_phone_optional">電話番号（任意）</string>
     <string name="cl_visibility_section">公開範囲</string>

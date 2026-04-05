@@ -80,6 +80,7 @@ class CrewLayoverStore private constructor() {
         val nickname: String,
         val companyName: String?,
         val photoB64: String?,
+        val bio: String?,
         val photosB64: List<String>
     )
 
@@ -88,8 +89,9 @@ class CrewLayoverStore private constructor() {
         val nickname = (dict["nickname"] as? String)?.ifBlank { "Crew" } ?: "Crew"
         val company = (dict["companyName"] as? String)?.ifBlank { null }
         val photoB64 = dict["photoB64"] as? String
+        val bio = (dict["bio"] as? String)?.ifBlank { null }
         val photosB64 = (dict["photosB64"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList()
-        return CrewUserSummary(uid, nickname, company, photoB64, photosB64)
+        return CrewUserSummary(uid, nickname, company, photoB64, bio, photosB64)
     }
 
     fun fetchUserOnce(uid: String, onDone: (() -> Unit)? = null) {
@@ -608,6 +610,7 @@ class CrewLayoverStore private constructor() {
             val company = dict["companyName"] as? String ?: ""
             val baseCode = dict["baseCountryCode"] as? String ?: ""
             val phone = dict["phoneNumber"] as? String
+            val bio = dict["bio"] as? String
             val roleRaw = dict["role"] as? String
             val role = CrewRole.fromRaw(roleRaw)
             val isOnline = dict["isOnline"] as? Boolean ?: false
@@ -619,6 +622,9 @@ class CrewLayoverStore private constructor() {
             val excluded = (dict["excludedBaseCodes"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList()
             val photoB64 = dict["photoB64"] as? String
             val photosB64 = (dict["photosB64"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList()
+            if (photosB64.isEmpty() && photoB64.isNullOrBlank()) {
+                return@forEach
+            }
 
             if (!viewerCanSeeOther(
                     viewerRole = myRole,
@@ -642,6 +648,7 @@ class CrewLayoverStore private constructor() {
                 baseCountryCode = baseCode,
                 phoneNumber = phone,
                 role = role,
+                bio = bio,
                 visibilityMode = visibility,
                 excludedBaseCodes = excluded,
                 isOnline = isOnline,
@@ -761,6 +768,7 @@ class CrewLayoverStore private constructor() {
         payload["companyName"] = settings.companyName?.trim()?.ifEmpty { null }
         payload["baseCountryCode"] = settings.baseCountryCode.trim()
         payload["phoneNumber"] = settings.phoneNumber?.trim()?.ifEmpty { null }
+        payload["bio"] = settings.bio?.trim()?.ifEmpty { null }
         payload["role"] = settings.role.raw
         payload["visibilityMode"] = settings.visibilityMode.raw
         payload["excludedBaseCodes"] = settings.excludedBaseCodes
@@ -920,6 +928,7 @@ class CrewLayoverStore private constructor() {
             companyName = p.getString(KEY_COMPANY, null),
             baseCountryCode = p.getString(KEY_BASE, "") ?: "",
             phoneNumber = p.getString(KEY_PHONE, null),
+            bio = p.getString(KEY_BIO, null),
             role = CrewRole.fromRaw(p.getString(KEY_ROLE, CrewRole.CABIN_CREW.raw)),
             visibilityMode = CrewVisibilityMode.fromRaw(p.getString(KEY_VIS, CrewVisibilityMode.EVERYONE.raw)),
             excludedBaseCodes = p.getString(KEY_EXCLUDED, "")?.split(",")?.mapNotNull { it.trim().ifEmpty { null } }?.toMutableList()
@@ -938,6 +947,7 @@ class CrewLayoverStore private constructor() {
             putString(KEY_COMPANY, settings.companyName)
             putString(KEY_BASE, settings.baseCountryCode)
             putString(KEY_PHONE, settings.phoneNumber)
+            putString(KEY_BIO, settings.bio)
             putString(KEY_ROLE, settings.role.raw)
             putString(KEY_VIS, settings.visibilityMode.raw)
             putString(KEY_EXCLUDED, settings.excludedBaseCodes.joinToString(","))
@@ -1104,6 +1114,7 @@ class CrewLayoverStore private constructor() {
         private const val KEY_COMPANY = "company"
         private const val KEY_BASE = "base"
         private const val KEY_PHONE = "phone"
+        private const val KEY_BIO = "bio"
         private const val KEY_ROLE = "role"
         private const val KEY_VIS = "visibility"
         private const val KEY_EXCLUDED = "excluded"

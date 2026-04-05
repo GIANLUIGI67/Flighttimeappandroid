@@ -77,12 +77,21 @@ class CrewNearbyAdapter(
         private val photo: ImageView = itemView.findViewById(R.id.crewPhoto)
         private val name: TextView = itemView.findViewById(R.id.crewName)
         private val subtitle: TextView = itemView.findViewById(R.id.crewSubtitle)
+        private val bio: TextView = itemView.findViewById(R.id.crewBio)
         private val onlineChip: TextView = itemView.findViewById(R.id.crewOnlineChip)
 
         fun bind(user: NearbyCrewUser) {
             name.text = user.nickname
             val role = if (user.role == CrewRole.CABIN_CREW) "Cabin Crew" else "Flight Deck"
             subtitle.text = role
+            val bioText = user.bio?.trim().orEmpty()
+            if (bioText.isNotEmpty()) {
+                bio.visibility = View.VISIBLE
+                bio.text = bioText
+            } else {
+                bio.visibility = View.GONE
+                bio.text = ""
+            }
             onlineChip.visibility = if (user.isOnline) View.VISIBLE else View.GONE
 
             val primaryB64 = if (user.photosB64.isNotEmpty()) user.photosB64.first() else user.photoB64
@@ -120,6 +129,7 @@ class CrewNearbyAdapter(
         private val onlineDot: View = itemView.findViewById(R.id.mosaicOnlineDot)
         private val name: TextView = itemView.findViewById(R.id.mosaicName)
         private val subtitle: TextView = itemView.findViewById(R.id.mosaicSubtitle)
+        private val bio: TextView = itemView.findViewById(R.id.mosaicBio)
         private val distance: TextView = itemView.findViewById(R.id.mosaicDistance)
         private val openChat: TextView = itemView.findViewById(R.id.mosaicOpenChat)
 
@@ -127,6 +137,14 @@ class CrewNearbyAdapter(
             name.text = user.nickname
             val role = if (user.role == CrewRole.CABIN_CREW) "Cabin Crew" else "Flight Deck"
             subtitle.text = role
+            val bioText = user.bio?.trim().orEmpty()
+            if (bioText.isNotEmpty()) {
+                bio.visibility = View.VISIBLE
+                bio.text = bioText
+            } else {
+                bio.visibility = View.GONE
+                bio.text = ""
+            }
 
             if (user.distanceKm < 0) {
                 distance.text = ""

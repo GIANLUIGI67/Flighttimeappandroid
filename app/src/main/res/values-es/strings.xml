@@ -122,7 +122,11 @@
     <string name="cl_photo_section">Foto</string>
     <string name="cl_tap_to_change_photo">Toca para cambiar la foto</string>
     <string name="cl_choose_photo">Elegir foto</string>
+    <string name="cl_additional_photos_title">Fotos adicionales</string>
+    <string name="cl_add_photo">Añadir foto</string>
+    <string name="cl_max_photos_hint">Hasta 5 fotos en total (1 de perfil + 4 extra).</string>
     <string name="cl_profile_section">Perfil</string>
+    <string name="cl_bio_title">Bio</string>
     <string name="cl_company_optional">Compañía (opcional)</string>
     <string name="cl_phone_optional">Teléfono (opcional)</string>
     <string name="cl_visibility_section">Visibilidad</string>

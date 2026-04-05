@@ -19,6 +19,19 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <ImageView
+        android:id="@+id/chatPeerPhoto"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:layout_marginStart="8dp"
+        android:background="@drawable/bg_ios_circle"
+        android:clipToOutline="true"
+        android:scaleType="centerCrop"
+        android:contentDescription="@string/cl_profile_photo"
+        app:layout_constraintStart_toEndOf="@id/chatBack"
+        app:layout_constraintTop_toTopOf="@id/chatBack"
+        app:layout_constraintBottom_toBottomOf="@id/chatBack" />
+
     <TextView
         android:id="@+id/chatTitle"
         android:layout_width="wrap_content"
@@ -28,6 +41,20 @@
         android:textSize="18sp"
         app:layout_constraintTop_toTopOf="@id/chatBack"
         app:layout_constraintBottom_toBottomOf="@id/chatBack"
+        app:layout_constraintStart_toEndOf="@id/chatPeerPhoto"
+        app:layout_constraintEnd_toStartOf="@id/chatDeleteBtn" />
+
+    <TextView
+        android:id="@+id/chatBio"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="@color/iosHint"
+        android:textSize="12sp"
+        android:maxLines="2"
+        android:ellipsize="end"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/chatTitle"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
@@ -49,7 +76,7 @@
         android:layout_height="0dp"
         android:layout_marginTop="12dp"
         android:clipToPadding="false"
-        app:layout_constraintTop_toBottomOf="@id/chatBack"
+        app:layout_constraintTop_toBottomOf="@id/chatBio"
         app:layout_constraintBottom_toTopOf="@id/chatInputRow"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />

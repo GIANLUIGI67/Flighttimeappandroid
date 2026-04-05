@@ -122,7 +122,11 @@
     <string name="cl_photo_section">الصورة</string>
     <string name="cl_tap_to_change_photo">اضغط لتغيير الصورة</string>
     <string name="cl_choose_photo">اختر صورة</string>
+    <string name="cl_additional_photos_title">صور إضافية</string>
+    <string name="cl_add_photo">إضافة صورة</string>
+    <string name="cl_max_photos_hint">حتى 5 صور إجمالاً (صورة للملف + 4 إضافية).</string>
     <string name="cl_profile_section">الملف الشخصي</string>
+    <string name="cl_bio_title">نبذة</string>
     <string name="cl_company_optional">الشركة (اختياري)</string>
     <string name="cl_phone_optional">الهاتف (اختياري)</string>
     <string name="cl_visibility_section">الخصوصية</string>

@@ -122,7 +122,11 @@
     <string name="cl_photo_section">照片</string>
     <string name="cl_tap_to_change_photo">点击更换照片</string>
     <string name="cl_choose_photo">选择照片</string>
+    <string name="cl_additional_photos_title">更多照片</string>
+    <string name="cl_add_photo">添加照片</string>
+    <string name="cl_max_photos_hint">最多 5 张照片（1 张头像 + 4 张额外）</string>
     <string name="cl_profile_section">个人资料</string>
+    <string name="cl_bio_title">简介</string>
     <string name="cl_company_optional">公司（可选）</string>
     <string name="cl_phone_optional">电话（可选）</string>
     <string name="cl_visibility_section">可见性</string>

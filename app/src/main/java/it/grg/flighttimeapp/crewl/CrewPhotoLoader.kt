@@ -13,6 +13,7 @@ import androidx.core.content.edit
 class CrewPhotoLoader private constructor(context: Context) {
     private val appContext = context.applicationContext
     private val cache = LruCache<String, Bitmap>(64)
+    private val maxExtraImages = 4
 
     fun image(userId: String): Bitmap? = cache.get(userId)
 
@@ -51,6 +52,41 @@ class CrewPhotoLoader private constructor(context: Context) {
         return data?.let { decodeBitmapWithExif(it) }
     }
 
+    fun localProfileExtraImages(): List<Bitmap> {
+        val names = loadExtraNames()
+        return names.mapNotNull { name ->
+            val file = extraFile(name)
+            if (!file.exists()) return@mapNotNull null
+            BitmapFactory.decodeFile(file.absolutePath)
+        }
+    }
+
+    fun appendLocalProfileExtraImage(bitmap: Bitmap) {
+        val names = loadExtraNames()
+        if (names.size >= maxExtraImages) return
+        val bytes = BitmapUtils.toJpeg(bitmap, 82) ?: return
+        val name = "extra_${System.currentTimeMillis()}_${names.size}.jpg"
+        val file = extraFile(name)
+        try {
+            file.outputStream().use { it.write(bytes) }
+            names.add(name)
+            saveExtraNames(names)
+        } catch (_: Exception) {
+            return
+        }
+    }
+
+    fun removeLocalProfileExtraImage(index: Int) {
+        val names = loadExtraNames()
+        if (index < 0 || index >= names.size) return
+        val name = names.removeAt(index)
+        val file = extraFile(name)
+        if (file.exists()) {
+            file.delete()
+        }
+        saveExtraNames(names)
+    }
+
     fun decodeBase64ToBitmap(b64: String?): Bitmap? {
         if (b64.isNullOrBlank()) return null
         val data = try { Base64.decode(b64, Base64.DEFAULT) } catch (_: Exception) { null }
@@ -80,6 +116,8 @@ class CrewPhotoLoader private constructor(context: Context) {
     companion object {
         private const val PREFS = "crew_layover_prefs"
         private const val KEY_PROFILE_B64 = "crew_profile_image_b64"
+        private const val KEY_PROFILE_EXTRA_NAMES = "crew_profile_extra_names"
+        private const val EXTRA_FOLDER = "crew_profile_extra_images"
         @Volatile private var instance: CrewPhotoLoader? = null
 
         fun get(context: Context): CrewPhotoLoader {
@@ -93,6 +131,30 @@ class CrewPhotoLoader private constructor(context: Context) {
         fun init(context: Context) {
             shared = get(context)
         }
+    }
+
+    private fun extraDir(): java.io.File {
+        val dir = java.io.File(appContext.filesDir, EXTRA_FOLDER)
+        if (!dir.exists()) {
+            dir.mkdirs()
+        }
+        return dir
+    }
+
+    private fun extraFile(name: String): java.io.File {
+        return java.io.File(extraDir(), name)
+    }
+
+    private fun loadExtraNames(): MutableList<String> {
+        val prefs = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val raw = prefs.getString(KEY_PROFILE_EXTRA_NAMES, "") ?: ""
+        if (raw.isBlank()) return mutableListOf()
+        return raw.split("|").mapNotNull { it.trim().ifEmpty { null } }.toMutableList()
+    }
+
+    private fun saveExtraNames(names: List<String>) {
+        val prefs = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        prefs.edit { putString(KEY_PROFILE_EXTRA_NAMES, names.joinToString("|")) }
     }
 }
 

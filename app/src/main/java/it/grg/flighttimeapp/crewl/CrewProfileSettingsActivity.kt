@@ -11,6 +11,8 @@ import android.widget.LinearLayout
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.ArrayAdapter
+import android.widget.FrameLayout
+import android.widget.GridLayout
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import it.grg.flighttimeapp.R
@@ -24,10 +26,14 @@ class CrewProfileSettingsActivity : AppCompatActivity() {
     private lateinit var baseSpinner: Spinner
     private lateinit var roleSpinner: Spinner
     private lateinit var visibilitySpinner: Spinner
+    private lateinit var bioInput: EditText
+    private lateinit var extraPhotosGrid: GridLayout
     private lateinit var excludedInput: EditText
     private lateinit var excludedAddBtn: Button
     private lateinit var excludedList: LinearLayout
     private val store = CrewLayoverStore.shared
+    private var isPickingExtra = false
+    private val maxExtraPhotos = 4
 
     private val baseCountryCodes: List<Pair<String, String>> = listOf(
         "Italy (+39)" to "+39",
@@ -49,10 +55,16 @@ class CrewProfileSettingsActivity : AppCompatActivity() {
     private val pickImage = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null) {
             val bmp = loadBitmap(uri) ?: return@registerForActivityResult
-            photoView.setImageBitmap(bmp)
-            CrewPhotoLoader.shared.setLocalProfileImage(bmp)
-            val b64 = BitmapUtils.toBase64(bmp)
-            store.updateMyPhotoBase64(b64)
+            if (isPickingExtra) {
+                CrewPhotoLoader.shared.appendLocalProfileExtraImage(bmp)
+                refreshExtraPhotos()
+            } else {
+                photoView.setImageBitmap(bmp)
+                CrewPhotoLoader.shared.setLocalProfileImage(bmp)
+                val b64 = BitmapUtils.toBase64(bmp)
+                store.updateMyPhotoBase64(b64)
+            }
+            isPickingExtra = false
         }
     }
 
@@ -72,11 +84,14 @@ class CrewProfileSettingsActivity : AppCompatActivity() {
         baseSpinner = findViewById(R.id.baseSpinner)
         roleSpinner = findViewById(R.id.roleSpinner)
         visibilitySpinner = findViewById(R.id.visibilitySpinner)
+        bioInput = findViewById(R.id.bioInput)
+        extraPhotosGrid = findViewById(R.id.extraPhotosGrid)
         excludedInput = findViewById(R.id.excludedInput)
         excludedAddBtn = findViewById(R.id.excludedAddBtn)
         excludedList = findViewById(R.id.excludedList)
 
         findViewById<Button>(R.id.pickPhotoBtn).setOnClickListener {
+            isPickingExtra = false
             pickImage.launch("image/*")
         }
         findViewById<Button>(R.id.clearPhotoBtn).setOnClickListener {
@@ -130,6 +145,9 @@ class CrewProfileSettingsActivity : AppCompatActivity() {
         phoneInput.addTextChangedListener(SimpleTextWatcher { text ->
             store.updateSettings { it.copy(phoneNumber = text.ifBlank { null }) }
         })
+        bioInput.addTextChangedListener(SimpleTextWatcher { text ->
+            store.updateSettings { it.copy(bio = text.trim().ifBlank { null }) }
+        })
 
         excludedAddBtn.setOnClickListener {
             val code = excludedInput.text.toString().trim()
@@ -150,6 +168,8 @@ class CrewProfileSettingsActivity : AppCompatActivity() {
             if (nicknameInput.text.toString() != s.nickname) nicknameInput.setText(s.nickname)
             if (companyInput.text.toString() != (s.companyName ?: "")) companyInput.setText(s.companyName ?: "")
             if (phoneInput.text.toString() != (s.phoneNumber ?: "")) phoneInput.setText(s.phoneNumber ?: "")
+            val bioText = s.bio ?: ""
+            if (bioInput.text.toString() != bioText) bioInput.setText(bioText)
 
             val baseIndex = baseCountryCodes.indexOfFirst { it.second == s.baseCountryCode }
             if (baseIndex >= 0 && baseSpinner.selectedItemPosition != baseIndex) {
@@ -164,6 +184,7 @@ class CrewProfileSettingsActivity : AppCompatActivity() {
                 visibilitySpinner.setSelection(visIndex)
             }
             refreshExcludedList()
+            refreshExtraPhotos()
         }
     }
 
@@ -224,6 +245,84 @@ class CrewProfileSettingsActivity : AppCompatActivity() {
             row.addView(remove)
             excludedList.addView(row)
         }
+    }
+
+    private fun refreshExtraPhotos() {
+        extraPhotosGrid.removeAllViews()
+        val photos = CrewPhotoLoader.shared.localProfileExtraImages()
+        photos.forEachIndexed { index, bmp ->
+            extraPhotosGrid.addView(createPhotoTile(bmp, index))
+        }
+        if (photos.size < maxExtraPhotos) {
+            extraPhotosGrid.addView(createAddTile())
+        }
+    }
+
+    private fun createPhotoTile(bmp: android.graphics.Bitmap, index: Int): FrameLayout {
+        val size = dpToPx(90)
+        val frame = FrameLayout(this)
+        val lp = GridLayout.LayoutParams().apply {
+            width = size
+            height = size
+            setMargins(dpToPx(4), dpToPx(4), dpToPx(4), dpToPx(4))
+        }
+        frame.layoutParams = lp
+
+        val img = ImageView(this).apply {
+            layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            setImageBitmap(bmp)
+            setBackgroundResource(R.drawable.bg_ios_row_12)
+        }
+
+        val del = ImageButton(this).apply {
+            layoutParams = FrameLayout.LayoutParams(dpToPx(24), dpToPx(24)).apply {
+                marginEnd = dpToPx(2)
+                topMargin = dpToPx(2)
+                gravity = android.view.Gravity.END or android.view.Gravity.TOP
+            }
+            setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
+            setBackgroundColor(android.graphics.Color.TRANSPARENT)
+            setColorFilter(getColor(android.R.color.white))
+            contentDescription = getString(R.string.cl_clear_photo)
+            setOnClickListener {
+                CrewPhotoLoader.shared.removeLocalProfileExtraImage(index)
+                refreshExtraPhotos()
+            }
+        }
+
+        frame.addView(img)
+        frame.addView(del)
+        return frame
+    }
+
+    private fun createAddTile(): FrameLayout {
+        val size = dpToPx(90)
+        val frame = FrameLayout(this)
+        val lp = GridLayout.LayoutParams().apply {
+            width = size
+            height = size
+            setMargins(dpToPx(4), dpToPx(4), dpToPx(4), dpToPx(4))
+        }
+        frame.layoutParams = lp
+        frame.setBackgroundResource(R.drawable.bg_ios_row_12)
+
+        val addBtn = ImageButton(this).apply {
+            layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
+            setImageResource(R.drawable.ic_plus_white)
+            setBackgroundColor(android.graphics.Color.TRANSPARENT)
+            contentDescription = getString(R.string.cl_add_photo)
+            setOnClickListener {
+                isPickingExtra = true
+                pickImage.launch("image/*")
+            }
+        }
+        frame.addView(addBtn)
+        return frame
+    }
+
+    private fun dpToPx(dp: Int): Int {
+        return (dp * resources.displayMetrics.density).toInt()
     }
 
 }

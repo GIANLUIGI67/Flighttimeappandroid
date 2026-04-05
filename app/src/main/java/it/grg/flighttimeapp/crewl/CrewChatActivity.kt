@@ -5,6 +5,7 @@ import android.os.Bundle
 import androidx.activity.result.contract.ActivityResultContracts
 import android.widget.EditText
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
@@ -21,6 +22,8 @@ class CrewChatActivity : AppCompatActivity() {
     private var threadId: String? = null
     private var peerId: String? = null
     private var peerName: String? = null
+    private var peerPhotos: ArrayList<String> = arrayListOf()
+    private var peerAvatarB64: String? = null
 
     private var photoExpires = false
     private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -44,6 +47,8 @@ class CrewChatActivity : AppCompatActivity() {
         }
 
         val title = findViewById<TextView>(R.id.chatTitle)
+        val bioView = findViewById<TextView>(R.id.chatBio)
+        val peerPhoto = findViewById<ImageView>(R.id.chatPeerPhoto)
         val input = findViewById<EditText>(R.id.chatInput)
         val sendBtn = findViewById<android.widget.Button>(R.id.chatSend)
         val photoBtn = findViewById<ImageButton>(R.id.chatPhotoBtn)
@@ -53,6 +58,40 @@ class CrewChatActivity : AppCompatActivity() {
         peerId = intent.getStringExtra(EXTRA_PEER_ID)
         peerName = intent.getStringExtra(EXTRA_PEER_NAME)
         title.text = peerName ?: getString(R.string.cl_chat)
+
+        fun updateBio() {
+            val pid = peerId ?: return
+            val bio = crewStore.getUserSummary(pid)?.bio?.trim().orEmpty()
+            if (bio.isNotEmpty()) {
+                bioView.visibility = android.view.View.VISIBLE
+                bioView.text = bio
+            } else {
+                bioView.visibility = android.view.View.GONE
+                bioView.text = ""
+            }
+        }
+        updateBio()
+
+        fun updatePeerPhoto() {
+            val pid = peerId ?: return
+            val summary = crewStore.getUserSummary(pid)
+            val photos = summary?.photosB64?.filter { it.isNotBlank() } ?: emptyList()
+            val avatar = summary?.photoB64?.takeIf { it.isNotBlank() }
+            val merged = ArrayList<String>()
+            if (avatar != null) merged.add(avatar)
+            photos.forEach { if (it != avatar) merged.add(it) }
+            peerPhotos = merged
+            peerAvatarB64 = merged.firstOrNull()
+            val bmp = peerAvatarB64?.let { CrewPhotoLoader.shared.getBitmap(pid, it) }
+            if (bmp != null) {
+                peerPhoto.setImageBitmap(bmp)
+                peerPhoto.visibility = android.view.View.VISIBLE
+            } else {
+                peerPhoto.setImageDrawable(null)
+                peerPhoto.visibility = android.view.View.GONE
+            }
+        }
+        updatePeerPhoto()
 
         val recycler = findViewById<RecyclerView>(R.id.chatRecycler)
         recycler.layoutManager = LinearLayoutManager(this)
@@ -108,6 +147,7 @@ class CrewChatActivity : AppCompatActivity() {
                 baseCountryCode = "",
                 phoneNumber = null,
                 role = CrewRole.CABIN_CREW,
+                bio = null,
                 visibilityMode = CrewVisibilityMode.EVERYONE,
                 excludedBaseCodes = emptyList(),
                 isOnline = false,
@@ -127,6 +167,25 @@ class CrewChatActivity : AppCompatActivity() {
         if (pid != null) {
             val complete = crewStore.isUserProfileComplete(pid)
             chatStore.sendProfileReminderToIncompleteUserIfNeeded(pid, complete)
+            if (crewStore.getUserSummary(pid) == null) {
+                crewStore.fetchUserOnce(pid) { runOnUiThread { updateBio(); updatePeerPhoto() } }
+            }
+        }
+
+        peerPhoto.setOnClickListener {
+            val pid = peerId ?: return@setOnClickListener
+            if (peerPhotos.isEmpty()) return@setOnClickListener
+            CrewPhotoPreviewDialog.show(
+                fragmentManager = supportFragmentManager,
+                ownerUid = pid,
+                photosB64 = peerPhotos,
+                initialIndex = 0,
+                threadId = null,
+                messageId = null,
+                avatarB64 = peerAvatarB64,
+                peerName = peerName ?: getString(R.string.cl_chat),
+                peerCompany = crewStore.getUserSummary(pid)?.companyName ?: ""
+            )
         }
     }
 

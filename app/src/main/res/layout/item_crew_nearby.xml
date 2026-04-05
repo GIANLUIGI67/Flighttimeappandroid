@@ -61,6 +61,17 @@
             android:layout_height="wrap_content"
             android:textColor="@color/iosHint"
             android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/crewBio"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="@color/iosText"
+            android:textSize="12sp"
+            android:maxLines="2"
+            android:ellipsize="end"
+            android:visibility="gone" />
     </LinearLayout>
 
     <ImageView
