@@ -9,6 +9,7 @@ import android.graphics.Bitmap
 import android.util.Base64
 import android.location.Location
 import android.util.Log
+import android.provider.Settings
 import androidx.annotation.RequiresPermission
 import androidx.core.content.edit
 import androidx.lifecycle.LiveData
@@ -71,6 +72,7 @@ class CrewLayoverStore private constructor() {
     private val roleSetKey = "role_set_v1"
     private val distanceUnlimitedKey = "distance_unlimited_v1"
     private val distanceMaxKmKey = "distance_max_km_v1"
+    private val deviceIdKey = "crew_device_id_v1"
 
     private var distanceUnlimited: Boolean = true
     private var distanceMaxKm: Double = 50.0
@@ -135,6 +137,7 @@ class CrewLayoverStore private constructor() {
             isStarting = false
             Log.d(TAG, "startIfPossible uid=${uid ?: "null"}")
             if (uid.isNullOrBlank()) return@ensureSignedIn
+            CrewPresenceService.shared.setDeviceId(getDeviceId())
             CrewPresenceService.shared.start(uid)
             start(uid)
         }
@@ -149,6 +152,7 @@ class CrewLayoverStore private constructor() {
 
         Log.d(TAG, "start store uid=$uid")
 
+        CrewPresenceService.shared.setDeviceId(getDeviceId())
         refreshNow()
         maybeSendProfileReminder()
         startUsersObserver()
@@ -770,6 +774,7 @@ class CrewLayoverStore private constructor() {
         payload["phoneNumber"] = settings.phoneNumber?.trim()?.ifEmpty { null }
         payload["bio"] = settings.bio?.trim()?.ifEmpty { null }
         payload["role"] = settings.role.raw
+        payload["deviceId"] = getDeviceId()
         payload["visibilityMode"] = settings.visibilityMode.raw
         payload["excludedBaseCodes"] = settings.excludedBaseCodes
         payload["isEnabled"] = settings.isEnabled
@@ -827,6 +832,7 @@ class CrewLayoverStore private constructor() {
         update["lat"] = lat
         update["lon"] = lon
         update["lastSeenMs"] = ServerValue.TIMESTAMP
+        update["deviceId"] = getDeviceId()
         root.child("crew_users").child(uid).updateChildren(update)
     }
 
@@ -919,6 +925,17 @@ class CrewLayoverStore private constructor() {
     private fun prefs(): android.content.SharedPreferences? {
         val ctx = appContext ?: return null
         return ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    }
+
+    private fun getDeviceId(): String? {
+        val ctx = appContext ?: return null
+        val p = prefs() ?: return null
+        val cached = p.getString(deviceIdKey, null)
+        if (!cached.isNullOrBlank()) return cached
+        val androidId = Settings.Secure.getString(ctx.contentResolver, Settings.Secure.ANDROID_ID)
+        val newId = androidId?.trim().takeUnless { it.isNullOrEmpty() } ?: UUID.randomUUID().toString()
+        p.edit { putString(deviceIdKey, newId) }
+        return newId
     }
 
     private fun loadSettings() {

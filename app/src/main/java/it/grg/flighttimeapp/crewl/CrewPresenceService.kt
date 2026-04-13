@@ -29,6 +29,16 @@ class CrewPresenceService private constructor() : DefaultLifecycleObserver {
     private val handler = android.os.Handler(android.os.Looper.getMainLooper())
 
     private var uid: String? = null
+    private var deviceId: String? = null
+
+    fun setDeviceId(id: String?) {
+        deviceId = id?.trim()?.ifEmpty { null }
+    }
+
+    private fun addDeviceId(updates: MutableMap<String, Any>) {
+        val id = deviceId ?: return
+        updates["deviceId"] = id
+    }
 
     fun start(uid: String) {
         val trimmed = uid.trim()
@@ -46,12 +56,12 @@ class CrewPresenceService private constructor() : DefaultLifecycleObserver {
         val connectedRef = root.child(".info/connected")
 
         // On disconnect -> offline
-        root.child(userPath).onDisconnect().updateChildren(
-            mapOf(
-                "isOnline" to false,
-                "lastSeenMs" to ServerValue.TIMESTAMP
-            )
+        val onDisconnectUpdates = mutableMapOf<String, Any>(
+            "isOnline" to false,
+            "lastSeenMs" to ServerValue.TIMESTAMP
         )
+        addDeviceId(onDisconnectUpdates)
+        root.child(userPath).onDisconnect().updateChildren(onDisconnectUpdates)
 
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
@@ -86,6 +96,7 @@ class CrewPresenceService private constructor() : DefaultLifecycleObserver {
                     "isOnline" to isActuallyOnline,
                     "lastSeenMs" to ServerValue.TIMESTAMP
                 )
+                addDeviceId(updates)
                 if (isActuallyOnline && lastLat != 0.0 && lastLon != 0.0) {
                     updates["lat"] = lastLat
                     updates["lon"] = lastLon
@@ -113,6 +124,7 @@ class CrewPresenceService private constructor() : DefaultLifecycleObserver {
             "isOnline" to true,
             "lastSeenMs" to ServerValue.TIMESTAMP
         )
+        addDeviceId(updates)
 
         if (lastLat != 0.0 && lastLon != 0.0) {
             updates["lat"] = lastLat
@@ -129,12 +141,12 @@ class CrewPresenceService private constructor() : DefaultLifecycleObserver {
         myState = State.OFFLINE
         myLastChangedMs = System.currentTimeMillis()
         
-        root.child("crew_users/$currentUid").updateChildren(
-            mapOf(
-                "isOnline" to false,
-                "lastSeenMs" to ServerValue.TIMESTAMP
-            )
+        val updates = mutableMapOf<String, Any>(
+            "isOnline" to false,
+            "lastSeenMs" to ServerValue.TIMESTAMP
         )
+        addDeviceId(updates)
+        root.child("crew_users/$currentUid").updateChildren(updates)
         Log.d(TAG, "Presence -> OFFLINE")
     }
 
@@ -152,6 +164,7 @@ class CrewPresenceService private constructor() : DefaultLifecycleObserver {
             "lon" to lon,
             "lastSeenMs" to ServerValue.TIMESTAMP
         )
+        addDeviceId(updates)
         // If we are currently considered online by the service, keep it online in DB
         if (myState == State.ONLINE) {
             updates["isOnline"] = true
