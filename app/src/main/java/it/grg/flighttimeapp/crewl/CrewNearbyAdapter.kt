@@ -74,7 +74,7 @@ class CrewNearbyAdapter(
         private val onClick: (NearbyCrewUser) -> Unit,
         private val onPhotoClick: (NearbyCrewUser, Int) -> Unit
     ) : RecyclerView.ViewHolder(itemView) {
-        private val photo: ImageView = itemView.findViewById(R.id.crewPhoto)
+        private val photo: ImageView = itemView.findViewById<ImageView>(R.id.crewPhoto).also { it.clipToOutline = true }
         private val name: TextView = itemView.findViewById(R.id.crewName)
         private val subtitle: TextView = itemView.findViewById(R.id.crewSubtitle)
         private val bio: TextView = itemView.findViewById(R.id.crewBio)
@@ -94,12 +94,24 @@ class CrewNearbyAdapter(
             }
             onlineChip.visibility = if (user.isOnline) View.VISIBLE else View.GONE
 
-            val primaryB64 = if (user.photosB64.isNotEmpty()) user.photosB64.first() else user.photoB64
-            val bmp = CrewPhotoLoader.shared.getBitmap(user.userId, primaryB64)
-            if (bmp != null) {
-                photo.setImageBitmap(bmp)
+            // Try memory cache first; then Storage URL; then base64 fallback.
+            // setImageDrawable(null) lets the bg_ios_circle XML background show through
+            // as a proper circular placeholder for users who have no photo at all.
+            val cached = CrewPhotoLoader.shared.image(user.userId)
+            if (cached != null) {
+                photo.setImageBitmap(cached)
             } else {
-                photo.setImageResource(R.drawable.bg_ios_pill_light)
+                photo.setImageDrawable(null)
+                val primaryUrl = user.photosUrls.firstOrNull() ?: user.photoUrl
+                if (!primaryUrl.isNullOrBlank()) {
+                    CrewPhotoLoader.shared.loadFromUrl(primaryUrl, user.userId) { bmp ->
+                        if (bmp != null) photo.setImageBitmap(bmp)
+                    }
+                } else {
+                    val primaryB64 = if (user.photosB64.isNotEmpty()) user.photosB64.first() else user.photoB64
+                    val bmp = CrewPhotoLoader.shared.getBitmap(user.userId, primaryB64)
+                    if (bmp != null) photo.setImageBitmap(bmp)
+                }
             }
 
             val size = dpToPx(44, photo)
@@ -125,7 +137,7 @@ class CrewNearbyAdapter(
         private val onClick: (NearbyCrewUser) -> Unit,
         private val onPhotoClick: (NearbyCrewUser, Int) -> Unit
     ) : RecyclerView.ViewHolder(itemView) {
-        private val photo: ImageView = itemView.findViewById(R.id.mosaicPhoto)
+        private val photo: ImageView = itemView.findViewById<ImageView>(R.id.mosaicPhoto).also { it.clipToOutline = true }
         private val onlineDot: View = itemView.findViewById(R.id.mosaicOnlineDot)
         private val name: TextView = itemView.findViewById(R.id.mosaicName)
         private val subtitle: TextView = itemView.findViewById(R.id.mosaicSubtitle)
@@ -157,12 +169,21 @@ class CrewNearbyAdapter(
             onlineDot.visibility = if (user.isOnline) View.VISIBLE else View.GONE
             onlineDot.background?.setTint(itemView.context.getColor(R.color.green_ok))
 
-            val primaryB64 = if (user.photosB64.isNotEmpty()) user.photosB64.first() else user.photoB64
-            val bmp = CrewPhotoLoader.shared.getBitmap(user.userId, primaryB64)
-            if (bmp != null) {
-                photo.setImageBitmap(bmp)
+            val cached = CrewPhotoLoader.shared.image(user.userId)
+            if (cached != null) {
+                photo.setImageBitmap(cached)
             } else {
                 photo.setImageDrawable(null)
+                val primaryUrl = user.photosUrls.firstOrNull() ?: user.photoUrl
+                if (!primaryUrl.isNullOrBlank()) {
+                    CrewPhotoLoader.shared.loadFromUrl(primaryUrl, user.userId) { bmp ->
+                        if (bmp != null) photo.setImageBitmap(bmp)
+                    }
+                } else {
+                    val primaryB64 = if (user.photosB64.isNotEmpty()) user.photosB64.first() else user.photoB64
+                    val bmp = CrewPhotoLoader.shared.getBitmap(user.userId, primaryB64)
+                    if (bmp != null) photo.setImageBitmap(bmp)
+                }
             }
 
             photo.setOnClickListener { onPhotoClick(user, 0) }

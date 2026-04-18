@@ -65,7 +65,7 @@
     <string name="allowance_help_other">Règle personnalisée.</string>
     <string name="deduction_help_monthly">Appliquée une fois par mois.</string>
     <string name="deduction_help_daily">Appliquée par jour de duty (saisis le nombre mensuel).</string>
-    <string name="deduction_help_gosi">9,75 % du salaire de base + allocation logement (automatique).</string>
+    <string name="deduction_help_gosi" formatted="false">9,75 % du salaire de base + allocation logement (automatique).</string>
     <string name="salary_deduction_gosi_name">Déduction GOSI</string>
     <string name="salary_settings_amount_auto">Auto</string>
     <string name="salary_select">Sélectionner</string>

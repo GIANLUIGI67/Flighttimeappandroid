@@ -36,18 +36,52 @@ class CrewProfileSettingsActivity : AppCompatActivity() {
     private val maxExtraPhotos = 4
 
     private val baseCountryCodes: List<Pair<String, String>> = listOf(
-        "Italy (+39)" to "+39",
-        "Saudi Arabia (+966)" to "+966",
-        "UAE (+971)" to "+971",
-        "Qatar (+974)" to "+974",
-        "Kuwait (+965)" to "+965",
-        "Bahrain (+973)" to "+973",
-        "Oman (+968)" to "+968",
-        "Egypt (+20)" to "+20",
-        "UK (+44)" to "+44",
-        "France (+33)" to "+33",
-        "Germany (+49)" to "+49",
-        "USA (+1)" to "+1"
+        // Middle East
+        "🇸🇦 Saudi Arabia (+966)" to "+966",
+        "🇦🇪 UAE (+971)" to "+971",
+        "🇶🇦 Qatar (+974)" to "+974",
+        "🇰🇼 Kuwait (+965)" to "+965",
+        "🇧🇭 Bahrain (+973)" to "+973",
+        "🇴🇲 Oman (+968)" to "+968",
+        "🇪🇬 Egypt (+20)" to "+20",
+        // Europe
+        "🇮🇹 Italy (+39)" to "+39",
+        "🇬🇧 UK (+44)" to "+44",
+        "🇫🇷 France (+33)" to "+33",
+        "🇩🇪 Germany (+49)" to "+49",
+        "🇪🇸 Spain (+34)" to "+34",
+        "🇵🇹 Portugal (+351)" to "+351",
+        "🇳🇱 Netherlands (+31)" to "+31",
+        "🇧🇪 Belgium (+32)" to "+32",
+        "🇨🇭 Switzerland (+41)" to "+41",
+        "🇦🇹 Austria (+43)" to "+43",
+        "🇸🇪 Sweden (+46)" to "+46",
+        "🇳🇴 Norway (+47)" to "+47",
+        "🇩🇰 Denmark (+45)" to "+45",
+        "🇫🇮 Finland (+358)" to "+358",
+        "🇮🇪 Ireland (+353)" to "+353",
+        "🇬🇷 Greece (+30)" to "+30",
+        "🇹🇷 Turkey (+90)" to "+90",
+        "🇵🇱 Poland (+48)" to "+48",
+        "🇨🇿 Czech Republic (+420)" to "+420",
+        "🇭🇺 Hungary (+36)" to "+36",
+        "🇷🇴 Romania (+40)" to "+40",
+        // Americas
+        "🇺🇸 USA (+1)" to "+1",
+        // Asia
+        "🇮🇳 India (+91)" to "+91",
+        // Africa
+        "🇲🇦 Morocco (+212)" to "+212",
+        "🇹🇳 Tunisia (+216)" to "+216",
+        "🇩🇿 Algeria (+213)" to "+213",
+        "🇱🇾 Libya (+218)" to "+218",
+        "🇿🇦 South Africa (+27)" to "+27",
+        "🇳🇬 Nigeria (+234)" to "+234",
+        "🇬🇭 Ghana (+233)" to "+233",
+        "🇰🇪 Kenya (+254)" to "+254",
+        "🇹🇿 Tanzania (+255)" to "+255",
+        "🇸🇳 Senegal (+221)" to "+221",
+        "🇪🇹 Ethiopia (+251)" to "+251"
     )
     private val roles = CrewRole.entries.toList()
     private val visibilityModes = CrewVisibilityMode.entries.filter { it != CrewVisibilityMode.SAME_BASE_ONLY }
@@ -60,9 +94,8 @@ class CrewProfileSettingsActivity : AppCompatActivity() {
                 refreshExtraPhotos()
             } else {
                 photoView.setImageBitmap(bmp)
-                CrewPhotoLoader.shared.setLocalProfileImage(bmp)
-                val b64 = BitmapUtils.toBase64(bmp)
-                store.updateMyPhotoBase64(b64)
+                // Upload directly to Firebase Storage (no base64 in RTDB)
+                store.uploadMyPhoto(bmp)
             }
             isPickingExtra = false
         }
@@ -85,6 +118,8 @@ class CrewProfileSettingsActivity : AppCompatActivity() {
         roleSpinner = findViewById(R.id.roleSpinner)
         visibilitySpinner = findViewById(R.id.visibilitySpinner)
         bioInput = findViewById(R.id.bioInput)
+        bioInput.textDirection = android.view.View.TEXT_DIRECTION_LTR
+        bioInput.layoutDirection = android.view.View.LAYOUT_DIRECTION_LTR
         extraPhotosGrid = findViewById(R.id.extraPhotosGrid)
         excludedInput = findViewById(R.id.excludedInput)
         excludedAddBtn = findViewById(R.id.excludedAddBtn)
@@ -95,7 +130,7 @@ class CrewProfileSettingsActivity : AppCompatActivity() {
             pickImage.launch("image/*")
         }
         findViewById<Button>(R.id.clearPhotoBtn).setOnClickListener {
-            store.updateMyPhotoBase64("")
+            store.updateMyPhotoBase64("") // removes URLs from RTDB + invalidates cache
             photoView.setImageDrawable(null)
         }
 
@@ -165,11 +200,17 @@ class CrewProfileSettingsActivity : AppCompatActivity() {
         }
 
         store.settingsLive.observe(this) { s ->
-            if (nicknameInput.text.toString() != s.nickname) nicknameInput.setText(s.nickname)
-            if (companyInput.text.toString() != (s.companyName ?: "")) companyInput.setText(s.companyName ?: "")
-            if (phoneInput.text.toString() != (s.phoneNumber ?: "")) phoneInput.setText(s.phoneNumber ?: "")
+            // Never call setText() while the field has focus — it resets the cursor to position 0,
+            // causing the cursor to jump to the left mid-typing on RTL-locale devices.
+            if (!nicknameInput.isFocused && nicknameInput.text.toString() != s.nickname)
+                nicknameInput.setText(s.nickname)
+            if (!companyInput.isFocused && companyInput.text.toString() != (s.companyName ?: ""))
+                companyInput.setText(s.companyName ?: "")
+            if (!phoneInput.isFocused && phoneInput.text.toString() != (s.phoneNumber ?: ""))
+                phoneInput.setText(s.phoneNumber ?: "")
             val bioText = s.bio ?: ""
-            if (bioInput.text.toString() != bioText) bioInput.setText(bioText)
+            if (!bioInput.isFocused && bioInput.text.toString() != bioText)
+                bioInput.setText(bioText)
 
             val baseIndex = baseCountryCodes.indexOfFirst { it.second == s.baseCountryCode }
             if (baseIndex >= 0 && baseSpinner.selectedItemPosition != baseIndex) {

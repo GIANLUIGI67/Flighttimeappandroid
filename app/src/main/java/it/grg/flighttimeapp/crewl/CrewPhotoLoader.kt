@@ -14,6 +14,8 @@ class CrewPhotoLoader private constructor(context: Context) {
     private val appContext = context.applicationContext
     private val cache = LruCache<String, Bitmap>(64)
     private val maxExtraImages = 4
+    /** Tracks which Storage URL is currently cached per user, to detect replacements. */
+    private val cachedUrlByUserId = mutableMapOf<String, String>()
 
     fun image(userId: String): Bitmap? = cache.get(userId)
 
@@ -25,9 +27,9 @@ class CrewPhotoLoader private constructor(context: Context) {
         return cache.get(userId)
     }
 
-    fun upsertFromBase64(userId: String, b64: String) {
+    fun upsertFromBase64(userId: String, b64: String, maxDimension: Int = 512) {
         val data = try { Base64.decode(b64, Base64.DEFAULT) } catch (_: Exception) { null }
-        val bmp = data?.let { decodeBitmapWithExif(it) }
+        val bmp = data?.let { decodeBitmapWithExif(it, maxDimension) }
         if (bmp != null) {
             cache.put(userId, bmp)
         }
@@ -35,6 +37,7 @@ class CrewPhotoLoader private constructor(context: Context) {
 
     fun invalidate(userId: String) {
         cache.remove(userId)
+        cachedUrlByUserId.remove(userId)
     }
 
     fun setLocalProfileImage(bitmap: Bitmap) {
@@ -87,14 +90,79 @@ class CrewPhotoLoader private constructor(context: Context) {
         saveExtraNames(names)
     }
 
+    // MARK: - URL-based loading (Firebase Storage)
+
+    /**
+     * Downloads a photo from a Storage URL on a background thread and stores it
+     * in the in-memory cache keyed by userId. Returns immediately if already cached.
+     * The [onResult] callback fires on the main thread.
+     */
+    fun loadFromUrl(url: String, userId: String, onResult: ((Bitmap?) -> Unit)? = null) {
+        if (url.isBlank()) { onResult?.invoke(null); return }
+
+        // If the URL changed the user replaced their photo — drop the stale cached image
+        if (cachedUrlByUserId[userId] != url) {
+            cache.remove(userId)
+            cachedUrlByUserId.remove(userId)
+        }
+
+        val cached = cache.get(userId)
+        if (cached != null) { onResult?.invoke(cached); return }
+
+        Thread {
+            try {
+                val connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+                connection.connectTimeout = 10_000
+                connection.readTimeout = 15_000
+                connection.useCaches = false
+                connection.doInput = true
+                connection.connect()
+                val bitmap = if (connection.responseCode == 200) {
+                    // Read bytes first so EXIF orientation can be parsed.
+                    // Cap at 1024px to avoid loading 4032x3024 (~46 MB) into RAM.
+                    val bytes = connection.inputStream.readBytes()
+                    decodeBitmapWithExif(bytes, 1024)
+                } else null
+                if (bitmap != null) {
+                    cache.put(userId, bitmap)
+                    cachedUrlByUserId[userId] = url
+                }
+                android.os.Handler(android.os.Looper.getMainLooper()).post {
+                    onResult?.invoke(bitmap)
+                }
+            } catch (_: Exception) {
+                android.os.Handler(android.os.Looper.getMainLooper()).post {
+                    onResult?.invoke(null)
+                }
+            }
+        }.start()
+    }
+
+    /**
+     * Downloads the first URL in the list as the primary photo. Subsequent photos
+     * are downloaded only if the first succeeds (lazy). All cached under userId.
+     */
+    fun loadListFromUrls(urls: List<String>, userId: String, onResult: ((Bitmap?) -> Unit)? = null) {
+        if (urls.isEmpty()) { onResult?.invoke(null); return }
+        loadFromUrl(urls.first(), userId, onResult)
+    }
+
     fun decodeBase64ToBitmap(b64: String?): Bitmap? {
         if (b64.isNullOrBlank()) return null
         val data = try { Base64.decode(b64, Base64.DEFAULT) } catch (_: Exception) { null }
         return data?.let { decodeBitmapWithExif(it) }
     }
 
-    private fun decodeBitmapWithExif(bytes: ByteArray): Bitmap? {
-        val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return null
+    private fun decodeBitmapWithExif(bytes: ByteArray, maxDimension: Int = 0): Bitmap? {
+        val sampleSize = if (maxDimension > 0) {
+            val sizeOpts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, sizeOpts)
+            var s = 1
+            while ((maxOf(sizeOpts.outWidth, sizeOpts.outHeight) / s) > maxDimension) s = s shl 1
+            s
+        } else 1
+        val decodeOpts = BitmapFactory.Options().apply { inSampleSize = sampleSize }
+        val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, decodeOpts) ?: return null
         return try {
             val exif = ExifInterface(ByteArrayInputStream(bytes))
             when (exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)) {

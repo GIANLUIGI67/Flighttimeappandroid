@@ -77,11 +77,13 @@ class CrewPhotoPreviewDialog : DialogFragment() {
 
         pager = view.findViewById(R.id.photoPager)
         indicator = view.findViewById(R.id.photoIndicator)
-        avatar = view.findViewById(R.id.photoAvatar)
+        avatar = view.findViewById<ImageView>(R.id.photoAvatar).also { it.clipToOutline = true }
         heartIcon = view.findViewById(R.id.heartIcon)
         likeIcon = view.findViewById(R.id.likeIcon)
         heartCount = view.findViewById(R.id.heartCount)
         likeCount = view.findViewById(R.id.likeCount)
+        val heartContainer: android.view.ViewGroup = view.findViewById(R.id.heartContainer)
+        val likeContainer: android.view.ViewGroup = view.findViewById(R.id.likeContainer)
 
         pager.adapter = PhotoPagerAdapter(photosB64)
         if (photosB64.isNotEmpty()) {
@@ -90,13 +92,25 @@ class CrewPhotoPreviewDialog : DialogFragment() {
         updateIndicator(pager.currentItem)
 
         val avatarSource = avatarB64 ?: photosB64.firstOrNull()
-        val avatarBmp = avatarSource?.let { CrewPhotoLoader.shared.getBitmap("avatar_$ownerUid", it) }
-        if (avatarBmp != null) {
-            avatar.setImageBitmap(avatarBmp)
-            avatar.visibility = View.VISIBLE
-        } else {
-            avatar.visibility = View.GONE
+        fun bindAvatar(src: String?) {
+            if (src == null) { avatar.visibility = View.GONE; return }
+            if (src.startsWith("http")) {
+                val cached = CrewPhotoLoader.shared.image(ownerUid)
+                if (cached != null) {
+                    avatar.setImageBitmap(cached); avatar.visibility = View.VISIBLE
+                } else {
+                    avatar.visibility = View.GONE
+                    CrewPhotoLoader.shared.loadFromUrl(src, ownerUid) { bmp ->
+                        if (bmp != null) { avatar.setImageBitmap(bmp); avatar.visibility = View.VISIBLE }
+                    }
+                }
+            } else {
+                val bmp = CrewPhotoLoader.shared.getBitmap("avatar_$ownerUid", src)
+                if (bmp != null) { avatar.setImageBitmap(bmp); avatar.visibility = View.VISIBLE }
+                else { avatar.visibility = View.GONE }
+            }
         }
+        bindAvatar(avatarSource)
 
         pager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
@@ -107,17 +121,19 @@ class CrewPhotoPreviewDialog : DialogFragment() {
             }
         })
 
-        heartIcon.setOnClickListener {
+        // Toggle reaction on the whole container (larger tap target than the 22dp icon)
+        heartContainer.setOnClickListener {
             reactionsObserver?.toggleHeart()
             animatePulse(heartIcon)
             it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
         }
-        likeIcon.setOnClickListener {
+        likeContainer.setOnClickListener {
             reactionsObserver?.toggleLike()
             animatePulse(likeIcon)
             it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
         }
 
+        // Tap on the count label shows who reacted
         heartCount.setOnClickListener {
             ReactionListBottomSheet.show(
                 fragmentManager = parentFragmentManager,
@@ -127,7 +143,6 @@ class CrewPhotoPreviewDialog : DialogFragment() {
                 openChat(uid, nickname, company)
             }
         }
-
         likeCount.setOnClickListener {
             ReactionListBottomSheet.show(
                 fragmentManager = parentFragmentManager,
@@ -246,7 +261,7 @@ class CrewPhotoPreviewDialog : DialogFragment() {
 }
 
 private class PhotoPagerAdapter(
-    private val photosB64: List<String>
+    private val photos: List<String>
 ) : RecyclerView.Adapter<PhotoPagerAdapter.PhotoVH>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PhotoVH {
@@ -255,20 +270,32 @@ private class PhotoPagerAdapter(
         return PhotoVH(v)
     }
 
-    override fun getItemCount(): Int = photosB64.size
+    override fun getItemCount(): Int = photos.size
 
     override fun onBindViewHolder(holder: PhotoVH, position: Int) {
-        holder.bind(photosB64[position])
+        holder.bind(photos[position])
     }
 
     class PhotoVH(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val image: ImageView = itemView.findViewById(R.id.pagerImage)
-        fun bind(b64: String) {
-            val bmp = CrewPhotoLoader.shared.getBitmap("pager_${b64.hashCode()}", b64)
-            if (bmp != null) {
-                image.setImageBitmap(bmp)
+
+        fun bind(photoRef: String) {
+            image.setImageDrawable(null)
+            if (photoRef.startsWith("http")) {
+                // Storage URL — load asynchronously, cache by URL hash
+                val cacheKey = "pager_url_${photoRef.hashCode()}"
+                val cached = CrewPhotoLoader.shared.image(cacheKey)
+                if (cached != null) {
+                    image.setImageBitmap(cached)
+                } else {
+                    CrewPhotoLoader.shared.loadFromUrl(photoRef, cacheKey) { bmp ->
+                        if (bmp != null) image.setImageBitmap(bmp)
+                    }
+                }
             } else {
-                image.setImageDrawable(null)
+                // Legacy base64
+                val bmp = CrewPhotoLoader.shared.getBitmap("pager_${photoRef.hashCode()}", photoRef)
+                if (bmp != null) image.setImageBitmap(bmp)
             }
         }
     }
@@ -303,7 +330,9 @@ private class FirebaseReactionsObserver(
                 notifyState()
             }
 
-            override fun onCancelled(error: DatabaseError) {}
+            override fun onCancelled(error: DatabaseError) {
+                android.util.Log.e("Reactions", "likes observe cancelled: ${error.message} code=${error.code}")
+            }
         }
 
         heartsListener = object : ValueEventListener {
@@ -312,7 +341,9 @@ private class FirebaseReactionsObserver(
                 notifyState()
             }
 
-            override fun onCancelled(error: DatabaseError) {}
+            override fun onCancelled(error: DatabaseError) {
+                android.util.Log.e("Reactions", "hearts observe cancelled: ${error.message} code=${error.code}")
+            }
         }
 
         likesRef.addValueEventListener(likesListener as ValueEventListener)
@@ -330,9 +361,27 @@ private class FirebaseReactionsObserver(
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
         val ref = reactionsRef.child("likes").child(uid)
         if (likeIds.contains(uid)) {
-            ref.removeValue()
+            // Optimistic remove — mirrors iOS setLikeLocal(false)
+            likeIds = likeIds.filter { it != uid }
+            notifyState()
+            ref.removeValue { error, _ ->
+                if (error != null) {
+                    android.util.Log.e("Reactions", "removeValue likes failed: ${error.message} code=${error.code}")
+                    likeIds = likeIds + uid
+                    notifyState()
+                }
+            }
         } else {
-            ref.setValue(true)
+            // Optimistic add — mirrors iOS setLikeLocal(true)
+            likeIds = likeIds + uid
+            notifyState()
+            ref.setValue(true) { error, _ ->
+                if (error != null) {
+                    android.util.Log.e("Reactions", "setValue likes failed: ${error.message} code=${error.code}")
+                    likeIds = likeIds.filter { it != uid }
+                    notifyState()
+                }
+            }
         }
     }
 
@@ -340,9 +389,27 @@ private class FirebaseReactionsObserver(
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
         val ref = reactionsRef.child("hearts").child(uid)
         if (heartIds.contains(uid)) {
-            ref.removeValue()
+            // Optimistic remove — mirrors iOS setHeartLocal(false)
+            heartIds = heartIds.filter { it != uid }
+            notifyState()
+            ref.removeValue { error, _ ->
+                if (error != null) {
+                    android.util.Log.e("Reactions", "removeValue hearts failed: ${error.message} code=${error.code}")
+                    heartIds = heartIds + uid
+                    notifyState()
+                }
+            }
         } else {
-            ref.setValue(true)
+            // Optimistic add — mirrors iOS setHeartLocal(true)
+            heartIds = heartIds + uid
+            notifyState()
+            ref.setValue(true) { error, _ ->
+                if (error != null) {
+                    android.util.Log.e("Reactions", "setValue hearts failed: ${error.message} code=${error.code}")
+                    heartIds = heartIds.filter { it != uid }
+                    notifyState()
+                }
+            }
         }
     }
 
@@ -439,15 +506,22 @@ private class ReactionUserAdapter(
     }
 
     class UserVH(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        private val photo: ImageView = itemView.findViewById(R.id.reactionUserPhoto)
+        private val photo: ImageView = itemView.findViewById<ImageView>(R.id.reactionUserPhoto).also { it.clipToOutline = true }
         private val name: TextView = itemView.findViewById(R.id.reactionUserName)
 
         fun bind(uid: String, summary: CrewLayoverStore.CrewUserSummary?, onClick: (String, String, String?) -> Unit) {
             val nickname = summary?.nickname ?: "Crew"
             name.text = nickname
-            val bmp = summary?.photoB64?.let { CrewPhotoLoader.shared.getBitmap(uid, it) }
-            if (bmp != null) {
-                photo.setImageBitmap(bmp)
+            val primaryRef = summary?.primaryRef()
+            if (primaryRef != null) {
+                if (primaryRef.startsWith("http")) {
+                    val cached = CrewPhotoLoader.shared.image(uid)
+                    if (cached != null) photo.setImageBitmap(cached)
+                    else { photo.setImageDrawable(null); CrewPhotoLoader.shared.loadFromUrl(primaryRef, uid) { bmp -> if (bmp != null) photo.setImageBitmap(bmp) } }
+                } else {
+                    val bmp = CrewPhotoLoader.shared.getBitmap(uid, primaryRef)
+                    if (bmp != null) photo.setImageBitmap(bmp) else photo.setImageDrawable(null)
+                }
             } else {
                 photo.setImageDrawable(null)
             }

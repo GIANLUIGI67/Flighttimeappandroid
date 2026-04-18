@@ -50,6 +50,7 @@ data class NearbyCrewUser(
     val companyName: String?,
     val baseCountryCode: String,
     val phoneNumber: String?,
+    val deviceId: String?,
     val role: CrewRole,
     val bio: String?,
     val visibilityMode: CrewVisibilityMode,
@@ -60,7 +61,10 @@ data class NearbyCrewUser(
     val lon: Double,
     val distanceKm: Double,
     val photoB64: String?,
-    val photosB64: List<String>
+    val photosB64: List<String>,
+    // Firebase Storage URLs (preferred over base64 when present)
+    val photoUrl: String? = null,
+    val photosUrls: List<String> = emptyList()
 )
 
 enum class MeetingType(val raw: String, val labelResId: Int) {

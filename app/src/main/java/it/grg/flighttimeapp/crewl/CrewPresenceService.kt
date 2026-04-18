@@ -29,16 +29,6 @@ class CrewPresenceService private constructor() : DefaultLifecycleObserver {
     private val handler = android.os.Handler(android.os.Looper.getMainLooper())
 
     private var uid: String? = null
-    private var deviceId: String? = null
-
-    fun setDeviceId(id: String?) {
-        deviceId = id?.trim()?.ifEmpty { null }
-    }
-
-    private fun addDeviceId(updates: MutableMap<String, Any>) {
-        val id = deviceId ?: return
-        updates["deviceId"] = id
-    }
 
     fun start(uid: String) {
         val trimmed = uid.trim()
@@ -60,7 +50,6 @@ class CrewPresenceService private constructor() : DefaultLifecycleObserver {
             "isOnline" to false,
             "lastSeenMs" to ServerValue.TIMESTAMP
         )
-        addDeviceId(onDisconnectUpdates)
         root.child(userPath).onDisconnect().updateChildren(onDisconnectUpdates)
 
         val listener = object : ValueEventListener {
@@ -81,7 +70,7 @@ class CrewPresenceService private constructor() : DefaultLifecycleObserver {
 
         ProcessLifecycleOwner.get().lifecycle.removeObserver(this)
         ProcessLifecycleOwner.get().lifecycle.addObserver(this)
-        
+
         setOnlineNow()
     }
 
@@ -90,24 +79,27 @@ class CrewPresenceService private constructor() : DefaultLifecycleObserver {
         val runnable = object : Runnable {
             override fun run() {
                 val currentUid = uid ?: return
-                val isActuallyOnline = myState == State.ONLINE
-                
+                // Only write when actually online. If myState is somehow OFFLINE the
+                // heartbeat skips the Firebase write — it never writes isOnline: false.
+                // setOfflineNow() / onDisconnect are the only paths that clear the flag.
+                if (myState != State.ONLINE) {
+                    handler.postDelayed(this, 20_000L)
+                    return
+                }
                 val updates = mutableMapOf<String, Any>(
-                    "isOnline" to isActuallyOnline,
+                    "isOnline" to true,
                     "lastSeenMs" to ServerValue.TIMESTAMP
                 )
-                addDeviceId(updates)
-                if (isActuallyOnline && lastLat != 0.0 && lastLon != 0.0) {
+                if (lastLat != 0.0 && lastLon != 0.0) {
                     updates["lat"] = lastLat
                     updates["lon"] = lastLon
                 }
-
                 root.child("crew_users/$currentUid").updateChildren(updates)
-                handler.postDelayed(this, 30_000L)
+                handler.postDelayed(this, 15_000L)
             }
         }
         heartbeatRunnable = runnable
-        handler.postDelayed(runnable, 10_000L) // First heartbeat sooner
+        handler.postDelayed(runnable, 1_000L) // First tick immediately after startup
     }
 
     private fun stopHeartbeat() {
@@ -124,7 +116,6 @@ class CrewPresenceService private constructor() : DefaultLifecycleObserver {
             "isOnline" to true,
             "lastSeenMs" to ServerValue.TIMESTAMP
         )
-        addDeviceId(updates)
 
         if (lastLat != 0.0 && lastLon != 0.0) {
             updates["lat"] = lastLat
@@ -140,12 +131,11 @@ class CrewPresenceService private constructor() : DefaultLifecycleObserver {
         val currentUid = uid ?: return
         myState = State.OFFLINE
         myLastChangedMs = System.currentTimeMillis()
-        
+
         val updates = mutableMapOf<String, Any>(
             "isOnline" to false,
             "lastSeenMs" to ServerValue.TIMESTAMP
         )
-        addDeviceId(updates)
         root.child("crew_users/$currentUid").updateChildren(updates)
         Log.d(TAG, "Presence -> OFFLINE")
     }
@@ -164,7 +154,6 @@ class CrewPresenceService private constructor() : DefaultLifecycleObserver {
             "lon" to lon,
             "lastSeenMs" to ServerValue.TIMESTAMP
         )
-        addDeviceId(updates)
         // If we are currently considered online by the service, keep it online in DB
         if (myState == State.ONLINE) {
             updates["isOnline"] = true
@@ -176,6 +165,12 @@ class CrewPresenceService private constructor() : DefaultLifecycleObserver {
     fun stop() {
         val currentUid = this.uid
         if (currentUid != null) {
+            val updates = mutableMapOf<String, Any>(
+                "isOnline" to false,
+                "lastSeenMs" to ServerValue.TIMESTAMP
+            )
+            root.child("crew_users/$currentUid").updateChildren(updates)
+
             connectedHandle?.let { root.child(".info/connected").removeEventListener(it) }
         }
         connectedHandle = null
@@ -193,8 +188,13 @@ class CrewPresenceService private constructor() : DefaultLifecycleObserver {
     }
 
     override fun onStop(owner: LifecycleOwner) {
-        Log.d(TAG, "Lifecycle -> ON_STOP (App Background)")
-        setOfflineNow()
+        // Do NOT write isOnline: false here.
+        // ProcessLifecycleOwner.onStop() fires whenever the app is backgrounded —
+        // even briefly when the user switches away to check another device.
+        // Writing offline here causes the Android device to flicker offline to other
+        // users during normal use. The onDisconnect handler registered in start()
+        // already takes care of marking offline when the Firebase connection truly drops.
+        Log.d(TAG, "Lifecycle -> ON_STOP (App Background) — relying on onDisconnect")
     }
 
     companion object {

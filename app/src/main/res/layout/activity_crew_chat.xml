@@ -25,7 +25,6 @@
         android:layout_height="32dp"
         android:layout_marginStart="8dp"
         android:background="@drawable/bg_ios_circle"
-        android:clipToOutline="true"
         android:scaleType="centerCrop"
         android:contentDescription="@string/cl_profile_photo"
         app:layout_constraintStart_toEndOf="@id/chatBack"

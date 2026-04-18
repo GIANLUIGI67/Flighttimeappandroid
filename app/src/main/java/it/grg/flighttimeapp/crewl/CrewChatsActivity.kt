@@ -23,15 +23,19 @@ class CrewChatsActivity : AppCompatActivity() {
 
         val recycler = findViewById<RecyclerView>(R.id.chatsRecycler)
         recycler.layoutManager = LinearLayoutManager(this)
-        adapter = CrewChatsAdapter(emptyList(), emptySet()) { thread ->
-            val intent = Intent(this, CrewChatActivity::class.java).apply {
-                putExtra(CrewChatActivity.EXTRA_THREAD_ID, thread.id)
-                putExtra(CrewChatActivity.EXTRA_PEER_ID, thread.peerId)
-                putExtra(CrewChatActivity.EXTRA_PEER_NAME, thread.peerNickname)
-                putExtra(CrewChatActivity.EXTRA_PEER_COMPANY, thread.peerCompany ?: "")
-            }
-            startActivity(intent)
-        }
+        adapter = CrewChatsAdapter(
+            emptyList(), emptySet(),
+            onClick = { thread ->
+                val intent = Intent(this, CrewChatActivity::class.java).apply {
+                    putExtra(CrewChatActivity.EXTRA_THREAD_ID, thread.id)
+                    putExtra(CrewChatActivity.EXTRA_PEER_ID, thread.peerId)
+                    putExtra(CrewChatActivity.EXTRA_PEER_NAME, thread.peerNickname)
+                    putExtra(CrewChatActivity.EXTRA_PEER_COMPANY, thread.peerCompany ?: "")
+                }
+                startActivity(intent)
+            },
+            onPhotoClick = { peerId -> showPhotoPreview(peerId) }
+        )
         recycler.adapter = adapter
         attachChatSwipeToHide(recycler)
 
@@ -45,6 +49,23 @@ class CrewChatsActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         chatStore.stopAllObservers()
+    }
+
+    private fun showPhotoPreview(peerId: String) {
+        val summary = CrewLayoverStore.shared.getUserSummary(peerId) ?: return
+        val photos = summary.photoRefs()
+        if (photos.isEmpty()) return
+        CrewPhotoPreviewDialog.show(
+            fragmentManager = supportFragmentManager,
+            ownerUid = peerId,
+            photosB64 = ArrayList(photos),
+            initialIndex = 0,
+            threadId = null,
+            messageId = null,
+            avatarB64 = photos.firstOrNull(),
+            peerName = summary.nickname,
+            peerCompany = summary.companyName ?: ""
+        )
     }
 
     private fun attachChatSwipeToHide(recycler: RecyclerView) {

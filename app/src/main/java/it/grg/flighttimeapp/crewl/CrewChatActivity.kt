@@ -48,7 +48,7 @@ class CrewChatActivity : AppCompatActivity() {
 
         val title = findViewById<TextView>(R.id.chatTitle)
         val bioView = findViewById<TextView>(R.id.chatBio)
-        val peerPhoto = findViewById<ImageView>(R.id.chatPeerPhoto)
+        val peerPhoto = findViewById<ImageView>(R.id.chatPeerPhoto).also { it.clipToOutline = true }
         val input = findViewById<EditText>(R.id.chatInput)
         val sendBtn = findViewById<android.widget.Button>(R.id.chatSend)
         val photoBtn = findViewById<ImageButton>(R.id.chatPhotoBtn)
@@ -75,20 +75,41 @@ class CrewChatActivity : AppCompatActivity() {
         fun updatePeerPhoto() {
             val pid = peerId ?: return
             val summary = crewStore.getUserSummary(pid)
-            val photos = summary?.photosB64?.filter { it.isNotBlank() } ?: emptyList()
-            val avatar = summary?.photoB64?.takeIf { it.isNotBlank() }
-            val merged = ArrayList<String>()
-            if (avatar != null) merged.add(avatar)
-            photos.forEach { if (it != avatar) merged.add(it) }
-            peerPhotos = merged
-            peerAvatarB64 = merged.firstOrNull()
-            val bmp = peerAvatarB64?.let { CrewPhotoLoader.shared.getBitmap(pid, it) }
-            if (bmp != null) {
-                peerPhoto.setImageBitmap(bmp)
-                peerPhoto.visibility = android.view.View.VISIBLE
-            } else {
+            // Build unified photo refs list: Storage URLs preferred, b64 fallback
+            val refs = summary?.photoRefs() ?: emptyList()
+            peerPhotos = ArrayList(refs)
+            peerAvatarB64 = refs.firstOrNull()
+
+            val primaryRef = peerAvatarB64
+            if (primaryRef == null) {
                 peerPhoto.setImageDrawable(null)
                 peerPhoto.visibility = android.view.View.GONE
+                return
+            }
+            if (primaryRef.startsWith("http")) {
+                val cached = CrewPhotoLoader.shared.image(pid)
+                if (cached != null) {
+                    peerPhoto.setImageBitmap(cached)
+                    peerPhoto.visibility = android.view.View.VISIBLE
+                } else {
+                    peerPhoto.setImageDrawable(null)
+                    peerPhoto.visibility = android.view.View.GONE
+                    CrewPhotoLoader.shared.loadFromUrl(primaryRef, pid) { bmp ->
+                        if (bmp != null) {
+                            peerPhoto.setImageBitmap(bmp)
+                            peerPhoto.visibility = android.view.View.VISIBLE
+                        }
+                    }
+                }
+            } else {
+                val bmp = CrewPhotoLoader.shared.getBitmap(pid, primaryRef)
+                if (bmp != null) {
+                    peerPhoto.setImageBitmap(bmp)
+                    peerPhoto.visibility = android.view.View.VISIBLE
+                } else {
+                    peerPhoto.setImageDrawable(null)
+                    peerPhoto.visibility = android.view.View.GONE
+                }
             }
         }
         updatePeerPhoto()
@@ -146,6 +167,7 @@ class CrewChatActivity : AppCompatActivity() {
                 companyName = intent.getStringExtra(EXTRA_PEER_COMPANY),
                 baseCountryCode = "",
                 phoneNumber = null,
+                deviceId = null,
                 role = CrewRole.CABIN_CREW,
                 bio = null,
                 visibilityMode = CrewVisibilityMode.EVERYONE,
@@ -216,11 +238,12 @@ class CrewChatActivity : AppCompatActivity() {
             }
             return
         }
-        val profilePhotos = summary.photosB64
-        val avatarB64 = summary.photoB64 ?: profilePhotos.firstOrNull()
+        // Chat image first, then sender's profile photos (URLs or b64)
+        val profileRefs = summary.photoRefs()
+        val avatarRef = profileRefs.firstOrNull() ?: summary.photoB64
         val photos = ArrayList<String>()
-        photos.add(base64)
-        profilePhotos.forEach { if (it != base64) photos.add(it) }
+        photos.add(base64) // the chat image is always b64
+        profileRefs.forEach { if (it != base64) photos.add(it) }
         CrewPhotoPreviewDialog.show(
             fragmentManager = supportFragmentManager,
             ownerUid = msg.senderUid,
@@ -228,7 +251,7 @@ class CrewChatActivity : AppCompatActivity() {
             initialIndex = 0,
             threadId = tid,
             messageId = msg.id,
-            avatarB64 = avatarB64,
+            avatarB64 = avatarRef,
             peerName = peerName ?: getString(R.string.cl_chat),
             peerCompany = ""
         )

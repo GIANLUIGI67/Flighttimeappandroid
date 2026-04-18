@@ -133,7 +133,11 @@ class CrewNearbyActivity : AppCompatActivity() {
     }
 
     private fun hasPhoto(user: NearbyCrewUser): Boolean {
-        return user.photosB64.isNotEmpty() || !user.photoB64.isNullOrBlank()
+        if (user.photosUrls.isNotEmpty() || !user.photoUrl.isNullOrBlank()) return true
+        if (user.photosB64.isNotEmpty() || !user.photoB64.isNullOrBlank()) return true
+        // b64 photos are stripped from NearbyCrewUser to save memory, but their decoded
+        // bitmaps are pre-cached in CrewPhotoLoader during snapshot processing.
+        return CrewPhotoLoader.shared.image(user.userId) != null
     }
 
     private fun applyDistanceUi(isUnlimited: Boolean, maxKm: Double) {
@@ -143,21 +147,24 @@ class CrewNearbyActivity : AppCompatActivity() {
     }
 
     private fun showPhotoPreview(user: NearbyCrewUser, initialIndex: Int) {
-        val photos = if (user.photosB64.isNotEmpty()) {
-            user.photosB64
-        } else {
-            user.photoB64?.let { listOf(it) } ?: emptyList()
+        // Prefer Storage URLs; fall back to base64 for users who haven't migrated yet
+        val photos: List<String> = when {
+            user.photosUrls.isNotEmpty() -> user.photosUrls
+            !user.photoUrl.isNullOrBlank() -> listOf(user.photoUrl!!)
+            user.photosB64.isNotEmpty() -> user.photosB64
+            !user.photoB64.isNullOrBlank() -> listOf(user.photoB64!!)
+            else -> emptyList()
         }
         if (photos.isEmpty()) return
-        val avatarB64 = user.photoB64 ?: photos.firstOrNull()
+        val avatarRef = photos.firstOrNull()
         CrewPhotoPreviewDialog.show(
             fragmentManager = supportFragmentManager,
             ownerUid = user.userId,
             photosB64 = ArrayList(photos),
-            initialIndex = initialIndex,
+            initialIndex = initialIndex.coerceIn(0, photos.lastIndex),
             threadId = null,
             messageId = null,
-            avatarB64 = avatarB64,
+            avatarB64 = avatarRef,
             peerName = user.nickname,
             peerCompany = user.companyName ?: ""
         )

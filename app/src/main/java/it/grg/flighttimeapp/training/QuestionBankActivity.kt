@@ -152,7 +152,7 @@ class QuestionBankActivity : AppCompatActivity() {
         selectedLetter = letter
         locked = true
         scoreTotal += 1
-        if (letter.uppercase() == q.correct.uppercase()) {
+        if (letter.uppercase(java.util.Locale.ROOT) == q.correct.uppercase(java.util.Locale.ROOT)) {
             scoreCorrect += 1
         }
         render()
@@ -242,8 +242,8 @@ class QuestionBankActivity : AppCompatActivity() {
         if (!locked) {
             return if (selectedLetter == letter) OptionState.SELECTED else OptionState.NORMAL
         }
-        val isCorrect = letter.uppercase() == correct.uppercase()
-        val isSelected = selectedLetter?.uppercase() == letter.uppercase()
+        val isCorrect = letter.uppercase(java.util.Locale.ROOT) == correct.uppercase(java.util.Locale.ROOT)
+        val isSelected = selectedLetter?.uppercase(java.util.Locale.ROOT) == letter.uppercase(java.util.Locale.ROOT)
         return when {
             isCorrect -> OptionState.CORRECT
             isSelected && !isCorrect -> OptionState.WRONG

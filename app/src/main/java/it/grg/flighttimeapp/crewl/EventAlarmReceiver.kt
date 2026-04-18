@@ -1,5 +1,6 @@
 package it.grg.flighttimeapp.crewl
 
+import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -13,6 +14,7 @@ import it.grg.flighttimeapp.R
 
 class EventAlarmReceiver : BroadcastReceiver() {
 
+    @SuppressLint("MissingPermission")
     override fun onReceive(context: Context, intent: Intent) {
         val eventId = intent.getStringExtra(EXTRA_EVENT_ID).orEmpty()
         val eventTitle = intent.getStringExtra(EXTRA_EVENT_TITLE).orEmpty()

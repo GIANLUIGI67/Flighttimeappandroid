@@ -65,7 +65,7 @@
     <string name="allowance_help_other">Regla personalizada.</string>
     <string name="deduction_help_monthly">Se aplica una vez al mes.</string>
     <string name="deduction_help_daily">Se aplica por día de duty (introduce el conteo mensual).</string>
-    <string name="deduction_help_gosi">9,75 % del salario base + asignación de vivienda (automático).</string>
+    <string name="deduction_help_gosi" formatted="false">9,75 % del salario base + asignación de vivienda (automático).</string>
     <string name="salary_deduction_gosi_name">Deducción GOSI</string>
     <string name="salary_settings_amount_auto">Auto</string>
     <string name="salary_select">Seleccionar</string>

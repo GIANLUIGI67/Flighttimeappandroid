@@ -61,7 +61,7 @@
     <string name="allowance_help_other">Importo libero.</string>
     <string name="deduction_help_monthly">Applicata una volta al mese.</string>
     <string name="deduction_help_daily">Applicata per giorno di duty (inserisci il numero mensile).</string>
-    <string name="deduction_help_gosi">9,75% di stipendio base + indennita alloggio (automatico).</string>
+    <string name="deduction_help_gosi" formatted="false">9,75% di stipendio base + indennita alloggio (automatico).</string>
     <string name="salary_deduction_gosi_name">Detrazione GOSI</string>
     <string name="salary_settings_amount_auto">Auto</string>
     <string name="salary_select">Seleziona</string>

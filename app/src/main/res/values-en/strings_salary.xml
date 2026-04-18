@@ -65,7 +65,7 @@
     <string name="allowance_help_other">Custom rule.</string>
     <string name="deduction_help_monthly">Applied once per month.</string>
     <string name="deduction_help_daily">Applied per duty day (enter monthly count).</string>
-    <string name="deduction_help_gosi">9.75% of basic salary + housing allowance (automatic).</string>
+    <string name="deduction_help_gosi" formatted="false">9.75% of basic salary + housing allowance (automatic).</string>
     <string name="salary_deduction_gosi_name">GOSI deduction</string>
     <string name="salary_settings_amount_auto">Auto</string>
     <string name="salary_select">Select</string>

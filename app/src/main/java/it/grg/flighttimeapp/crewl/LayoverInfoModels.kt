@@ -5,7 +5,7 @@ import it.grg.flighttimeapp.R
 
 enum class LayoverInfoCategory(
     val key: String,
-    @StringRes val labelResId: Int,
+    @param:StringRes val labelResId: Int,
     val iconResId: Int
 ) {
     TRANSPORT("transport", R.string.cl_layover_info_transport, R.drawable.ic_location),

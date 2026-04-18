@@ -124,7 +124,7 @@ class QuestionBankStore(
             optionB = c.getString(3) ?: "",
             optionC = c.getString(4) ?: "",
             optionD = c.getString(5) ?: "",
-            correct = (c.getString(6) ?: "").uppercase()
+            correct = (c.getString(6) ?: "").uppercase(java.util.Locale.ROOT)
         )
     }
 

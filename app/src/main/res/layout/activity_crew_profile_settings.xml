@@ -250,6 +250,8 @@
             android:minLines="3"
             android:maxLines="6"
             android:gravity="top|start"
+            android:textDirection="ltr"
+            android:layoutDirection="ltr"
             app:layout_constraintTop_toBottomOf="@id/bioTitle"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />

@@ -65,7 +65,7 @@
     <string name="allowance_help_other">Benutzerdefinierte Regel.</string>
     <string name="deduction_help_monthly">Wird einmal pro Monat angewendet.</string>
     <string name="deduction_help_daily">Wird pro Duty-Tag angewendet (monatliche Anzahl eingeben).</string>
-    <string name="deduction_help_gosi">9,75 % des Grundgehalts + Wohnzulage (automatisch).</string>
+    <string name="deduction_help_gosi" formatted="false">9,75 % des Grundgehalts + Wohnzulage (automatisch).</string>
     <string name="salary_deduction_gosi_name">GOSI-Abzug</string>
     <string name="salary_settings_amount_auto">Auto</string>
     <string name="salary_select">Auswählen</string>
