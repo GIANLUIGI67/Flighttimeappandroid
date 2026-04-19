@@ -515,6 +515,11 @@ class CrewLayoverStore private constructor() {
         val primaryUrl = user.photosUrls.firstOrNull() ?: user.photoUrl
         if (!primaryUrl.isNullOrBlank()) {
             CrewPhotoLoader.shared.prefetchFromUrl(primaryUrl, user.userId)
+            return
+        }
+        val primaryB64 = if (user.photosB64.isNotEmpty()) user.photosB64.first() else user.photoB64
+        if (!primaryB64.isNullOrBlank()) {
+            CrewPhotoLoader.shared.prefetchFromBase64(user.userId, primaryB64)
         }
     }
 

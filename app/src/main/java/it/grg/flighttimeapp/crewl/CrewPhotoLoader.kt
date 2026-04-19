@@ -37,6 +37,18 @@ class CrewPhotoLoader private constructor(context: Context) {
         }
     }
 
+    fun prefetchFromBase64(userId: String, b64: String, maxDimension: Int = 512) {
+        if (b64.isBlank()) return
+        if (cache.get(userId) != null) return
+        Thread {
+            val data = try { Base64.decode(b64, Base64.DEFAULT) } catch (_: Exception) { null }
+            val bmp = data?.let { decodeBitmapWithExif(it, maxDimension) }
+            if (bmp != null) {
+                cache.put(userId, bmp)
+            }
+        }.start()
+    }
+
     fun invalidate(userId: String) {
         cache.remove(userId)
         cachedUrlByUserId.remove(userId)
