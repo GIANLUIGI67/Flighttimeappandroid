@@ -16,6 +16,8 @@ class CrewPhotoLoader private constructor(context: Context) {
     private val maxExtraImages = 4
     /** Tracks which Storage URL is currently cached per user, to detect replacements. */
     private val cachedUrlByUserId = mutableMapOf<String, String>()
+    /** Prevents duplicate in-flight fetches for the same user/url pair. */
+    private val inFlightUrlByUserId = mutableMapOf<String, String>()
 
     fun image(userId: String): Bitmap? = cache.get(userId)
 
@@ -101,13 +103,27 @@ class CrewPhotoLoader private constructor(context: Context) {
         if (url.isBlank()) { onResult?.invoke(null); return }
 
         // If the URL changed the user replaced their photo — drop the stale cached image
-        if (cachedUrlByUserId[userId] != url) {
-            cache.remove(userId)
-            cachedUrlByUserId.remove(userId)
+        synchronized(this) {
+            if (cachedUrlByUserId[userId] != url) {
+                cache.remove(userId)
+                cachedUrlByUserId.remove(userId)
+            }
+            if (inFlightUrlByUserId[userId] == url) {
+                cache.get(userId)?.let {
+                    onResult?.invoke(it)
+                    return
+                }
+                return
+            }
+            inFlightUrlByUserId[userId] = url
         }
 
         val cached = cache.get(userId)
-        if (cached != null) { onResult?.invoke(cached); return }
+        if (cached != null) {
+            synchronized(this) { inFlightUrlByUserId.remove(userId) }
+            onResult?.invoke(cached)
+            return
+        }
 
         Thread {
             try {
@@ -124,18 +140,36 @@ class CrewPhotoLoader private constructor(context: Context) {
                     decodeBitmapWithExif(bytes, 1024)
                 } else null
                 if (bitmap != null) {
-                    cache.put(userId, bitmap)
-                    cachedUrlByUserId[userId] = url
+                    synchronized(this) {
+                        if (inFlightUrlByUserId[userId] == url) {
+                            cache.put(userId, bitmap)
+                            cachedUrlByUserId[userId] = url
+                        }
+                    }
                 }
                 android.os.Handler(android.os.Looper.getMainLooper()).post {
+                    synchronized(this) {
+                        if (inFlightUrlByUserId[userId] == url) {
+                            inFlightUrlByUserId.remove(userId)
+                        }
+                    }
                     onResult?.invoke(bitmap)
                 }
             } catch (_: Exception) {
                 android.os.Handler(android.os.Looper.getMainLooper()).post {
+                    synchronized(this) {
+                        if (inFlightUrlByUserId[userId] == url) {
+                            inFlightUrlByUserId.remove(userId)
+                        }
+                    }
                     onResult?.invoke(null)
                 }
             }
         }.start()
+    }
+
+    fun prefetchFromUrl(url: String, userId: String) {
+        loadFromUrl(url, userId, null)
     }
 
     /**

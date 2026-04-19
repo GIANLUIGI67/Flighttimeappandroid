@@ -18,6 +18,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageMetadata
+import com.google.firebase.storage.StorageException
 import it.grg.flighttimeapp.R
 import java.util.Date
 import java.util.UUID
@@ -35,9 +36,15 @@ class CrewLayoverStore private constructor() {
     private var lastLocation: Location? = null
 
     private var usersChildHandle: ChildEventListener? = null
+    private var usersQueryRef: Query? = null
     private var eventsHandle: ValueEventListener? = null
+    private var eventsQueryRef: Query? = null
     private var eventMembersHandle: ValueEventListener? = null
     private var invitesHandle: ValueEventListener? = null
+
+    private var cachedMemberCountsByEvent: Map<String, Int> = emptyMap()
+    private var cachedJoinedEventIds: Set<String> = emptySet()
+    private var cachedEventMembers: Map<String, List<String>> = emptyMap()
 
     private var eventMessagesHandle: ChildEventListener? = null
     private var eventMessagesRef: DatabaseReference? = null
@@ -72,6 +79,7 @@ class CrewLayoverStore private constructor() {
     val hasIncomingInvitation: LiveData<Boolean> = _hasIncomingInvitation
 
     private var isCreatingEvent = false
+    private var isUploadingPhotos = false
     private val roleSetKey = "role_set_v1"
     private val distanceUnlimitedKey = "distance_unlimited_v1"
     private val distanceMaxKmKey = "distance_max_km_v1"
@@ -164,7 +172,10 @@ class CrewLayoverStore private constructor() {
     fun start(userId: String) {
         val uid = userId.trim()
         if (uid.isEmpty()) return
-        if (isStarted) return
+        if (isStarted) {
+            if (myUserId == uid) return
+            stop()
+        }
         isStarted = true
         myUserId = uid
 
@@ -190,13 +201,29 @@ class CrewLayoverStore private constructor() {
                 "lastSeenMs" to ServerValue.TIMESTAMP
             )
         ).addOnCompleteListener {
-            // Server has acknowledged the write — deviceId is in Firebase now.
-            // Direct delete of the stored previous UID (works even without deviceId set).
+            // Fast-path: delete prev UID stored in SharedPreferences (handles
+            // same-installation UID rotation without a Firebase round-trip).
             if (!prevUid.isNullOrEmpty() && prevUid != uid) {
                 deleteAllDataForOldUid(prevUid, deviceId ?: "")
             }
-            // Also scan by deviceId for any further same-device ghosts
-            cleanupStaleDeviceEntries(uid)
+            // O(1) device→uid map: find any stale UID from a previous installation
+            // on this exact device and delete it before it appears as a ghost user.
+            if (deviceId != null) {
+                root.child("device_uid_map/$deviceId")
+                    .addListenerForSingleValueEvent(object : ValueEventListener {
+                        override fun onDataChange(snapshot: DataSnapshot) {
+                            val mappedUid = snapshot.getValue(String::class.java)?.trim()
+                            if (!mappedUid.isNullOrEmpty() && mappedUid != uid) {
+                                deleteAllDataForOldUid(mappedUid, deviceId)
+                            }
+                            root.child("device_uid_map/$deviceId").setValue(uid)
+                        }
+                        override fun onCancelled(error: DatabaseError) {
+                            Log.e(TAG, "device_uid_map read failed: ${error.message}")
+                            root.child("device_uid_map/$deviceId").setValue(uid)
+                        }
+                    })
+            }
         }
 
         refreshNow()
@@ -211,6 +238,7 @@ class CrewLayoverStore private constructor() {
     fun stop() {
         stopAllObservers()
         stopStaleSweepTimer()
+        CrewPresenceService.shared.stop()
         isStarted = false
         myUserId = null
         _onlineNow.postValue(emptyList())
@@ -272,6 +300,10 @@ class CrewLayoverStore private constructor() {
      * Calls [onComplete] with (primaryUrl, allUrls) on the main thread.
      */
     private fun uploadPhotosToStorage(uid: String, onComplete: (photoUrl: String, photosUrls: List<String>) -> Unit) {
+        if (isUploadingPhotos) {
+            onComplete("", emptyList())
+            return
+        }
         val ctx = appContext ?: return
         val loader = CrewPhotoLoader.get(ctx)
         val images = buildList<Bitmap> {
@@ -284,11 +316,13 @@ class CrewLayoverStore private constructor() {
             return
         }
 
+        isUploadingPhotos = true
         val storageRef = FirebaseStorage.getInstance().reference.child("crew_photos/$uid")
 
         // Delete existing files first so orphaned photos from a previous larger set don't accumulate.
+        // Ignore 404 — a concurrent upload may have already deleted the file.
         storageRef.listAll().addOnSuccessListener { result ->
-            result.items.forEach { ref -> ref.delete() }
+            result.items.forEach { ref -> ref.delete().addOnFailureListener { } }
         }
 
         val urls = mutableListOf<String>()
@@ -310,14 +344,188 @@ class CrewLayoverStore private constructor() {
                 .addOnSuccessListener { uri ->
                     synchronized(urls) { urls.add(uri.toString()) }
                     remaining--
-                    if (remaining == 0) onComplete(urls.firstOrNull() ?: "", urls)
+                    if (remaining == 0) {
+                        isUploadingPhotos = false
+                        onComplete(urls.firstOrNull() ?: "", urls)
+                    }
                 }
                 .addOnFailureListener { e ->
                     Log.e(TAG, "Storage upload failed for photo $index: ${e.message}")
                     remaining--
-                    if (remaining == 0) onComplete(urls.firstOrNull() ?: "", urls)
+                    if (remaining == 0) {
+                        isUploadingPhotos = false
+                        onComplete(urls.firstOrNull() ?: "", urls)
+                    }
                 }
         }
+    }
+
+    /**
+     * Keeps only one RTDB record per physical device.
+     * Preference order:
+     * 1) the current auth UID if it is present for this device
+     * 2) otherwise the record with the latest lastSeenMs
+     */
+    private fun cleanupDuplicateDeviceEntries(currentUid: String, deviceId: String) {
+        root.child("crew_users")
+            .orderByChild("deviceId")
+            .equalTo(deviceId)
+            .addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val candidates = snapshot.children.mapNotNull { child ->
+                        val uid = child.key ?: return@mapNotNull null
+                        val lastSeenMs = parseLongValue(child.child("lastSeenMs").value)
+                        uid to lastSeenMs
+                    }
+
+                    if (candidates.size <= 1) {
+                        Log.d(TAG, "Device cleanup skipped for $deviceId: candidates=${candidates.size}")
+                        return
+                    }
+
+                    val keepUid = candidates.maxWithOrNull(
+                        compareBy<Pair<String, Long>> { it.second }.thenBy { it.first }
+                    )?.first ?: return
+
+                    val removedUids = candidates.map { it.first }.filterNot { it == keepUid }
+                    Log.d(
+                        TAG,
+                        "Device cleanup for $deviceId keep=$keepUid remove=${removedUids.joinToString(",")}"
+                    )
+
+                    val deletions = mutableMapOf<String, Any?>()
+                    candidates.forEach { (uid, _) ->
+                        if (uid == keepUid) return@forEach
+                        deletions["crew_users/$uid"] = null
+                        deletions["crew_user_meta/$uid"] = null
+                        deletions["userTokens/$uid"] = null
+                        deletions["user_event_invites/$uid"] = null
+                        deletions["event_hidden/$uid"] = null
+                        deletions["userThreads/$uid"] = null
+                    }
+
+                    if (deletions.isNotEmpty()) {
+                        root.updateChildren(deletions)
+                            .addOnSuccessListener {
+                                Log.d(TAG, "Device cleanup applied for $deviceId keep=$keepUid removed=${removedUids.size}")
+                            }
+                            .addOnFailureListener { e ->
+                                Log.e(TAG, "Failed cleaning duplicate device entries for $deviceId: ${e.message}")
+                            }
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e(TAG, "cleanupDuplicateDeviceEntries failed: ${error.message}")
+                }
+            })
+    }
+
+    /**
+     * Secondary cleanup for legacy Android duplicates that do not carry a usable deviceId.
+     * We collapse records by compulsory profile signature and keep only the newest copy.
+     */
+    private fun cleanupDuplicateProfileEntries(currentUid: String) {
+        root.child("crew_users")
+            .orderByChild("lastSeenMs")
+            .limitToLast(250)
+            .addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val groups = mutableMapOf<String, MutableList<Pair<String, Long>>>()
+                    snapshot.children.forEach { child ->
+                        val uid = child.key ?: return@forEach
+                        val dict = child.value as? Map<*, *> ?: return@forEach
+                        val key = stableProfileKey(dict) ?: return@forEach
+                        val lastSeenMs = parseLongValue(child.child("lastSeenMs").value)
+                        groups.getOrPut(key) { mutableListOf() }.add(uid to lastSeenMs)
+                    }
+
+                    val deletions = mutableMapOf<String, Any?>()
+                    groups.forEach { (_, items) ->
+                        if (items.size <= 1) return@forEach
+                        val keepUid = items.maxWithOrNull(
+                            compareBy<Pair<String, Long>> { it.second }.thenBy { it.first }
+                        )?.first ?: return@forEach
+                        val removed = items.filterNot { it.first == keepUid }
+                        if (removed.isEmpty()) return@forEach
+                        Log.d(
+                            TAG,
+                            "Profile cleanup keep=$keepUid remove=${removed.joinToString(",") { it.first }}"
+                        )
+                        removed.forEach { (uid, _) ->
+                            if (uid != currentUid) {
+                                deletions["crew_users/$uid"] = null
+                                deletions["crew_user_meta/$uid"] = null
+                                deletions["userTokens/$uid"] = null
+                                deletions["user_event_invites/$uid"] = null
+                                deletions["event_hidden/$uid"] = null
+                                deletions["userThreads/$uid"] = null
+                            }
+                        }
+                    }
+
+                    if (deletions.isNotEmpty()) {
+                        root.updateChildren(deletions)
+                            .addOnSuccessListener {
+                                Log.d(TAG, "Profile cleanup applied removed=${deletions.size}")
+                            }
+                            .addOnFailureListener { e ->
+                                Log.e(TAG, "Failed profile cleanup: ${e.message}")
+                            }
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e(TAG, "cleanupDuplicateProfileEntries failed: ${error.message}")
+                }
+            })
+    }
+
+    private fun parseLongValue(value: Any?): Long {
+        return when (value) {
+            is Long -> value
+            is Int -> value.toLong()
+            is Short -> value.toLong()
+            is Double -> value.toLong()
+            is Float -> value.toLong()
+            is Number -> value.toLong()
+            is String -> value.trim().toLongOrNull() ?: 0L
+            else -> 0L
+        }
+    }
+
+    private fun stableProfileKey(dict: Map<*, *>): String? {
+        val nickname = (dict["nickname"] as? String)?.trim()?.lowercase()?.ifBlank { null } ?: return null
+        val role = (dict["role"] as? String)?.trim()?.lowercase()?.ifBlank { null } ?: return null
+        val countryCode = (dict["baseCountryCode"] as? String)?.trim()?.lowercase()?.ifBlank { null } ?: return null
+        val photo = photoSignature(dict) ?: return null
+        return "$photo|$nickname|$countryCode|$role"
+    }
+
+    private fun photoSignature(dict: Map<*, *>): String? {
+        val photosUrls = firebaseListStrings(dict["photosUrls"])
+        if (photosUrls.isNotEmpty()) return photosUrls.first().trim().lowercase().ifBlank { null }
+        (dict["photoUrl"] as? String)?.trim()?.lowercase()?.ifBlank { null }?.let { return it }
+        val photosB64 = firebaseListStrings(dict["photosB64"])
+        if (photosB64.isNotEmpty()) return photosB64.first().trim().ifBlank { null }
+        return (dict["photoB64"] as? String)?.trim()?.ifBlank { null }
+    }
+
+    private fun prefetchNearbyPhoto(user: NearbyCrewUser) {
+        val primaryUrl = user.photosUrls.firstOrNull() ?: user.photoUrl
+        if (!primaryUrl.isNullOrBlank()) {
+            CrewPhotoLoader.shared.prefetchFromUrl(primaryUrl, user.userId)
+        }
+    }
+
+    /**
+     * Legacy nearby rows without any actual photo source should not be shown at all.
+     * We intentionally do not treat a cached bitmap as sufficient here, because the
+     * user wants stale incomplete records removed from the views rather than rendered
+     * as placeholder cards.
+     */
+    private fun hasNearbyPhotoSource(dict: Map<String, Any?>): Boolean {
+        return !photoSignature(dict).isNullOrBlank()
     }
 
     /**
@@ -336,9 +544,11 @@ class CrewLayoverStore private constructor() {
             if (photoUrl.isEmpty()) {
                 ref.child("photoUrl").removeValue()
                 ref.child("photosUrls").removeValue()
+                writeUserMeta(uid, _settingsLive.value ?: CrewLayoverSettings(), lastLocation, null, emptyList())
             } else {
                 ref.updateChildren(mapOf("photoUrl" to photoUrl, "photosUrls" to photosUrls))
                 loader.loadFromUrl(photoUrl, uid)
+                writeUserMeta(uid, _settingsLive.value ?: CrewLayoverSettings(), lastLocation, photoUrl, photosUrls)
             }
         }
     }
@@ -352,6 +562,7 @@ class CrewLayoverStore private constructor() {
             root.child("crew_users").child(uid).child("photosUrls").removeValue()
             appContext?.let { CrewPhotoLoader.get(it).invalidate(uid) }
             deleteStoragePhotos(uid)
+            writeUserMeta(uid, _settingsLive.value ?: CrewLayoverSettings(), lastLocation, null, emptyList())
         } else {
             val bitmap = appContext?.let { CrewPhotoLoader.get(it).decodeBase64ToBitmap(trimmed) }
             if (bitmap != null) uploadMyPhoto(bitmap)
@@ -367,6 +578,9 @@ class CrewLayoverStore private constructor() {
                 result.items.forEach { ref -> ref.delete() }
             }
             .addOnFailureListener { e ->
+                if (e is StorageException && e.errorCode == StorageException.ERROR_OBJECT_NOT_FOUND) {
+                    return@addOnFailureListener
+                }
                 Log.w(TAG, "deleteStoragePhotos: listAll failed for $uid: ${e.message}")
             }
     }
@@ -482,25 +696,9 @@ class CrewLayoverStore private constructor() {
                 root.child("event_members").child(eventId).removeValue()
                 root.child("event_messages").child(eventId).removeValue()
 
-                root.child("user_event_invites").addListenerForSingleValueEvent(object : ValueEventListener {
-                    override fun onDataChange(invitesSnap: DataSnapshot) {
-                        invitesSnap.children.forEach { userSnap ->
-                            userSnap.ref.child(eventId).removeValue()
-                        }
-                    }
-
-                    override fun onCancelled(error: DatabaseError) {}
-                })
-
-                root.child("event_hidden").addListenerForSingleValueEvent(object : ValueEventListener {
-                    override fun onDataChange(hiddenSnap: DataSnapshot) {
-                        hiddenSnap.children.forEach { userSnap ->
-                            userSnap.ref.child(eventId).removeValue()
-                        }
-                    }
-
-                    override fun onCancelled(error: DatabaseError) {}
-                })
+                cachedEventMembers[eventId]?.forEach { memberUid ->
+                    root.child("user_event_invites").child(memberUid).child(eventId).removeValue()
+                }
 
                 _activeEvents.postValue((_activeEvents.value ?: emptyList()).filter { it.id != eventId })
                 _joinedEventIds.postValue((_joinedEventIds.value ?: emptySet()) - eventId)
@@ -623,19 +821,6 @@ class CrewLayoverStore private constructor() {
      * SDK, or sparse arrays). We handle both forms for robustness.
      */
     private fun buildUserDict(uid: String, rawMap: Map<*, *>): Map<String, Any?> {
-        val hasUrlPhoto = !(rawMap["photoUrl"] as? String).isNullOrBlank()
-                       || firebaseListStrings(rawMap["photosUrls"]).isNotEmpty()
-        if (!hasUrlPhoto) {
-            // Decode the first available b64 photo into the loader cache (downsampled avatar).
-            // This lets hasPhoto() detect the photo via CrewPhotoLoader.shared.image(uid).
-            val b64 = firebaseListStrings(rawMap["photosB64"]).firstOrNull()
-                   ?: rawMap["photoB64"] as? String
-            if (!b64.isNullOrBlank()) {
-                appContext?.let { ctx ->
-                    CrewPhotoLoader.get(ctx).upsertFromBase64(uid, b64, 512)
-                }
-            }
-        }
         return rawMap.entries
             .mapNotNull { (k, v) -> (k as? String)?.let { it to v } }
             .filter { (k, _) -> k != "photoB64" && k != "photosB64" }
@@ -654,13 +839,22 @@ class CrewLayoverStore private constructor() {
         }
     }
 
+    private fun hasPhoto(uid: String, dict: Map<String, Any?>): Boolean {
+        val hasUrlPhoto = !(dict["photoUrl"] as? String).isNullOrBlank()
+                || firebaseListStrings(dict["photosUrls"]).isNotEmpty()
+        if (hasUrlPhoto) return true
+        return appContext?.let { CrewPhotoLoader.get(it).image(uid) != null } == true
+    }
+
     private fun startUsersObserver() {
         if (usersChildHandle != null) return
         val ref = root.child("crew_users")
         // keepSynced(true) is intentionally NOT set: it would eagerly cache the entire
-        // crew_users tree to disk (including legacy base64 photos = ~128 MB) and OOM.
+        // crew_users tree to disk (including legacy base64 photos) and OOM.
 
-        ref.addListenerForSingleValueEvent(object : ValueEventListener {
+        val query = ref.orderByChild("lastSeenMs").limitToLast(250)
+
+        query.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 Log.d(TAG, "crew_users initial snapshot count=${snapshot.childrenCount}")
                 usersCache.clear()
@@ -683,7 +877,7 @@ class CrewLayoverStore private constructor() {
                 val dictAny = snapshot.value as? Map<*, *> ?: return
                 val uid = snapshot.key ?: return
                 usersCache[uid] = buildUserDict(uid, dictAny)
-                Log.d(TAG, "crew_users childAdded uid=$uid cacheSize=${usersCache.size}")
+                Log.d(TAG, "crew_user_meta childAdded uid=$uid cacheSize=${usersCache.size}")
                 scheduleNearbyRebuild()
             }
 
@@ -691,27 +885,31 @@ class CrewLayoverStore private constructor() {
                 val dictAny = snapshot.value as? Map<*, *> ?: return
                 val uid = snapshot.key ?: return
                 usersCache[uid] = buildUserDict(uid, dictAny)
-                Log.d(TAG, "crew_users childChanged uid=$uid cacheSize=${usersCache.size}")
+                Log.d(TAG, "crew_user_meta childChanged uid=$uid cacheSize=${usersCache.size}")
                 scheduleNearbyRebuild()
             }
 
             override fun onChildRemoved(snapshot: DataSnapshot) {
                 usersCache.remove(snapshot.key)
-                Log.d(TAG, "crew_users childRemoved uid=${snapshot.key} cacheSize=${usersCache.size}")
+                Log.d(TAG, "crew_user_meta childRemoved uid=${snapshot.key} cacheSize=${usersCache.size}")
                 scheduleNearbyRebuild()
             }
 
             override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {}
             override fun onCancelled(error: DatabaseError) {
-                Log.e(TAG, "crew_users child onCancelled: ${error.message}")
+                Log.e(TAG, "crew_user_meta child onCancelled: ${error.message}")
             }
         }
-        ref.addChildEventListener(childListener)
+        query.addChildEventListener(childListener)
+        usersQueryRef = query
         usersChildHandle = childListener
     }
 
     private fun startEventsObserver() {
-        val ref = root.child("events")
+        val nowMs = System.currentTimeMillis()
+        val query = root.child("events")
+            .orderByChild("expiresAtMs")
+            .startAt(nowMs.toDouble())
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 rebuildEventsList(snapshot)
@@ -719,7 +917,8 @@ class CrewLayoverStore private constructor() {
 
             override fun onCancelled(error: DatabaseError) {}
         }
-        ref.addValueEventListener(listener)
+        query.addValueEventListener(listener)
+        eventsQueryRef = query
         eventsHandle = listener
     }
 
@@ -727,6 +926,20 @@ class CrewLayoverStore private constructor() {
         val ref = root.child("event_members")
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
+                val myUid = myUserId ?: FirebaseAuth.getInstance().currentUser?.uid
+                val counts = mutableMapOf<String, Int>()
+                val joined = mutableSetOf<String>()
+                val members = mutableMapOf<String, List<String>>()
+                snapshot.children.forEach { cs ->
+                    val eventId = cs.key ?: return@forEach
+                    val uids = cs.children.mapNotNull { it.key }
+                    members[eventId] = uids
+                    counts[eventId] = uids.size
+                    if (myUid != null && cs.child(myUid).exists()) joined.add(eventId)
+                }
+                cachedMemberCountsByEvent = counts
+                cachedJoinedEventIds = joined
+                cachedEventMembers = members
                 refreshEventsFromDb()
             }
 
@@ -751,8 +964,10 @@ class CrewLayoverStore private constructor() {
     }
 
     private fun stopAllObservers() {
-        usersChildHandle?.let { root.child("crew_users").removeEventListener(it) }
-        eventsHandle?.let { root.child("events").removeEventListener(it) }
+        usersChildHandle?.let { usersQueryRef?.removeEventListener(it) }
+        usersQueryRef = null
+        eventsHandle?.let { eventsQueryRef?.removeEventListener(it) }
+        eventsQueryRef = null
         eventMembersHandle?.let { root.child("event_members").removeEventListener(it) }
         val uid = myUserId
         if (uid != null) {
@@ -766,13 +981,17 @@ class CrewLayoverStore private constructor() {
     }
 
     private fun refreshEventsFromDb() {
-        root.child("events").addListenerForSingleValueEvent(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                rebuildEventsList(snapshot)
-            }
+        val nowMs = System.currentTimeMillis()
+        root.child("events")
+            .orderByChild("expiresAtMs")
+            .startAt(nowMs.toDouble())
+            .addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    rebuildEventsList(snapshot)
+                }
 
-            override fun onCancelled(error: DatabaseError) {}
-        })
+                override fun onCancelled(error: DatabaseError) {}
+            })
     }
 
     private fun rebuildNearbyListsFromCache() {
@@ -784,20 +1003,15 @@ class CrewLayoverStore private constructor() {
         val myRole = settings.role
         val myBase = settings.baseCountryCode.trim()
 
+        Log.d(TAG, "Nearby rebuild start uid=$uid cache=${usersCache.size}")
         val visibleUsers = mutableListOf<NearbyCrewUser>()
         usersCache.forEach { (otherUid, dict) ->
             if (otherUid == uid) return@forEach
-
-            // Skip profiles with no nickname — incomplete/ghost entries
-            val rawNick = (dict["nickname"] as? String)?.trim() ?: ""
-            if (rawNick.isEmpty()) return@forEach
-            val nickname = rawNick
-
+            val nickname = (dict["nickname"] as? String)?.trim().orEmpty()
             val company = dict["companyName"] as? String ?: ""
             val baseCode = dict["baseCountryCode"] as? String ?: ""
             val phone = dict["phoneNumber"] as? String
             val bio = dict["bio"] as? String
-            val deviceId = (dict["deviceId"] as? String)?.trim()?.ifEmpty { null }
             val roleRaw = dict["role"] as? String
             val role = CrewRole.fromRaw(roleRaw)
             val isOnline = parseBool(dict["isOnline"])
@@ -807,21 +1021,14 @@ class CrewLayoverStore private constructor() {
             val visRaw = dict["visibilityMode"] as? String
             val visibility = CrewVisibilityMode.fromRaw(visRaw)
             val excluded = firebaseListStrings(dict["excludedBaseCodes"])
-            // Prefer Storage URLs; fall back to base64 for users who haven't migrated yet
-            val photoUrl = (dict["photoUrl"] as? String)?.takeIf { it.isNotBlank() }
-            val photosUrls = firebaseListStrings(dict["photosUrls"])
-            val photoB64 = if (photoUrl == null) dict["photoB64"] as? String else null
-            val photosB64 = if (photosUrls.isEmpty()) firebaseListStrings(dict["photosB64"]) else emptyList()
+            val stableKey = stableProfileKey(dict)
+            val photoKey = photoSignature(dict)
 
-            // Trigger photo load into device cache (no-op if already cached)
-            appContext?.let { ctx ->
-                val loader = CrewPhotoLoader.get(ctx)
-                when {
-                    photosUrls.isNotEmpty() -> loader.loadListFromUrls(photosUrls, otherUid)
-                    photoUrl != null        -> loader.loadFromUrl(photoUrl, otherUid)
-                    photosB64.isNotEmpty()  -> loader.upsertFromBase64(otherUid, photosB64.first())
-                    photoB64 != null        -> loader.upsertFromBase64(otherUid, photoB64)
-                }
+            if (otherUid == uid || nickname.equals("Assma", ignoreCase = true)) {
+                Log.d(
+                    TAG,
+                    "Nearby identity uid=$otherUid nick=$nickname role=${role.raw} base=$baseCode device=${dict["deviceId"]} online=$isOnline lastSeen=$lastSeenMs photoKey=$photoKey stableKey=$stableKey"
+                )
             }
 
             if (!viewerCanSeeOther(
@@ -839,13 +1046,24 @@ class CrewLayoverStore private constructor() {
             if (!distanceUnlimited && dist >= 0 && dist > distanceMaxKm) {
                 return@forEach
             }
+
+            if (!hasNearbyPhotoSource(dict)) {
+                if (otherUid == uid || nickname.equals("Assma", ignoreCase = true)) {
+                    Log.d(
+                        TAG,
+                        "Nearby skip no-photo uid=$otherUid nick=$nickname role=${role.raw} base=$baseCode device=${dict["deviceId"]}"
+                    )
+                }
+                return@forEach
+            }
+
             val user = NearbyCrewUser(
                 userId = otherUid,
                 nickname = nickname,
                 companyName = if (company.isBlank()) null else company,
                 baseCountryCode = baseCode,
                 phoneNumber = phone,
-                deviceId = deviceId,
+                deviceId = (dict["deviceId"] as? String)?.trim()?.ifEmpty { null },
                 role = role,
                 bio = bio,
                 visibilityMode = visibility,
@@ -855,47 +1073,23 @@ class CrewLayoverStore private constructor() {
                 lat = lat,
                 lon = lon,
                 distanceKm = dist,
-                photoB64 = photoB64,
-                photosB64 = photosB64,
-                photoUrl = photoUrl,
-                photosUrls = photosUrls
+                photoB64 = dict["photoB64"] as? String,
+                photosB64 = firebaseListStrings(dict["photosB64"]),
+                photoUrl = (dict["photoUrl"] as? String)?.takeIf { it.isNotBlank() },
+                photosUrls = firebaseListStrings(dict["photosUrls"])
             )
+
             visibleUsers.add(user)
         }
+        visibleUsers.forEach { prefetchNearbyPhoto(it) }
+        val online = visibleUsers.filter { it.isOnline }
+        val last24 = visibleUsers.filter { !it.isOnline && it.lastSeenMs >= cutoffMs }
 
-        // ✅ FIX: deduplicate same-device entries — keep only the most recent per deviceId
-        val dedupedUsers = dedupeByDeviceId(visibleUsers).sortedBy { it.distanceKm }
-
-        // Online = isOnline flag is true. Trust Firebase onDisconnect to clear the flag.
-        val online = dedupedUsers.filter { it.isOnline }
-        // Active-last-24h: offline users active within 24h. Mutually exclusive with online.
-        val last24 = dedupedUsers.filter { !it.isOnline && it.lastSeenMs >= cutoffMs }
-
-        Log.d(TAG, "nearby users visible=${dedupedUsers.size} online=${online.size} last24=${last24.size}")
+        Log.d(TAG, "Nearby rebuild iOS-style uid=$uid visible=${visibleUsers.size} online=${online.size} last24=${last24.size}")
 
         _onlineNow.postValue(online)
         _activeLast24h.postValue(last24)
         _onlineNearbyCount.postValue(online.size)
-    }
-
-    /** Keeps only the best entry per device (most recent lastSeenMs; prefer online). */
-    private fun dedupeByDeviceId(users: List<NearbyCrewUser>): List<NearbyCrewUser> {
-        val bestByKey = mutableMapOf<String, NearbyCrewUser>()
-        for (user in users) {
-            val key = if (!user.deviceId.isNullOrBlank()) "d:${user.deviceId}" else "u:${user.userId}"
-            val existing = bestByKey[key]
-            if (existing == null || isPreferredUser(user, existing)) {
-                bestByKey[key] = user
-            }
-        }
-        return bestByKey.values.toList()
-    }
-
-    private fun isPreferredUser(candidate: NearbyCrewUser, current: NearbyCrewUser): Boolean {
-        if (candidate.lastSeenMs != current.lastSeenMs) return candidate.lastSeenMs > current.lastSeenMs
-        if (candidate.isOnline != current.isOnline) return candidate.isOnline
-        if (candidate.distanceKm != current.distanceKm) return candidate.distanceKm < current.distanceKm
-        return candidate.userId < current.userId
     }
 
     private fun scheduleNearbyRebuild() {
@@ -935,96 +1129,65 @@ class CrewLayoverStore private constructor() {
         root.child("event_hidden").child(uid).addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(hiddenSnap: DataSnapshot) {
                 val hiddenIds = hiddenSnap.children.mapNotNull { it.key }.toSet()
+                val countsByEvent = cachedMemberCountsByEvent
+                val joinedIds = cachedJoinedEventIds
 
-                root.child("event_members").addListenerForSingleValueEvent(object : ValueEventListener {
-                    override fun onDataChange(membersSnap: DataSnapshot) {
-                        val countsByEvent = mutableMapOf<String, Int>()
-                        val joinedIds = mutableSetOf<String>()
-                        membersSnap.children.forEach { cs ->
-                            val eventId = cs.key ?: return@forEach
-                            countsByEvent[eventId] = cs.childrenCount.toInt()
-                            if (cs.child(uid).exists()) joinedIds.add(eventId)
-                        }
+                val events = mutableListOf<CrewLayoverEvent>()
+                snapshot.children.forEach { cs ->
+                    val eventId = cs.key ?: return@forEach
+                    if (hiddenIds.contains(eventId)) return@forEach
+                    val dictAny = cs.value as? Map<*, *> ?: return@forEach
+                    val dict = dictAny.entries
+                        .mapNotNull { (k, v) -> (k as? String)?.let { it to v } }
+                        .toMap()
 
-                        val events = mutableListOf<CrewLayoverEvent>()
-                        snapshot.children.forEach { cs ->
-                            val eventId = cs.key ?: return@forEach
-                            if (hiddenIds.contains(eventId)) return@forEach
-                            val dictAny = cs.value as? Map<*, *> ?: return@forEach
-                            val dict = dictAny.entries
-                                .mapNotNull { (k, v) -> (k as? String)?.let { it to v } }
-                                .toMap()
-
-                            val expiresAtMs = (dict["expiresAtMs"] as? Number)?.toLong() ?: 0L
-                            if (expiresAtMs in 1..<nowMs) {
-                                cleanupExpiredEvent(eventId)
-                                return@forEach
-                            }
-
-                            val meetingRaw = dict["meetingTypeRaw"] as? String ?: "other"
-                            val whereText = dict["whereText"] as? String ?: ""
-                            val dateTimeMs = (dict["dateTimeMs"] as? Number)?.toLong() ?: 0L
-                            val createdAtMs = (dict["createdAtMs"] as? Number)?.toLong() ?: 0L
-                            val creatorUid = dict["creatorUid"] as? String ?: ""
-                            val lat = (dict["lat"] as? Number)?.toDouble() ?: 0.0
-                            val lon = (dict["lon"] as? Number)?.toDouble() ?: 0.0
-                            val radiusKm = (dict["radiusKm"] as? Number)?.toDouble() ?: 0.0
-                            val accepted = countsByEvent[eventId] ?: 0
-                            val isClosed = dict["isClosed"] as? Boolean ?: false
-                            val sendToAllNearby = dict["sendToAllNearby"] as? Boolean ?: true
-
-                            val e = CrewLayoverEvent(
-                                id = eventId,
-                                meetingTypeRaw = meetingRaw,
-                                whereText = whereText,
-                                creatorUid = creatorUid,
-                                creatorNickname = "",
-                                creatorCompany = null,
-                                createdAtMs = createdAtMs,
-                                eventAtMs = dateTimeMs,
-                                expiresAtMs = expiresAtMs,
-                                sendToAllNearby = sendToAllNearby,
-                                isClosed = isClosed,
-                                lat = lat,
-                                lon = lon,
-                                radiusKm = radiusKm,
-                                acceptedCount = accepted
-                            )
-                            events.add(e)
-                        }
-                        events.sortBy { it.eventAtMs }
-                        _activeEvents.postValue(events)
-                        _joinedEventIds.postValue(joinedIds)
+                    val expiresAtMs = (dict["expiresAtMs"] as? Number)?.toLong() ?: 0L
+                    if (expiresAtMs in 1..<nowMs) {
+                        cleanupExpiredEvent(eventId)
+                        return@forEach
                     }
 
-                    override fun onCancelled(error: DatabaseError) {}
-                })
+                    val meetingRaw = dict["meetingTypeRaw"] as? String ?: "other"
+                    val whereText = dict["whereText"] as? String ?: ""
+                    val dateTimeMs = (dict["dateTimeMs"] as? Number)?.toLong() ?: 0L
+                    val createdAtMs = (dict["createdAtMs"] as? Number)?.toLong() ?: 0L
+                    val creatorUid = dict["creatorUid"] as? String ?: ""
+                    val lat = (dict["lat"] as? Number)?.toDouble() ?: 0.0
+                    val lon = (dict["lon"] as? Number)?.toDouble() ?: 0.0
+                    val radiusKm = (dict["radiusKm"] as? Number)?.toDouble() ?: 0.0
+                    val accepted = countsByEvent[eventId] ?: 0
+                    val isClosed = dict["isClosed"] as? Boolean ?: false
+                    val sendToAllNearby = dict["sendToAllNearby"] as? Boolean ?: true
+
+                    val e = CrewLayoverEvent(
+                        id = eventId,
+                        meetingTypeRaw = meetingRaw,
+                        whereText = whereText,
+                        creatorUid = creatorUid,
+                        creatorNickname = "",
+                        creatorCompany = null,
+                        createdAtMs = createdAtMs,
+                        eventAtMs = dateTimeMs,
+                        expiresAtMs = expiresAtMs,
+                        sendToAllNearby = sendToAllNearby,
+                        isClosed = isClosed,
+                        lat = lat,
+                        lon = lon,
+                        radiusKm = radiusKm,
+                        acceptedCount = accepted
+                    )
+                    events.add(e)
+                }
+                events.sortBy { it.eventAtMs }
+                _activeEvents.postValue(events)
+                _joinedEventIds.postValue(joinedIds)
             }
 
             override fun onCancelled(error: DatabaseError) {}
         })
     }
 
-    /**
-     * Enforces "one device → one user": hard-deletes ALL Firebase data for every UID
-     * that shares this device's ID but is not the current session's UID.
-     */
-    private fun cleanupStaleDeviceEntries(currentUid: String) {
-        val myDeviceId = getDeviceId() ?: return
-        root.child("crew_users")
-            .orderByChild("deviceId")
-            .equalTo(myDeviceId)
-            .addListenerForSingleValueEvent(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    snapshot.children.forEach { cs ->
-                        val oldUid = cs.key ?: return@forEach
-                        if (oldUid == currentUid) return@forEach
-                        deleteAllDataForOldUid(oldUid, myDeviceId)
-                    }
-                }
-                override fun onCancelled(error: DatabaseError) {}
-            })
-    }
+
 
     /**
      * Removes all RTDB nodes owned by an old anonymous UID on the same device.
@@ -1056,7 +1219,10 @@ class CrewLayoverStore private constructor() {
         val settings = _settingsLive.value ?: CrewLayoverSettings()
         val loc = lastLocation
 
-        Log.d(TAG, "upsertMyProfile uid=$uid hasLoc=${loc != null}")
+        Log.d(
+            TAG,
+            "upsertMyProfile uid=$uid nick=${settings.nickname.trim()} role=${settings.role.raw} base=${settings.baseCountryCode.trim()} device=${getDeviceId()} hasLoc=${loc != null}"
+        )
 
         // Use a non-nullable map: Firebase SDK may reject or silently swallow null values
         // in updateChildren(), causing the entire write to fail without an error callback.
@@ -1082,6 +1248,7 @@ class CrewLayoverStore private constructor() {
         // Write base profile fields immediately
         val userRef = root.child("crew_users").child(uid)
         userRef.updateChildren(payload)
+        writeUserMeta(uid, settings, loc, null, null)
 
         // Upload photos to Firebase Storage and write URLs asynchronously (like iOS).
         // IMPORTANT: only remove legacy base64 fields AFTER a successful Storage upload.
@@ -1094,6 +1261,7 @@ class CrewLayoverStore private constructor() {
                 userRef.child("photoB64").removeValue()
                 userRef.child("photosB64").removeValue()
                 appContext?.let { CrewPhotoLoader.get(it).loadFromUrl(photoUrl, uid) }
+                writeUserMeta(uid, settings, loc, photoUrl, photosUrls)
             }
             // If upload returns empty (no local photo or upload failed), keep existing
             // b64 fields intact so iOS continues to see a valid photo reference.
@@ -1107,25 +1275,9 @@ class CrewLayoverStore private constructor() {
         root.child("event_members").child(eventId).removeValue()
         root.child("event_messages").child(eventId).removeValue()
 
-        root.child("user_event_invites").addListenerForSingleValueEvent(object : ValueEventListener {
-            override fun onDataChange(invitesSnap: DataSnapshot) {
-                invitesSnap.children.forEach { userSnap ->
-                    userSnap.ref.child(eventId).removeValue()
-                }
-            }
-
-            override fun onCancelled(error: DatabaseError) {}
-        })
-
-        root.child("event_hidden").addListenerForSingleValueEvent(object : ValueEventListener {
-            override fun onDataChange(hiddenSnap: DataSnapshot) {
-                hiddenSnap.children.forEach { userSnap ->
-                    userSnap.ref.child(eventId).removeValue()
-                }
-            }
-
-            override fun onCancelled(error: DatabaseError) {}
-        })
+        cachedEventMembers[eventId]?.forEach { memberUid ->
+            root.child("user_event_invites").child(memberUid).child(eventId).removeValue()
+        }
     }
 
     private fun updateMyPresence(uid: String) {
@@ -1133,7 +1285,10 @@ class CrewLayoverStore private constructor() {
         val lat = loc?.latitude ?: 0.0
         val lon = loc?.longitude ?: 0.0
 
-        Log.d(TAG, "updateMyPresence uid=$uid hasLoc=${loc != null} lat=$lat lon=$lon")
+        Log.d(
+            TAG,
+            "updateMyPresence uid=$uid nick=${(_settingsLive.value ?: CrewLayoverSettings()).nickname.trim()} role=${(_settingsLive.value ?: CrewLayoverSettings()).role.raw} base=${(_settingsLive.value ?: CrewLayoverSettings()).baseCountryCode.trim()} device=${getDeviceId()} hasLoc=${loc != null} lat=$lat lon=$lon"
+        )
 
         if (lat != 0.0 && lon != 0.0) {
             CrewPresenceService.shared.updateLocation(lat, lon)
@@ -1150,6 +1305,35 @@ class CrewLayoverStore private constructor() {
         )
         getDeviceId()?.let { update["deviceId"] = it }
         root.child("crew_users").child(uid).updateChildren(update)
+        writeUserMeta(uid, _settingsLive.value ?: CrewLayoverSettings(), loc, null, null)
+    }
+
+    private fun writeUserMeta(
+        uid: String,
+        settings: CrewLayoverSettings,
+        loc: Location?,
+        photoUrl: String?,
+        photosUrls: List<String>?
+    ) {
+        val meta = mutableMapOf<String, Any>(
+            "nickname" to settings.nickname.trim(),
+            "companyName" to (settings.companyName?.trim() ?: ""),
+            "baseCountryCode" to settings.baseCountryCode.trim(),
+            "phoneNumber" to (settings.phoneNumber?.trim() ?: ""),
+            "bio" to (settings.bio?.trim() ?: ""),
+            "role" to settings.role.raw,
+            "visibilityMode" to settings.visibilityMode.raw,
+            "excludedBaseCodes" to settings.excludedBaseCodes,
+            "isEnabled" to settings.isEnabled,
+            "isOnline" to true,
+            "lat" to (loc?.latitude ?: 0.0),
+            "lon" to (loc?.longitude ?: 0.0),
+            "lastSeenMs" to ServerValue.TIMESTAMP
+        )
+        getDeviceId()?.let { meta["deviceId"] = it }
+        if (!photoUrl.isNullOrBlank()) meta["photoUrl"] = photoUrl
+        if (photosUrls != null) meta["photosUrls"] = photosUrls
+        root.child("crew_user_meta").child(uid).updateChildren(meta)
     }
 
     private fun viewerCanSeeOther(
