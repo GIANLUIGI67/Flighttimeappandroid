@@ -503,6 +503,15 @@
                     app:trackTint="@color/switch_track_green" />
             </LinearLayout>
 
+            <TextView
+                android:id="@+id/sendToAllCooldownText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textSize="12sp"
+                android:textColor="#FFA500"
+                android:visibility="gone" />
+
             <Button
                 android:id="@+id/createEventBtn"
                 style="@style/Widget.FlightTimeApp.TrainingButton.Blue"

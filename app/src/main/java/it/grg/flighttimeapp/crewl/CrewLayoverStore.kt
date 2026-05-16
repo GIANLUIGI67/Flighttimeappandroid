@@ -78,6 +78,9 @@ class CrewLayoverStore private constructor() {
     private val _hasIncomingInvitation = MutableLiveData(false)
     val hasIncomingInvitation: LiveData<Boolean> = _hasIncomingInvitation
 
+    private val _sendToAllNearbyCooldownEndsAtMs = MutableLiveData<Long>(0L)
+    val sendToAllNearbyCooldownEndsAtMs: LiveData<Long> = _sendToAllNearbyCooldownEndsAtMs
+
     private var isCreatingEvent = false
     private var isUploadingPhotos = false
     private val roleSetKey = "role_set_v1"
@@ -152,8 +155,25 @@ class CrewLayoverStore private constructor() {
             appContext = context.applicationContext
             CrewPhotoLoader.init(appContext!!)
             loadSettings()
+            restoreSendToAllNearbyCooldown()
         }
         startIfPossible()
+    }
+
+    private fun restoreSendToAllNearbyCooldown() {
+        val ctx = appContext ?: return
+        val lastMs = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getLong(KEY_LAST_SEND_TO_ALL_NEARBY_MS, 0L)
+        if (lastMs <= 0L) return
+        val endsAtMs = lastMs + SEND_TO_ALL_NEARBY_COOLDOWN_MS
+        if (endsAtMs > System.currentTimeMillis()) {
+            _sendToAllNearbyCooldownEndsAtMs.postValue(endsAtMs)
+        }
+    }
+
+    fun isSendToAllNearbyCoolingDown(): Boolean {
+        val endsAt = _sendToAllNearbyCooldownEndsAtMs.value ?: 0L
+        return endsAt > System.currentTimeMillis()
     }
 
     private fun startIfPossible() {
@@ -627,9 +647,15 @@ class CrewLayoverStore private constructor() {
 
         root.child("events").child(eventId).setValue(payload)
 
-        if (draft.sendToAllNearby) {
+        if (draft.sendToAllNearby && !isSendToAllNearbyCoolingDown()) {
             // Use the already-populated in-memory cache to avoid a full crew_users download
             // (a full snapshot fetch would OOM on devices that still have legacy base64 photos)
+            val ctx = appContext
+            if (ctx != null) {
+                ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                    .edit { putLong(KEY_LAST_SEND_TO_ALL_NEARBY_MS, System.currentTimeMillis()) }
+                _sendToAllNearbyCooldownEndsAtMs.postValue(System.currentTimeMillis() + SEND_TO_ALL_NEARBY_COOLDOWN_MS)
+            }
             usersCache.keys.forEach { otherUid ->
                 if (otherUid != uid) {
                     root.child("user_event_invites").child(otherUid).child(eventId).setValue(true)
@@ -1656,5 +1682,7 @@ class CrewLayoverStore private constructor() {
         private const val KEY_EXCLUDED = "excluded"
         private const val KEY_ENABLED = "enabled"
         private const val KEY_EVENT_REMINDERS = "event_reminders"
+        private const val KEY_LAST_SEND_TO_ALL_NEARBY_MS = "crew_last_sendToAllNearby_ms"
+        private const val SEND_TO_ALL_NEARBY_COOLDOWN_MS = 10 * 60 * 1000L // 10 minutes
     }
 }

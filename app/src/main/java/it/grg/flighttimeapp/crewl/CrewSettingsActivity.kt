@@ -44,6 +44,7 @@ class CrewSettingsActivity : AppCompatActivity() {
     private lateinit var expiresTimeBtn: Button
     private lateinit var whereInput: EditText
     private lateinit var sendToAllSwitch: com.google.android.material.materialswitch.MaterialSwitch
+    private lateinit var sendToAllCooldownText: TextView
     private lateinit var createEventBtn: Button
     private lateinit var eventsRecycler: RecyclerView
     private lateinit var eventsEmptyText: TextView
@@ -79,6 +80,7 @@ class CrewSettingsActivity : AppCompatActivity() {
         expiresTimeBtn = findViewById(R.id.expiresTimeBtn)
         whereInput = findViewById(R.id.whereInput)
         sendToAllSwitch = findViewById(R.id.sendToAllSwitch)
+        sendToAllCooldownText = findViewById(R.id.sendToAllCooldownText)
         createEventBtn = findViewById(R.id.createEventBtn)
         eventsRecycler = findViewById(R.id.eventsRecycler)
         eventsEmptyText = findViewById(R.id.eventsEmptyText)
@@ -168,6 +170,14 @@ class CrewSettingsActivity : AppCompatActivity() {
 
         sendToAllSwitch.setOnCheckedChangeListener { _, isChecked ->
             store.updateEventDraft { it.copy(sendToAllNearby = isChecked) }
+            val endsAtMs = store.sendToAllNearbyCooldownEndsAtMs.value ?: 0L
+            if (isChecked && endsAtMs > System.currentTimeMillis()) {
+                val fmt = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+                sendToAllCooldownText.text = getString(R.string.cl_sendToAll_cooldown, fmt.format(java.util.Date(endsAtMs)))
+                sendToAllCooldownText.visibility = android.view.View.VISIBLE
+            } else {
+                sendToAllCooldownText.visibility = android.view.View.GONE
+            }
         }
 
         meetingSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
@@ -228,6 +238,17 @@ class CrewSettingsActivity : AppCompatActivity() {
 
         store.joinedEventIds.observe(this, Observer { joined ->
             eventsAdapter.setJoinedIds(joined)
+        })
+
+        store.sendToAllNearbyCooldownEndsAtMs.observe(this, Observer { endsAtMs ->
+            val nowMs = System.currentTimeMillis()
+            if (endsAtMs > nowMs && sendToAllSwitch.isChecked) {
+                val fmt = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+                sendToAllCooldownText.text = getString(R.string.cl_sendToAll_cooldown, fmt.format(java.util.Date(endsAtMs)))
+                sendToAllCooldownText.visibility = android.view.View.VISIBLE
+            } else {
+                sendToAllCooldownText.visibility = android.view.View.GONE
+            }
         })
 
         val draft = store.eventDraft()

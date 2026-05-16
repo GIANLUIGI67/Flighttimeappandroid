@@ -131,6 +131,7 @@
     <string name="cl_event_expires_at">Event expires at</string>
     <string name="cl_event_where">Where</string>
     <string name="cl_event_send_to_all">Send to all nearby</string>
+    <string name="cl_sendToAll_cooldown">Mass invite on cooldown — available at %s</string>
     <string name="cl_create_event_now">Create event</string>
     <string name="cl_available_events_title">Available Events</string>
     <string name="cl_visibility">Visibility</string>
