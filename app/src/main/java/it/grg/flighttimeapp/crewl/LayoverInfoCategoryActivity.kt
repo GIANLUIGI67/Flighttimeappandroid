@@ -33,6 +33,8 @@ class LayoverInfoCategoryActivity : AppCompatActivity() {
     private lateinit var store: LayoverInfoCategoryStore
     private var cityName: String = ""
     private var cityKey: String = ""
+    private var locationLookupCallback: ((android.location.Location) -> Unit)? = null
+    private var cityLookupCallback: ((android.location.Location) -> Unit)? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -79,6 +81,8 @@ class LayoverInfoCategoryActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         store.stop()
+        locationLookupCallback?.let { CrewLocationManager.shared.stop(it) }
+        cityLookupCallback?.let { CrewLocationManager.shared.stop(it) }
     }
 
     private fun showAddDialog() {
@@ -167,7 +171,10 @@ class LayoverInfoCategoryActivity : AppCompatActivity() {
             return
         }
 
-        CrewLocationManager.shared.start(this) { loc ->
+        val cb: (android.location.Location) -> Unit = cb@{ loc ->
+            val self = locationLookupCallback ?: return@cb
+            locationLookupCallback = null
+            CrewLocationManager.shared.stop(self)
             val geocoder = Geocoder(this, Locale.getDefault())
             if (android.os.Build.VERSION.SDK_INT >= 33) {
                 geocoder.getFromLocation(loc.latitude, loc.longitude, 1) { list ->
@@ -182,7 +189,6 @@ class LayoverInfoCategoryActivity : AppCompatActivity() {
                             target.setText(address)
                         }
                     }
-                    CrewLocationManager.shared.stop()
                 }
             } else {
                 Thread {
@@ -203,10 +209,11 @@ class LayoverInfoCategoryActivity : AppCompatActivity() {
                             target.setText(address)
                         }
                     }
-                    CrewLocationManager.shared.stop()
                 }.start()
             }
         }
+        locationLookupCallback = cb
+        CrewLocationManager.shared.start(this, cb)
     }
 
     private fun fillCityFromDevice(target: EditText) {
@@ -217,7 +224,10 @@ class LayoverInfoCategoryActivity : AppCompatActivity() {
             return
         }
 
-        CrewLocationManager.shared.start(this) { loc ->
+        val cb: (android.location.Location) -> Unit = cb@{ loc ->
+            val self = cityLookupCallback ?: return@cb
+            cityLookupCallback = null
+            CrewLocationManager.shared.stop(self)
             val geocoder = Geocoder(this, Locale.getDefault())
             if (android.os.Build.VERSION.SDK_INT >= 33) {
                 geocoder.getFromLocation(loc.latitude, loc.longitude, 1) { list ->
@@ -228,7 +238,6 @@ class LayoverInfoCategoryActivity : AppCompatActivity() {
                             target.setText(city)
                         }
                     }
-                    CrewLocationManager.shared.stop()
                 }
             } else {
                 Thread {
@@ -245,10 +254,11 @@ class LayoverInfoCategoryActivity : AppCompatActivity() {
                             target.setText(city)
                         }
                     }
-                    CrewLocationManager.shared.stop()
                 }.start()
             }
         }
+        cityLookupCallback = cb
+        CrewLocationManager.shared.start(this, cb)
     }
 
     private fun showLocationRequiredDialog() {

@@ -29,6 +29,9 @@ class CrewLayoverActivity : AppCompatActivity() {
     private lateinit var communityWarning: TextView
 
     private val store = CrewLayoverStore.shared
+    private val locationCallback: (android.location.Location) -> Unit = { loc ->
+        store.updateMyLocation(loc)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -135,9 +138,7 @@ class CrewLayoverActivity : AppCompatActivity() {
         val fine = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
         val coarse = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
         if (fine == PackageManager.PERMISSION_GRANTED || coarse == PackageManager.PERMISSION_GRANTED) {
-            CrewLocationManager.shared.start(this) { loc ->
-                store.updateMyLocation(loc)
-            }
+            CrewLocationManager.shared.start(this, locationCallback)
         } else {
             ActivityCompat.requestPermissions(
                 this,
@@ -192,14 +193,17 @@ class CrewLayoverActivity : AppCompatActivity() {
         if (requestCode == REQ_LOCATION) {
             val granted = grantResults.any { it == PackageManager.PERMISSION_GRANTED }
             if (granted) {
-                CrewLocationManager.shared.start(this) { loc ->
-                    store.updateMyLocation(loc)
-                }
+                CrewLocationManager.shared.start(this, locationCallback)
             }
         }
         if (requestCode == REQ_NOTIFICATIONS) {
             updateBanner()
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        CrewLocationManager.shared.stop(locationCallback)
     }
 
     companion object {

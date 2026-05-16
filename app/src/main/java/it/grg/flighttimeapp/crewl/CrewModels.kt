@@ -154,5 +154,6 @@ data class CrewChatMessage(
     val text: String,
     val imageBase64: String?,
     val imageExpiresAtMs: Long,
-    val createdAt: Date
+    val createdAt: Date,
+    val isE2EEncrypted: Boolean = false // true while text/imageBase64 still hold raw ciphertext
 )

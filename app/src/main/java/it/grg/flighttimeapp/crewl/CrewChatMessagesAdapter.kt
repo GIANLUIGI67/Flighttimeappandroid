@@ -16,14 +16,14 @@ import it.grg.flighttimeapp.R
 
 class CrewChatMessagesAdapter(
     private var items: List<CrewChatMessage>,
-    private val onImageClick: ((CrewChatMessage) -> Unit)? = null
+    private val onImageClick: ((CrewChatMessage) -> Unit)? = null,
+    private val onAvatarClick: ((CrewChatMessage) -> Unit)? = null
 ) : RecyclerView.Adapter<CrewChatMessagesAdapter.MsgVH>() {
 
     private val myUid: String? = FirebaseAuth.getInstance().currentUser?.uid
     private var myName: String? = null
     private var myPhoto: Bitmap? = null
     private val userCache: MutableMap<String, CrewUserInfo> = mutableMapOf()
-    private val expandedIds: MutableSet<String> = mutableSetOf()
 
     fun submit(newItems: List<CrewChatMessage>) {
         val diffResult = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
@@ -53,7 +53,7 @@ class CrewChatMessagesAdapter(
     override fun getItemCount(): Int = items.size
 
     override fun onBindViewHolder(holder: MsgVH, position: Int) {
-        holder.bind(items[position], myUid, myName, myPhoto, userCache, expandedIds, onImageClick) { uid ->
+        holder.bind(items[position], myUid, myName, myPhoto, userCache, onImageClick, onAvatarClick) { uid ->
             if (userCache.containsKey(uid)) return@bind
             fetchUser(uid)
         }
@@ -65,8 +65,13 @@ class CrewChatMessagesAdapter(
             .addOnSuccessListener { snapshot ->
                 val dict = snapshot.value as? Map<*, *> ?: return@addOnSuccessListener
                 val nickname = dict["nickname"] as? String
-                val photoB64 = dict["photoB64"] as? String
-                userCache[uid] = CrewUserInfo(nickname, photoB64)
+                val photoUrl = dict["photoUrl"] as? String
+                val photosUrls = when (val raw = dict["photosUrls"]) {
+                    is List<*> -> raw.mapNotNull { it as? String }
+                    is Map<*, *> -> raw.values.mapNotNull { it as? String }
+                    else -> emptyList()
+                }
+                userCache[uid] = CrewUserInfo(nickname, null, photoUrl, photosUrls)
                 
                 // Notify only items from this user
                 items.forEachIndexed { index, msg ->
@@ -77,7 +82,18 @@ class CrewChatMessagesAdapter(
             }
     }
 
-    data class CrewUserInfo(val nickname: String?, val photoB64: String?)
+    data class CrewUserInfo(
+        val nickname: String?,
+        val photoB64: String?,
+        val photoUrl: String?,
+        val photosUrls: List<String>
+    ) {
+        fun primaryRef(): String? = when {
+            photosUrls.isNotEmpty() -> photosUrls.first()
+            !photoUrl.isNullOrBlank() -> photoUrl
+            else -> null
+        }
+    }
 
     class MsgVH(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val row: LinearLayout = itemView.findViewById(R.id.messageRow)
@@ -93,8 +109,8 @@ class CrewChatMessagesAdapter(
             myName: String?,
             myPhoto: Bitmap?,
             cache: Map<String, CrewUserInfo>,
-            expanded: MutableSet<String>,
             onImageClick: ((CrewChatMessage) -> Unit)?,
+            onAvatarClick: ((CrewChatMessage) -> Unit)?,
             onNeedUser: (String) -> Unit
         ) {
             val isMe = msg.senderUid == myUid
@@ -153,7 +169,22 @@ class CrewChatMessagesAdapter(
                 }
             } else {
                 val info = cache[msg.senderUid]
-                val bmp = info?.photoB64?.let { CrewPhotoLoader.shared.getBitmap(msg.senderUid, it) }
+                val primaryRef = info?.primaryRef()
+                val bmp = when {
+                    primaryRef == null -> null
+                    primaryRef.startsWith("http") -> {
+                        val cached = CrewPhotoLoader.shared.image(msg.senderUid)
+                        if (cached != null) {
+                            cached
+                        } else {
+                            CrewPhotoLoader.shared.loadFromUrl(primaryRef, msg.senderUid) { loaded ->
+                                if (loaded != null) avatar.setImageBitmap(loaded)
+                            }
+                            null
+                        }
+                    }
+                    else -> CrewPhotoLoader.shared.getBitmap(msg.senderUid, primaryRef)
+                }
                 if (bmp != null) {
                     avatar.setImageBitmap(bmp)
                 } else {
@@ -161,25 +192,9 @@ class CrewChatMessagesAdapter(
                 }
             }
 
-            val expandedNow = expanded.contains(msg.id)
-            val size = dpToPx(if (expandedNow) 120 else 32, avatar)
-            val lp = avatar.layoutParams
-            lp.width = size
-            lp.height = size
-            avatar.layoutParams = lp
-
             avatar.setOnClickListener {
-                if (expanded.contains(msg.id)) expanded.remove(msg.id) else expanded.add(msg.id)
-                val newSize = dpToPx(if (expanded.contains(msg.id)) 120 else 32, avatar)
-                val newLp = avatar.layoutParams
-                newLp.width = newSize
-                newLp.height = newSize
-                avatar.layoutParams = newLp
+                onAvatarClick?.invoke(msg)
             }
-        }
-
-        private fun dpToPx(dp: Int, v: View): Int {
-            return (dp * v.resources.displayMetrics.density).toInt()
         }
     }
 }

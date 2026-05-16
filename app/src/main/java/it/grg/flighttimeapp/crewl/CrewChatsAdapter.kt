@@ -6,6 +6,7 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.google.firebase.database.FirebaseDatabase
 import it.grg.flighttimeapp.R
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -18,6 +19,8 @@ class CrewChatsAdapter(
 ) : RecyclerView.Adapter<CrewChatsAdapter.ThreadVH>() {
 
     private val df = SimpleDateFormat("HH:mm", Locale.getDefault())
+    private val userCache: MutableMap<String, CrewUserInfo> = mutableMapOf()
+    private val fetchingUsers: MutableSet<String> = mutableSetOf()
 
     fun submit(newItems: List<CrewChatThread>, unreadSet: Set<String>) {
         items = newItems
@@ -37,10 +40,47 @@ class CrewChatsAdapter(
 
     override fun onBindViewHolder(holder: ThreadVH, position: Int) {
         val thread = items[position]
-        holder.bind(thread, unread.contains(thread.id))
+        holder.bind(thread, unread.contains(thread.id), userCache, onPhotoClick)
+        ensureUserLoaded(thread.peerId)
     }
 
     override fun getItemCount(): Int = items.size
+
+    private fun ensureUserLoaded(peerId: String) {
+        if (peerId.isBlank() || userCache.containsKey(peerId) || fetchingUsers.contains(peerId)) return
+        fetchingUsers.add(peerId)
+        FirebaseDatabase.getInstance().reference.child("crew_users").child(peerId)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                val dict = snapshot.value as? Map<*, *> ?: return@addOnSuccessListener
+                val nickname = dict["nickname"] as? String
+                val photoUrl = dict["photoUrl"] as? String
+                val photosUrls = when (val raw = dict["photosUrls"]) {
+                    is List<*> -> raw.mapNotNull { it as? String }
+                    is Map<*, *> -> raw.values.mapNotNull { it as? String }
+                    else -> emptyList()
+                }
+                userCache[peerId] = CrewUserInfo(nickname, null, photoUrl, photosUrls)
+                val index = items.indexOfFirst { it.peerId == peerId }
+                if (index >= 0) notifyItemChanged(index)
+            }
+            .addOnCompleteListener {
+                fetchingUsers.remove(peerId)
+            }
+    }
+
+    data class CrewUserInfo(
+        val nickname: String?,
+        val photoB64: String?,
+        val photoUrl: String?,
+        val photosUrls: List<String>
+    ) {
+        fun primaryRef(): String? = when {
+            photosUrls.isNotEmpty() -> photosUrls.first()
+            !photoUrl.isNullOrBlank() -> photoUrl
+            else -> null
+        }
+    }
 
     class ThreadVH(
         itemView: View,
@@ -53,7 +93,12 @@ class CrewChatsAdapter(
         private val subtitle: TextView = itemView.findViewById(R.id.threadSubtitle)
         private val unreadDot: View = itemView.findViewById(R.id.threadUnreadDot)
 
-        fun bind(thread: CrewChatThread, isUnread: Boolean) {
+        fun bind(
+            thread: CrewChatThread,
+            isUnread: Boolean,
+            cache: Map<String, CrewUserInfo>,
+            onPhotoClick: ((peerId: String) -> Unit)?
+        ) {
             name.text = thread.peerNickname.ifBlank { thread.peerId }
             val msg = thread.lastMessageText ?: ""
             val time = df.format(thread.lastMessageAt)
@@ -66,7 +111,7 @@ class CrewChatsAdapter(
             val pid = thread.peerId
             val cachedBitmap = CrewPhotoLoader.shared.image(pid)
             val summary = CrewLayoverStore.shared.getUserSummary(pid)
-            val primaryRef = summary?.primaryRef()
+            val primaryRef = cache[pid]?.primaryRef() ?: summary?.primaryRef()
             if (cachedBitmap != null) {
                 photo.visibility = View.VISIBLE
                 photo.setImageBitmap(cachedBitmap)

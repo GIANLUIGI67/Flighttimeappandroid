@@ -23,6 +23,9 @@ import java.util.Date
 class CrewSettingsActivity : AppCompatActivity() {
 
     private val store = CrewLayoverStore.shared
+    private val locationCallback: (android.location.Location) -> Unit = { loc ->
+        store.updateMyLocation(loc)
+    }
 
     private lateinit var shareAppBtn: Button
     private lateinit var profileRow: LinearLayout
@@ -330,9 +333,7 @@ class CrewSettingsActivity : AppCompatActivity() {
         val fine = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
         val coarse = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
         if (fine == PackageManager.PERMISSION_GRANTED || coarse == PackageManager.PERMISSION_GRANTED) {
-            CrewLocationManager.shared.start(this) { loc ->
-                store.updateMyLocation(loc)
-            }
+            CrewLocationManager.shared.start(this, locationCallback)
         } else {
             ActivityCompat.requestPermissions(
                 this,
@@ -371,9 +372,7 @@ class CrewSettingsActivity : AppCompatActivity() {
         if (requestCode == REQ_LOCATION) {
             val granted = grantResults.any { it == PackageManager.PERMISSION_GRANTED }
             if (granted) {
-                CrewLocationManager.shared.start(this) { loc ->
-                    store.updateMyLocation(loc)
-                }
+                CrewLocationManager.shared.start(this, locationCallback)
             }
         }
     }
@@ -481,6 +480,11 @@ class CrewSettingsActivity : AppCompatActivity() {
         } catch (_: Exception) {
             null
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        CrewLocationManager.shared.stop(locationCallback)
     }
 
     companion object {

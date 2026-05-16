@@ -11,6 +11,8 @@ import androidx.appcompat.widget.SwitchCompat
 import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import it.grg.flighttimeapp.R
 import kotlin.math.round
 
@@ -65,6 +67,18 @@ class CrewNearbyActivity : AppCompatActivity() {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
         recycler = findViewById(R.id.nearbyRecycler)
+        ViewCompat.setOnApplyWindowInsetsListener(recycler) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val extraBottom = resources.getDimensionPixelSize(R.dimen.nearby_scroll_extra_bottom)
+            v.setPadding(
+                v.paddingLeft,
+                v.paddingTop,
+                v.paddingRight,
+                systemBars.bottom + extraBottom
+            )
+            insets
+        }
+        ViewCompat.requestApplyInsets(recycler)
         val gridLayout = GridLayoutManager(this, 2)
         gridLayout.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
             override fun getSpanSize(position: Int): Int {

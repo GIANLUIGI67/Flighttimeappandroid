@@ -25,6 +25,11 @@ class CrewLocationManager private constructor() {
     private var systemLocationManager: LocationManager? = null
     private var systemLocationListener: LocationListener? = null
 
+    companion object {
+        val shared = CrewLocationManager()
+        private const val TAG = "CrewLocation"
+    }
+
     fun isLocationEnabled(context: Context): Boolean {
         val lm = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
         return lm.isProviderEnabled(LocationManager.GPS_PROVIDER) || 
@@ -84,8 +89,8 @@ class CrewLocationManager private constructor() {
         // 5. Continuous updates
         if (callback == null) {
             Log.d(TAG, "🚀 Starting GMS continuous updates")
-            val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 10_000L)
-                .setMinUpdateIntervalMillis(5_000L)
+            val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, CrewTiming.LOCATION_REQUEST_INTERVAL_MS)
+                .setMinUpdateIntervalMillis(CrewTiming.LOCATION_MIN_UPDATE_INTERVAL_MS)
                 .build()
 
             val cb = object : LocationCallback() {
@@ -108,10 +113,20 @@ class CrewLocationManager private constructor() {
             systemLocationListener = sl
             try {
                 if (systemLocationManager?.isProviderEnabled(LocationManager.NETWORK_PROVIDER) == true) {
-                    systemLocationManager?.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 10000L, 10f, sl)
+                    systemLocationManager?.requestLocationUpdates(
+                        LocationManager.NETWORK_PROVIDER,
+                        CrewTiming.SYSTEM_LOCATION_INTERVAL_MS,
+                        CrewTiming.SYSTEM_LOCATION_MIN_DISTANCE_M,
+                        sl
+                    )
                 }
                 if (systemLocationManager?.isProviderEnabled(LocationManager.GPS_PROVIDER) == true) {
-                    systemLocationManager?.requestLocationUpdates(LocationManager.GPS_PROVIDER, 10000L, 10f, sl)
+                    systemLocationManager?.requestLocationUpdates(
+                        LocationManager.GPS_PROVIDER,
+                        CrewTiming.SYSTEM_LOCATION_INTERVAL_MS,
+                        CrewTiming.SYSTEM_LOCATION_MIN_DISTANCE_M,
+                        sl
+                    )
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "System updates error: ${e.message}")
@@ -150,8 +165,4 @@ class CrewLocationManager private constructor() {
         }
     }
 
-    companion object {
-        val shared = CrewLocationManager()
-        private const val TAG = "CrewLocation"
-    }
 }

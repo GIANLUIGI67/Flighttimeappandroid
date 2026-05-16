@@ -2,4 +2,5 @@
 <resources>
     <dimen name="qb_bottom_bar_padding">16dp</dimen>
     <dimen name="qb_scroll_extra_bottom">104dp</dimen>
+    <dimen name="nearby_scroll_extra_bottom">48dp</dimen>
 </resources>

@@ -13,8 +13,8 @@ android {
         minSdk = 24
         targetSdk = 35
 
-        versionCode = 13
-        versionName = "1.1.0"
+        versionCode = 15
+        versionName = "1.1.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -56,10 +56,13 @@ dependencies {
     implementation(libs.gson)
     implementation("androidx.viewpager2:viewpager2:1.0.0")
     implementation("androidx.exifinterface:exifinterface:1.3.7")
+    implementation("androidx.security:security-crypto:1.1.0")
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
     implementation(libs.firebase.database)
     implementation(libs.firebase.storage)
+    implementation("com.google.firebase:firebase-appcheck")
+    debugImplementation("com.google.firebase:firebase-appcheck-debug")
     implementation(libs.play.services.location)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
 

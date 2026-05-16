@@ -19,7 +19,61 @@ class CrewPhotoLoader private constructor(context: Context) {
     /** Prevents duplicate in-flight fetches for the same user/url pair. */
     private val inFlightUrlByUserId = mutableMapOf<String, String>()
 
-    fun image(userId: String): Bitmap? = cache.get(userId)
+    // MARK: - Disk cache (survives LruCache eviction — same pattern as iOS)
+
+    private fun diskCacheDir(): java.io.File {
+        val dir = java.io.File(appContext.cacheDir, DISK_CACHE_FOLDER)
+        if (!dir.exists()) dir.mkdirs()
+        return dir
+    }
+
+    private fun diskCacheFile(userId: String): java.io.File =
+        java.io.File(diskCacheDir(), "${userId}.jpg")
+
+    private fun loadFromDisk(userId: String): Bitmap? {
+        val file = diskCacheFile(userId)
+        if (!file.exists()) return null
+        return try { BitmapFactory.decodeFile(file.absolutePath) } catch (_: Exception) { null }
+    }
+
+    private fun saveToDisk(userId: String, bytes: ByteArray) {
+        Thread {
+            try {
+                val file = diskCacheFile(userId)
+                file.outputStream().use { it.write(bytes) }
+            } catch (_: Exception) {}
+        }.start()
+    }
+
+    private fun deleteDiskCacheFile(userId: String) {
+        try { diskCacheFile(userId).delete() } catch (_: Exception) {}
+    }
+
+    private fun persistedUrl(userId: String): String? {
+        val prefs = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        return prefs.getString("$KEY_PHOTO_URL_PREFIX$userId", null)
+    }
+
+    private fun setPersistedUrl(userId: String, url: String?) {
+        val prefs = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        prefs.edit {
+            if (url != null) putString("$KEY_PHOTO_URL_PREFIX$userId", url)
+            else remove("$KEY_PHOTO_URL_PREFIX$userId")
+        }
+    }
+
+    /**
+     * Returns the cached image for a user.
+     * Falls back to the disk cache if LruCache has evicted the image,
+     * so the view never sees a placeholder for a photo that was already loaded.
+     */
+    fun image(userId: String): Bitmap? {
+        cache.get(userId)?.let { return it }
+        // LruCache miss — check disk before returning null (prevents placeholder flash)
+        val diskBitmap = loadFromDisk(userId) ?: return null
+        cache.put(userId, diskBitmap)
+        return diskBitmap
+    }
 
     fun getBitmap(userId: String, b64: String?): Bitmap? {
         val cached = cache.get(userId)
@@ -52,6 +106,8 @@ class CrewPhotoLoader private constructor(context: Context) {
     fun invalidate(userId: String) {
         cache.remove(userId)
         cachedUrlByUserId.remove(userId)
+        deleteDiskCacheFile(userId)
+        setPersistedUrl(userId, null)
     }
 
     fun setLocalProfileImage(bitmap: Bitmap) {
@@ -114,27 +170,41 @@ class CrewPhotoLoader private constructor(context: Context) {
     fun loadFromUrl(url: String, userId: String, onResult: ((Bitmap?) -> Unit)? = null) {
         if (url.isBlank()) { onResult?.invoke(null); return }
 
-        // If the URL changed the user replaced their photo — drop the stale cached image
+        // Resolve last known URL (in-memory wins, then persisted across launches)
+        val knownUrl = synchronized(this) { cachedUrlByUserId[userId] } ?: persistedUrl(userId)
+
         synchronized(this) {
-            if (cachedUrlByUserId[userId] != url) {
+            // URL changed → user replaced their photo, drop stale cache
+            if (knownUrl != url) {
                 cache.remove(userId)
                 cachedUrlByUserId.remove(userId)
+                deleteDiskCacheFile(userId)
             }
             if (inFlightUrlByUserId[userId] == url) {
-                cache.get(userId)?.let {
-                    onResult?.invoke(it)
-                    return
-                }
+                cache.get(userId)?.let { onResult?.invoke(it); return }
                 return
             }
             inFlightUrlByUserId[userId] = url
         }
 
-        val cached = cache.get(userId)
-        if (cached != null) {
+        // LruCache hit
+        cache.get(userId)?.let {
             synchronized(this) { inFlightUrlByUserId.remove(userId) }
-            onResult?.invoke(cached)
+            onResult?.invoke(it)
             return
+        }
+
+        // Disk hit → warm LruCache, return immediately without network
+        if (knownUrl == url) {
+            loadFromDisk(userId)?.let { diskBitmap ->
+                synchronized(this) {
+                    cache.put(userId, diskBitmap)
+                    cachedUrlByUserId[userId] = url
+                    inFlightUrlByUserId.remove(userId)
+                }
+                android.os.Handler(android.os.Looper.getMainLooper()).post { onResult?.invoke(diskBitmap) }
+                return
+            }
         }
 
         Thread {
@@ -145,12 +215,16 @@ class CrewPhotoLoader private constructor(context: Context) {
                 connection.useCaches = false
                 connection.doInput = true
                 connection.connect()
-                val bitmap = if (connection.responseCode == 200) {
-                    // Read bytes first so EXIF orientation can be parsed.
-                    // Cap at 1024px to avoid loading 4032x3024 (~46 MB) into RAM.
+                var bitmap: Bitmap? = null
+                if (connection.responseCode == 200) {
                     val bytes = connection.inputStream.readBytes()
-                    decodeBitmapWithExif(bytes, 1024)
-                } else null
+                    bitmap = decodeBitmapWithExif(bytes, 1024)
+                    if (bitmap != null) {
+                        // Persist to disk so future LruCache evictions don't show the placeholder
+                        saveToDisk(userId, bytes)
+                        setPersistedUrl(userId, url)
+                    }
+                }
                 if (bitmap != null) {
                     synchronized(this) {
                         if (inFlightUrlByUserId[userId] == url) {
@@ -161,18 +235,14 @@ class CrewPhotoLoader private constructor(context: Context) {
                 }
                 android.os.Handler(android.os.Looper.getMainLooper()).post {
                     synchronized(this) {
-                        if (inFlightUrlByUserId[userId] == url) {
-                            inFlightUrlByUserId.remove(userId)
-                        }
+                        if (inFlightUrlByUserId[userId] == url) inFlightUrlByUserId.remove(userId)
                     }
                     onResult?.invoke(bitmap)
                 }
             } catch (_: Exception) {
                 android.os.Handler(android.os.Looper.getMainLooper()).post {
                     synchronized(this) {
-                        if (inFlightUrlByUserId[userId] == url) {
-                            inFlightUrlByUserId.remove(userId)
-                        }
+                        if (inFlightUrlByUserId[userId] == url) inFlightUrlByUserId.remove(userId)
                     }
                     onResult?.invoke(null)
                 }
@@ -232,6 +302,8 @@ class CrewPhotoLoader private constructor(context: Context) {
         private const val KEY_PROFILE_B64 = "crew_profile_image_b64"
         private const val KEY_PROFILE_EXTRA_NAMES = "crew_profile_extra_names"
         private const val EXTRA_FOLDER = "crew_profile_extra_images"
+        private const val DISK_CACHE_FOLDER = "crew_photo_disk_cache"
+        private const val KEY_PHOTO_URL_PREFIX = "crew_photo_url_v2_"
         @Volatile private var instance: CrewPhotoLoader? = null
 
         fun get(context: Context): CrewPhotoLoader {

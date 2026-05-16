@@ -116,9 +116,11 @@ class CrewChatActivity : AppCompatActivity() {
 
         val recycler = findViewById<RecyclerView>(R.id.chatRecycler)
         recycler.layoutManager = LinearLayoutManager(this)
-        adapter = CrewChatMessagesAdapter(emptyList()) { msg ->
-            showChatImagePreview(msg)
-        }
+        adapter = CrewChatMessagesAdapter(
+            emptyList(),
+            onImageClick = { msg -> showChatImagePreview(msg) },
+            onAvatarClick = { msg -> showSenderPhotoPreview(msg.senderUid) }
+        )
         recycler.adapter = adapter
 
         crewStore.settingsLive.observe(this, Observer { s ->
@@ -183,7 +185,7 @@ class CrewChatActivity : AppCompatActivity() {
             threadId = chatStore.ensureThread(user)
         }
 
-        threadId?.let { chatStore.startMessagesObserver(it) }
+        threadId?.let { chatStore.startMessagesObserver(it, peerId ?: "") }
 
         val pid = peerId
         if (pid != null) {
@@ -254,6 +256,31 @@ class CrewChatActivity : AppCompatActivity() {
             avatarB64 = avatarRef,
             peerName = peerName ?: getString(R.string.cl_chat),
             peerCompany = ""
+        )
+    }
+
+    private fun showSenderPhotoPreview(senderUid: String) {
+        val summary = crewStore.getUserSummary(senderUid)
+        if (summary == null) {
+            crewStore.fetchUserOnce(senderUid) {
+                runOnUiThread { showSenderPhotoPreview(senderUid) }
+            }
+            return
+        }
+
+        val photos = ArrayList(summary.photoRefs())
+        if (photos.isEmpty()) return
+
+        CrewPhotoPreviewDialog.show(
+            fragmentManager = supportFragmentManager,
+            ownerUid = senderUid,
+            photosB64 = photos,
+            initialIndex = 0,
+            threadId = null,
+            messageId = null,
+            avatarB64 = summary.primaryRef(),
+            peerName = summary.nickname,
+            peerCompany = summary.companyName ?: ""
         )
     }
 

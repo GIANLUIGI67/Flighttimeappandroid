@@ -7,6 +7,8 @@ import android.view.View
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import android.util.Log
+import com.google.firebase.appcheck.AppCheckProviderFactory
+import com.google.firebase.appcheck.FirebaseAppCheck
 import com.google.firebase.database.FirebaseDatabase
 
 class FlightTimeApplication : Application() {
@@ -14,6 +16,7 @@ class FlightTimeApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         logFirebaseDbUrl()
+        maybeInstallDebugAppCheck()
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
                 val root = activity.findViewById<View>(android.R.id.content) ?: return
@@ -46,6 +49,26 @@ class FlightTimeApplication : Application() {
             Log.d("FlightTimeApp", "Firebase Realtime DB URL: $url")
         } catch (e: Exception) {
             Log.e("FlightTimeApp", "Failed to read Firebase DB URL: ${e.message}")
+        }
+    }
+
+    private fun maybeInstallDebugAppCheck() {
+        if ((applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) == 0) return
+        try {
+            val factoryClass = Class.forName("com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory")
+            val getInstance = factoryClass.getMethod("getInstance")
+            val factory = getInstance.invoke(null) as AppCheckProviderFactory
+            FirebaseAppCheck.getInstance().installAppCheckProviderFactory(factory)
+            Log.d("FlightTimeApp", "Debug App Check provider installed")
+            FirebaseAppCheck.getInstance().getToken(false)
+                .addOnSuccessListener {
+                    Log.d("FlightTimeApp", "Debug App Check active: token acquired")
+                }
+                .addOnFailureListener { e ->
+                    Log.w("FlightTimeApp", "Debug App Check token not yet available: ${e.message}")
+                }
+        } catch (e: Exception) {
+            Log.w("FlightTimeApp", "Debug App Check provider not installed: ${e.message}")
         }
     }
 }

@@ -83,7 +83,7 @@ class CrewPresenceService private constructor() : DefaultLifecycleObserver {
                 // heartbeat skips the Firebase write — it never writes isOnline: false.
                 // setOfflineNow() / onDisconnect are the only paths that clear the flag.
                 if (myState != State.ONLINE) {
-                    handler.postDelayed(this, 20_000L)
+                    handler.postDelayed(this, CrewTiming.PRESENCE_OFFLINE_RETRY_DELAY_MS)
                     return
                 }
                 val updates = mutableMapOf<String, Any>(
@@ -95,11 +95,11 @@ class CrewPresenceService private constructor() : DefaultLifecycleObserver {
                     updates["lon"] = lastLon
                 }
                 root.child("crew_users/$currentUid").updateChildren(updates)
-                handler.postDelayed(this, 15_000L)
+                handler.postDelayed(this, CrewTiming.PRESENCE_HEARTBEAT_INTERVAL_MS)
             }
         }
         heartbeatRunnable = runnable
-        handler.postDelayed(runnable, 1_000L) // First tick immediately after startup
+        handler.postDelayed(runnable, CrewTiming.PRESENCE_INITIAL_DELAY_MS) // First tick immediately after startup
     }
 
     private fun stopHeartbeat() {
@@ -185,16 +185,15 @@ class CrewPresenceService private constructor() : DefaultLifecycleObserver {
     override fun onStart(owner: LifecycleOwner) {
         Log.d(TAG, "Lifecycle -> ON_START (App Foreground)")
         setOnlineNow()
+        startHeartbeat()
     }
 
     override fun onStop(owner: LifecycleOwner) {
-        // Do NOT write isOnline: false here.
-        // ProcessLifecycleOwner.onStop() fires whenever the app is backgrounded —
-        // even briefly when the user switches away to check another device.
-        // Writing offline here causes the Android device to flicker offline to other
-        // users during normal use. The onDisconnect handler registered in start()
-        // already takes care of marking offline when the Firebase connection truly drops.
-        Log.d(TAG, "Lifecycle -> ON_STOP (App Background) — relying on onDisconnect")
+        // Background mode: stop the frequent heartbeat to keep Firebase writes low.
+        // The explicit offline write keeps Android and iOS aligned.
+        stopHeartbeat()
+        setOfflineNow()
+        Log.d(TAG, "Lifecycle -> ON_STOP (App Background) — heartbeat paused")
     }
 
     companion object {

@@ -52,7 +52,13 @@ class CrewChatsActivity : AppCompatActivity() {
     }
 
     private fun showPhotoPreview(peerId: String) {
-        val summary = CrewLayoverStore.shared.getUserSummary(peerId) ?: return
+        val summary = CrewLayoverStore.shared.getUserSummary(peerId)
+        if (summary == null) {
+            CrewLayoverStore.shared.fetchUserOnce(peerId) {
+                runOnUiThread { showPhotoPreview(peerId) }
+            }
+            return
+        }
         val photos = summary.photoRefs()
         if (photos.isEmpty()) return
         CrewPhotoPreviewDialog.show(

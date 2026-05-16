@@ -202,6 +202,7 @@
     <string name="sub_details_coming_soon">Coming soon</string>
     <string name="no_browser_app">No browser app found.</string>
     <string name="cl_photo_message_preview">Photo</string>
+    <string name="cl_e2e_message_preview">🔒 New message</string>
     <string name="cl_photo_expired">Photo expired</string>
     <string name="cl_new_message_from">New message from %1$s</string>
     <string name="cl_profile_incomplete_chat_message">Add a photo, your nickname and role so others can see you correctly.</string>

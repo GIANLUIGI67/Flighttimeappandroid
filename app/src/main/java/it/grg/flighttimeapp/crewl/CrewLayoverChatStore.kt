@@ -6,12 +6,14 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import it.grg.flighttimeapp.R
+import kotlinx.coroutines.*
 import java.io.ByteArrayOutputStream
 import java.util.Date
 
 class CrewLayoverChatStore private constructor() {
 
     private val root: DatabaseReference = FirebaseDatabase.getInstance().reference
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     private var threadsHandle: ValueEventListener? = null
     private val messagesHandles: MutableMap<String, ChildEventListener> = mutableMapOf()
@@ -20,6 +22,7 @@ class CrewLayoverChatStore private constructor() {
     private val lastBannerMessageIdByThread: MutableMap<String, String> = mutableMapOf()
     private val lastSeedCreatedAtMsByThread: MutableMap<String, Long> = mutableMapOf()
     private val peerNameByThread: MutableMap<String, String> = mutableMapOf()
+    private val peerUidByThread: MutableMap<String, String> = mutableMapOf()
 
     private val _threads = androidx.lifecycle.MutableLiveData<List<CrewChatThread>>(emptyList())
     val threads: androidx.lifecycle.LiveData<List<CrewChatThread>> = _threads
@@ -40,6 +43,8 @@ class CrewLayoverChatStore private constructor() {
 
     fun startThreadsObserver() {
         val me = myUid() ?: return
+        val ctx = FirebaseApp.getInstance().applicationContext
+        scope.launch { CrewChatEncryption.getInstance(ctx).setup() }
         stopThreadsObserver()
 
         val ref = root.child("userThreads").child(me)
@@ -104,12 +109,21 @@ class CrewLayoverChatStore private constructor() {
         val toAdd = ids.subtract(existing)
         val toRemove = existing.subtract(ids)
 
-        toAdd.forEach { startMessagesObserver(it) }
+        toAdd.forEach { tid ->
+            val peerUid = threads.firstOrNull { it.id == tid }?.peerId ?: ""
+            startMessagesObserver(tid, peerUid)
+        }
         toRemove.forEach { stopMessagesObserver(it) }
     }
 
-    fun startMessagesObserver(threadId: String) {
+    fun startMessagesObserver(threadId: String, peerUid: String) {
         if (messagesHandles.containsKey(threadId)) return
+
+        peerUidByThread[threadId] = peerUid
+
+        // Pre-warm session key so it is cached before messages arrive
+        val ctx = FirebaseApp.getInstance().applicationContext
+        scope.launch { CrewChatEncryption.getInstance(ctx).sessionKey(threadId, peerUid) }
 
         val ref = root.child("chatMessages").child(threadId)
         val query = ref.orderByChild("createdAt").limitToLast(100)
@@ -118,30 +132,32 @@ class CrewLayoverChatStore private constructor() {
         // seed
         query.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                val msgs = mutableListOf<CrewChatMessage>()
+                val rawMsgs = mutableListOf<CrewChatMessage>()
                 var lastCreatedAtMs = 0L
                 var lastId: String? = null
                 snapshot.children.forEach { cs ->
                     val dict = cs.value as? Map<*, *> ?: return@forEach
                     val msg = decodeMessage(cs.key ?: return@forEach, threadId, dict)
-                    msgs.add(msg)
+                    rawMsgs.add(msg)
                     val createdAtMs = readMs(dict["createdAt"])
                     if (createdAtMs >= lastCreatedAtMs) {
                         lastCreatedAtMs = createdAtMs
                         lastId = msg.id
                     }
                 }
-                msgs.sortBy { it.createdAt }
-                val map = _messagesByThread.value?.toMutableMap() ?: mutableMapOf()
-                map[threadId] = msgs
-                _messagesByThread.postValue(map)
-                if (lastCreatedAtMs > 0L) {
-                    lastSeedCreatedAtMsByThread[threadId] = lastCreatedAtMs
+                rawMsgs.sortBy { it.createdAt }
+                if (lastCreatedAtMs > 0L) lastSeedCreatedAtMsByThread[threadId] = lastCreatedAtMs
+                if (lastId != null) lastBannerMessageIdByThread[threadId] = lastId!!
+
+                val ctx = FirebaseApp.getInstance().applicationContext
+                scope.launch {
+                    val enc = CrewChatEncryption.getInstance(ctx)
+                    val decryptedMsgs = rawMsgs.map { decryptMessageIfNeeded(it, threadId, enc) }
+                    val map = _messagesByThread.value?.toMutableMap() ?: mutableMapOf()
+                    map[threadId] = decryptedMsgs
+                    _messagesByThread.postValue(map)
+                    suppressBannerForThread.remove(threadId)
                 }
-                if (lastId != null) {
-                    lastBannerMessageIdByThread[threadId] = lastId!!
-                }
-                suppressBannerForThread.remove(threadId)
             }
 
             override fun onCancelled(error: DatabaseError) {}
@@ -150,31 +166,38 @@ class CrewLayoverChatStore private constructor() {
         val childListener = object : ChildEventListener {
             override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
                 val dict = snapshot.value as? Map<*, *> ?: return
-                val msg = decodeMessage(snapshot.key ?: return, threadId, dict)
-                val map = _messagesByThread.value?.toMutableMap() ?: mutableMapOf()
-                val list = map[threadId]?.toMutableList() ?: mutableListOf()
-                if (list.none { it.id == msg.id }) {
-                    list.add(msg)
-                    list.sortBy { it.createdAt }
-                    map[threadId] = list
-                    _messagesByThread.postValue(map)
-                }
+                val rawMsg = decodeMessage(snapshot.key ?: return, threadId, dict)
 
                 val me = myUid()
                 val seedMs = lastSeedCreatedAtMsByThread[threadId] ?: 0L
                 val msgCreatedAtMs = readMs(dict["createdAt"])
-                if (me != null &&
-                    msg.senderUid != me &&
+                val shouldNotify = me != null &&
+                    rawMsg.senderUid != me &&
                     !suppressBannerForThread.contains(threadId) &&
                     (seedMs == 0L || msgCreatedAtMs > seedMs)
-                ) {
-                    val lastId = lastBannerMessageIdByThread[threadId]
-                    if (lastId != msg.id) {
-                        lastBannerMessageIdByThread[threadId] = msg.id
-                        val display = peerNameByThread[threadId].orEmpty().ifBlank { "Crew" }
-                        val ctx = FirebaseApp.getInstance().applicationContext
-                        val msg = ctx.getString(R.string.cl_new_message_from, display)
-                        CrewBannerCenter.shared.show(msg)
+
+                val ctx = FirebaseApp.getInstance().applicationContext
+                scope.launch {
+                    val enc = CrewChatEncryption.getInstance(ctx)
+                    val msg = decryptMessageIfNeeded(rawMsg, threadId, enc)
+
+                    val map = _messagesByThread.value?.toMutableMap() ?: mutableMapOf()
+                    val list = map[threadId]?.toMutableList() ?: mutableListOf()
+                    if (list.none { it.id == msg.id }) {
+                        list.add(msg)
+                        list.sortBy { it.createdAt }
+                        map[threadId] = list
+                        _messagesByThread.postValue(map)
+                    }
+
+                    if (shouldNotify) {
+                        val lastId = lastBannerMessageIdByThread[threadId]
+                        if (lastId != msg.id) {
+                            lastBannerMessageIdByThread[threadId] = msg.id
+                            val display = peerNameByThread[threadId].orEmpty().ifBlank { "Crew" }
+                            val bannerMsg = ctx.getString(R.string.cl_new_message_from, display)
+                            CrewBannerCenter.shared.show(bannerMsg)
+                        }
                     }
                 }
             }
@@ -198,6 +221,7 @@ class CrewLayoverChatStore private constructor() {
         }
         messagesRefs.remove(threadId)
         messagesHandles.remove(threadId)
+        peerUidByThread.remove(threadId)
     }
 
     fun stopAllObservers() {
@@ -249,24 +273,37 @@ class CrewLayoverChatStore private constructor() {
 
         val ref = root.child("chatMessages").child(threadId).push()
         val msgId = ref.key ?: java.util.UUID.randomUUID().toString()
-        val payload = mapOf(
-            "senderUid" to me,
-            "text" to t,
-            "createdAt" to ServerValue.TIMESTAMP
-        )
-        ref.setValue(payload)
+        val ctx = FirebaseApp.getInstance().applicationContext
 
-        val now = System.currentTimeMillis()
-        val updates = hashMapOf<String, Any>(
-            "/userThreads/$me/$threadId/lastMessageAt" to now,
-            "/userThreads/$me/$threadId/lastMessageText" to t,
-            "/userThreads/$me/$threadId/lastMessageSender" to me,
-            "/userThreads/$me/$threadId/lastReadAt" to now,
-            "/userThreads/$peerUid/$threadId/lastMessageAt" to now,
-            "/userThreads/$peerUid/$threadId/lastMessageText" to t,
-            "/userThreads/$peerUid/$threadId/lastMessageSender" to me
-        )
-        root.updateChildren(updates)
+        scope.launch {
+            val enc = CrewChatEncryption.getInstance(ctx)
+            val key = enc.sessionKey(threadId, peerUid)
+            val (encText, isE2E) = if (key != null) {
+                val e = enc.encrypt(t, key)
+                if (e != null) Pair(e, true) else Pair(t, false)
+            } else Pair(t, false)
+
+            val payload = mutableMapOf<String, Any>(
+                "senderUid" to me,
+                "text" to encText,
+                "createdAt" to ServerValue.TIMESTAMP
+            )
+            if (isE2E) payload["e2e"] = 1
+            ref.setValue(payload)
+
+            val now = System.currentTimeMillis()
+            val preview = if (isE2E) ctx.getString(R.string.cl_e2e_message_preview) else t
+            val updates = hashMapOf<String, Any>(
+                "/userThreads/$me/$threadId/lastMessageAt" to now,
+                "/userThreads/$me/$threadId/lastMessageText" to preview,
+                "/userThreads/$me/$threadId/lastMessageSender" to me,
+                "/userThreads/$me/$threadId/lastReadAt" to now,
+                "/userThreads/$peerUid/$threadId/lastMessageAt" to now,
+                "/userThreads/$peerUid/$threadId/lastMessageText" to preview,
+                "/userThreads/$peerUid/$threadId/lastMessageSender" to me
+            )
+            root.updateChildren(updates)
+        }
     }
 
     fun sendImageMessage(
@@ -287,30 +324,41 @@ class CrewLayoverChatStore private constructor() {
 
         val ref = root.child("chatMessages").child(threadId).push()
         val msgId = ref.key ?: java.util.UUID.randomUUID().toString()
-        val payload = mutableMapOf<String, Any>(
-            "senderUid" to me,
-            "text" to "",
-            "imageBase64" to b64,
-            "createdAt" to ServerValue.TIMESTAMP
-        )
-        if (expiresAtMs > 0L) payload["imageExpiresAtMs"] = expiresAtMs
-        ref.setValue(payload)
+        val ctx = FirebaseApp.getInstance().applicationContext
 
-        val updates = hashMapOf<String, Any>(
-            "/userThreads/$me/$threadId/lastMessageAt" to now,
-            "/userThreads/$me/$threadId/lastMessageText" to previewText,
-            "/userThreads/$me/$threadId/lastMessageSender" to me,
-            "/userThreads/$me/$threadId/lastReadAt" to now,
-            "/userThreads/$peerUid/$threadId/lastMessageAt" to now,
-            "/userThreads/$peerUid/$threadId/lastMessageText" to previewText,
-            "/userThreads/$peerUid/$threadId/lastMessageSender" to me
-        )
-        root.updateChildren(updates)
+        scope.launch {
+            val enc = CrewChatEncryption.getInstance(ctx)
+            val key = enc.sessionKey(threadId, peerUid)
+            val (encImage, isE2E) = if (key != null) {
+                val e = enc.encrypt(b64, key)
+                if (e != null) Pair(e, true) else Pair(b64, false)
+            } else Pair(b64, false)
 
-        if (expiresInSeconds != null && expiresInSeconds > 0) {
-            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            val payload = mutableMapOf<String, Any>(
+                "senderUid" to me,
+                "text" to "",
+                "imageBase64" to encImage,
+                "createdAt" to ServerValue.TIMESTAMP
+            )
+            if (expiresAtMs > 0L) payload["imageExpiresAtMs"] = expiresAtMs
+            if (isE2E) payload["e2e"] = 1
+            ref.setValue(payload)
+
+            val updates = hashMapOf<String, Any>(
+                "/userThreads/$me/$threadId/lastMessageAt" to now,
+                "/userThreads/$me/$threadId/lastMessageText" to previewText,
+                "/userThreads/$me/$threadId/lastMessageSender" to me,
+                "/userThreads/$me/$threadId/lastReadAt" to now,
+                "/userThreads/$peerUid/$threadId/lastMessageAt" to now,
+                "/userThreads/$peerUid/$threadId/lastMessageText" to previewText,
+                "/userThreads/$peerUid/$threadId/lastMessageSender" to me
+            )
+            root.updateChildren(updates)
+
+            if (expiresInSeconds != null && expiresInSeconds > 0) {
+                delay(expiresInSeconds * 1000L)
                 root.child("chatMessages").child(threadId).child(msgId).removeValue()
-            }, expiresInSeconds * 1000L)
+            }
         }
     }
 
@@ -467,6 +515,7 @@ class CrewLayoverChatStore private constructor() {
         val imageBase64 = dict["imageBase64"] as? String
         val imageExpiresAtMs = readMs(dict["imageExpiresAtMs"])
         val createdAtMs = readMs(dict["createdAt"])
+        val isE2E = (dict["e2e"] as? Number)?.toInt() == 1
         return CrewChatMessage(
             id = msgId,
             threadId = threadId,
@@ -474,7 +523,27 @@ class CrewLayoverChatStore private constructor() {
             text = text,
             imageBase64 = imageBase64,
             imageExpiresAtMs = imageExpiresAtMs,
-            createdAt = Date(createdAtMs)
+            createdAt = Date(createdAtMs),
+            isE2EEncrypted = isE2E
+        )
+    }
+
+    private suspend fun decryptMessageIfNeeded(
+        msg: CrewChatMessage,
+        threadId: String,
+        enc: CrewChatEncryption
+    ): CrewChatMessage {
+        if (!msg.isE2EEncrypted) return msg
+        val peerUid = peerUidByThread[threadId] ?: return msg
+        val key = enc.sessionKey(threadId, peerUid) ?: return msg
+
+        val plainText = if (msg.text.isNotEmpty()) enc.decrypt(msg.text, key) ?: msg.text else ""
+        val plainImage = msg.imageBase64?.let { enc.decrypt(it, key) }
+
+        return msg.copy(
+            text = plainText,
+            imageBase64 = plainImage ?: msg.imageBase64,
+            isE2EEncrypted = false
         )
     }
 
