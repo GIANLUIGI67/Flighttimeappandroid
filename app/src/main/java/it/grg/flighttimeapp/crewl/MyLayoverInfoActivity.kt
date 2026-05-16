@@ -25,6 +25,7 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import it.grg.flighttimeapp.R
 import java.util.Locale
+import it.grg.flighttimeapp.CLog
 
 class MyLayoverInfoActivity : AppCompatActivity() {
 
@@ -52,12 +53,12 @@ class MyLayoverInfoActivity : AppCompatActivity() {
     private val logTag = "MyLayoverInfo"
 
     private val locationListener: (Location) -> Unit = { loc ->
-        Log.d(logTag, "📍 resolve city from lat=${loc.latitude} lon=${loc.longitude} acc=${loc.accuracy}")
+        CLog.d(logTag, "📍 resolve city from lat=${loc.latitude} lon=${loc.longitude} acc=${loc.accuracy}")
         lastLocation = loc
         if (manualCityOverride.isBlank()) {
             resolveCity(loc)
         } else {
-            Log.d(logTag, "Manual city override active, skip auto-detect")
+            CLog.d(logTag, "Manual city override active, skip auto-detect")
         }
     }
 
@@ -96,7 +97,7 @@ class MyLayoverInfoActivity : AppCompatActivity() {
     private fun ensureLocationAndLoadCity() {
         val fine = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
         val coarse = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
-        Log.d(logTag, "location permission fine=$fine coarse=$coarse")
+        CLog.d(logTag, "location permission fine=$fine coarse=$coarse")
         if (fine == PackageManager.PERMISSION_GRANTED || coarse == PackageManager.PERMISSION_GRANTED) {
             updateDebugBanner("Location permission granted - starting detection")
             CrewLocationManager.shared.start(this, locationListener)
@@ -123,7 +124,7 @@ class MyLayoverInfoActivity : AppCompatActivity() {
 
     private fun resolveCity(location: Location) {
         if (manualCityOverride.isNotBlank()) {
-            Log.d(logTag, "Manual city override active, skipping resolveCity")
+            CLog.d(logTag, "Manual city override active, skipping resolveCity")
             return
         }
         resolveToken += 1
@@ -131,7 +132,7 @@ class MyLayoverInfoActivity : AppCompatActivity() {
         resolveTimeout?.let { resolveHandler.removeCallbacks(it) }
         val timeout = Runnable {
             if (token != resolveToken) return@Runnable
-            Log.w(logTag, "⚠️ Geocoding timeout, using fallback")
+            CLog.w(logTag, "⚠️ Geocoding timeout, using fallback")
             val fallbackName = Locale.getDefault().displayCountry
             if (fallbackName.isNotBlank()) {
                 detectedCityName = fallbackName
@@ -148,7 +149,7 @@ class MyLayoverInfoActivity : AppCompatActivity() {
         updateCityUI(isLoading = true)
 
         if (!Geocoder.isPresent()) {
-            Log.e(logTag, "Geocoder not present on device")
+            CLog.e(logTag, "Geocoder not present on device")
             updateDebugBanner("Geocoder unavailable - using fallback")
             val fallbackName = Locale.getDefault().displayCountry
             if (fallbackName.isNotBlank()) {
@@ -173,7 +174,7 @@ class MyLayoverInfoActivity : AppCompatActivity() {
                     ?: addr?.adminArea
                     ?: addr?.countryName
 
-                Log.d(logTag, "display geocoder result: $displayName from ${displayList.size} results")
+                CLog.d(logTag, "display geocoder result: $displayName from ${displayList.size} results")
                 updateDebugBanner("Geocoding display=$displayName")
 
                 keyGeocoder.getFromLocation(location.latitude, location.longitude, 5) { keyList ->
@@ -186,7 +187,7 @@ class MyLayoverInfoActivity : AppCompatActivity() {
                         ?: addr?.countryCode
                         ?: ""
                     
-                    Log.d(logTag, "key geocoder result: $keyCity country=$countryCode")
+                    CLog.d(logTag, "key geocoder result: $keyCity country=$countryCode")
                     updateDebugBanner("Geocoding key=$keyCity cc=$countryCode")
                     val rawKey = listOf(countryCode, keyCity).filter { !it.isNullOrBlank() }.joinToString("_")
                     val stableKey = LayoverInfoCategoryStore.sanitizeCityKey(rawKey)

@@ -10,6 +10,7 @@ import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ServerValue
 import com.google.firebase.database.ValueEventListener
+import it.grg.flighttimeapp.CLog
 
 class CrewPresenceService private constructor() : DefaultLifecycleObserver {
 
@@ -40,7 +41,7 @@ class CrewPresenceService private constructor() : DefaultLifecycleObserver {
         stop()
 
         this.uid = trimmed
-        Log.d(TAG, "Starting Presence for $trimmed")
+        CLog.d(TAG, "Starting Presence for $trimmed")
 
         val userPath = "crew_users/$trimmed"
         val connectedRef = root.child(".info/connected")
@@ -56,7 +57,7 @@ class CrewPresenceService private constructor() : DefaultLifecycleObserver {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val connected = (snapshot.value as? Boolean) ?: false
                 if (connected) {
-                    Log.d(TAG, "Firebase connected - forcing online")
+                    CLog.d(TAG, "Firebase connected - forcing online")
                     setOnlineNow()
                 }
             }
@@ -123,8 +124,8 @@ class CrewPresenceService private constructor() : DefaultLifecycleObserver {
         }
 
         root.child("crew_users/$currentUid").updateChildren(updates)
-            .addOnSuccessListener { Log.d(TAG, "Presence -> ONLINE") }
-            .addOnFailureListener { Log.e(TAG, "Presence failed to set ONLINE: ${it.message}") }
+            .addOnSuccessListener { CLog.d(TAG, "Presence -> ONLINE") }
+            .addOnFailureListener { CLog.e(TAG, "Presence failed to set ONLINE: ${it.message}") }
     }
 
     fun setOfflineNow() {
@@ -137,7 +138,7 @@ class CrewPresenceService private constructor() : DefaultLifecycleObserver {
             "lastSeenMs" to ServerValue.TIMESTAMP
         )
         root.child("crew_users/$currentUid").updateChildren(updates)
-        Log.d(TAG, "Presence -> OFFLINE")
+        CLog.d(TAG, "Presence -> OFFLINE")
     }
 
     fun updateLocation(lat: Double, lon: Double) {
@@ -147,7 +148,7 @@ class CrewPresenceService private constructor() : DefaultLifecycleObserver {
         lastLat = lat
         lastLon = lon
 
-        Log.d(TAG, "Updating location in Firebase: $lat, $lon")
+        CLog.d(TAG, "Updating location in Firebase: $lat, $lon")
 
         val updates = mutableMapOf<String, Any>(
             "lat" to lat,
@@ -183,7 +184,7 @@ class CrewPresenceService private constructor() : DefaultLifecycleObserver {
     }
 
     override fun onStart(owner: LifecycleOwner) {
-        Log.d(TAG, "Lifecycle -> ON_START (App Foreground)")
+        CLog.d(TAG, "Lifecycle -> ON_START (App Foreground)")
         setOnlineNow()
         startHeartbeat()
     }
@@ -193,7 +194,7 @@ class CrewPresenceService private constructor() : DefaultLifecycleObserver {
         // The explicit offline write keeps Android and iOS aligned.
         stopHeartbeat()
         setOfflineNow()
-        Log.d(TAG, "Lifecycle -> ON_STOP (App Background) — heartbeat paused")
+        CLog.d(TAG, "Lifecycle -> ON_STOP (App Background) — heartbeat paused")
     }
 
     companion object {

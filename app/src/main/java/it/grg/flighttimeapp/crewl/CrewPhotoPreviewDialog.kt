@@ -22,6 +22,7 @@ import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import it.grg.flighttimeapp.R
+import it.grg.flighttimeapp.CLog
 
 class CrewPhotoPreviewDialog : DialogFragment() {
 
@@ -331,7 +332,7 @@ private class FirebaseReactionsObserver(
             }
 
             override fun onCancelled(error: DatabaseError) {
-                android.util.Log.e("Reactions", "likes observe cancelled: ${error.message} code=${error.code}")
+                CLog.e("Reactions", "likes observe cancelled: ${error.message} code=${error.code}")
             }
         }
 
@@ -342,7 +343,7 @@ private class FirebaseReactionsObserver(
             }
 
             override fun onCancelled(error: DatabaseError) {
-                android.util.Log.e("Reactions", "hearts observe cancelled: ${error.message} code=${error.code}")
+                CLog.e("Reactions", "hearts observe cancelled: ${error.message} code=${error.code}")
             }
         }
 
@@ -366,7 +367,7 @@ private class FirebaseReactionsObserver(
             notifyState()
             ref.removeValue { error, _ ->
                 if (error != null) {
-                    android.util.Log.e("Reactions", "removeValue likes failed: ${error.message} code=${error.code}")
+                    CLog.e("Reactions", "removeValue likes failed: ${error.message} code=${error.code}")
                     likeIds = likeIds + uid
                     notifyState()
                 }
@@ -377,7 +378,7 @@ private class FirebaseReactionsObserver(
             notifyState()
             ref.setValue(true) { error, _ ->
                 if (error != null) {
-                    android.util.Log.e("Reactions", "setValue likes failed: ${error.message} code=${error.code}")
+                    CLog.e("Reactions", "setValue likes failed: ${error.message} code=${error.code}")
                     likeIds = likeIds.filter { it != uid }
                     notifyState()
                 }
@@ -394,7 +395,7 @@ private class FirebaseReactionsObserver(
             notifyState()
             ref.removeValue { error, _ ->
                 if (error != null) {
-                    android.util.Log.e("Reactions", "removeValue hearts failed: ${error.message} code=${error.code}")
+                    CLog.e("Reactions", "removeValue hearts failed: ${error.message} code=${error.code}")
                     heartIds = heartIds + uid
                     notifyState()
                 }
@@ -405,7 +406,7 @@ private class FirebaseReactionsObserver(
             notifyState()
             ref.setValue(true) { error, _ ->
                 if (error != null) {
-                    android.util.Log.e("Reactions", "setValue hearts failed: ${error.message} code=${error.code}")
+                    CLog.e("Reactions", "setValue hearts failed: ${error.message} code=${error.code}")
                     heartIds = heartIds.filter { it != uid }
                     notifyState()
                 }

@@ -8,6 +8,10 @@ android {
     namespace = "it.grg.flighttimeapp"
     compileSdk = 36
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     defaultConfig {
         applicationId = "it.grg.flighttimeapp"
         minSdk = 24

@@ -3,6 +3,7 @@ package it.grg.flighttimeapp.crewl
 import it.grg.flighttimeapp.R
 import java.util.Date
 
+
 enum class CrewRole(val raw: String, val labelResId: Int) {
     CABIN_CREW("cabinCrew", R.string.cl_role_cabin_crew),
     FLIGHT_DECK("flightDeck", R.string.cl_role_flight_deck);

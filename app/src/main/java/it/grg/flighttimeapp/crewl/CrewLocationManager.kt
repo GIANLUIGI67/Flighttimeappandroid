@@ -14,6 +14,7 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
+import it.grg.flighttimeapp.CLog
 
 class CrewLocationManager private constructor() {
 
@@ -49,7 +50,7 @@ class CrewLocationManager private constructor() {
             listeners.add(onLocation)
         }
         
-        Log.d(TAG, "Starting location updates. Listeners: ${listeners.size}. Enabled=${isLocationEnabled(context)}")
+        CLog.d(TAG, "Starting location updates. Listeners: ${listeners.size}. Enabled=${isLocationEnabled(context)}")
 
         // 1. Immediate cached location
         lastKnownLocation?.let { onLocation(it) }
@@ -57,7 +58,7 @@ class CrewLocationManager private constructor() {
         // 2. GMS last location
         client?.lastLocation?.addOnSuccessListener { loc ->
             if (loc != null && isReasonable(loc)) {
-                Log.d(TAG, "GMS LastLocation: ${loc.latitude}, ${loc.longitude}")
+                CLog.d(TAG, "GMS LastLocation: ${loc.latitude}, ${loc.longitude}")
                 updateAndNotify(loc)
             }
         }
@@ -68,12 +69,12 @@ class CrewLocationManager private constructor() {
             for (provider in providers) {
                 val loc = systemLocationManager?.getLastKnownLocation(provider)
                 if (loc != null && isReasonable(loc)) {
-                    Log.d(TAG, "System LastKnown ($provider): ${loc.latitude}, ${loc.longitude}")
+                    CLog.d(TAG, "System LastKnown ($provider): ${loc.latitude}, ${loc.longitude}")
                     updateAndNotify(loc)
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "System LastKnown error: ${e.message}")
+            CLog.e(TAG, "System LastKnown error: ${e.message}")
         }
 
         // 4. One-shot fresh fix
@@ -81,14 +82,14 @@ class CrewLocationManager private constructor() {
         client?.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, cts.token)
             ?.addOnSuccessListener { loc ->
                 if (loc != null && isReasonable(loc)) {
-                    Log.d(TAG, "GMS One-shot fix: ${loc.latitude}, ${loc.longitude}")
+                    CLog.d(TAG, "GMS One-shot fix: ${loc.latitude}, ${loc.longitude}")
                     updateAndNotify(loc)
                 }
             }
 
         // 5. Continuous updates
         if (callback == null) {
-            Log.d(TAG, "🚀 Starting GMS continuous updates")
+            CLog.d(TAG, "🚀 Starting GMS continuous updates")
             val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, CrewTiming.LOCATION_REQUEST_INTERVAL_MS)
                 .setMinUpdateIntervalMillis(CrewTiming.LOCATION_MIN_UPDATE_INTERVAL_MS)
                 .build()
@@ -129,7 +130,7 @@ class CrewLocationManager private constructor() {
                     )
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "System updates error: ${e.message}")
+                CLog.e(TAG, "System updates error: ${e.message}")
             }
         }
     }
@@ -161,7 +162,7 @@ class CrewLocationManager private constructor() {
             callback = null
             systemLocationListener?.let { systemLocationManager?.removeUpdates(it) }
             systemLocationListener = null
-            Log.d(TAG, "🛑 Updates stopped")
+            CLog.d(TAG, "🛑 Updates stopped")
         }
     }
 

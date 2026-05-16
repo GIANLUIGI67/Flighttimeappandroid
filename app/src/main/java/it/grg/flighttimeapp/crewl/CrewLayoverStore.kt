@@ -23,6 +23,7 @@ import it.grg.flighttimeapp.R
 import java.util.Date
 import java.util.UUID
 import kotlin.math.abs
+import it.grg.flighttimeapp.CLog
 
 class CrewLayoverStore private constructor() {
 
@@ -179,10 +180,10 @@ class CrewLayoverStore private constructor() {
     private fun startIfPossible() {
         if (isStarted || isStarting) return
         isStarting = true
-        Log.d(TAG, "startIfPossible begin")
+        CLog.d(TAG, "startIfPossible begin")
         CrewAuthManager.ensureSignedIn { uid ->
             isStarting = false
-            Log.d(TAG, "startIfPossible uid=${uid ?: "null"}")
+            CLog.d(TAG, "startIfPossible uid=${uid ?: "null"}")
             if (uid.isNullOrBlank()) return@ensureSignedIn
             CrewPresenceService.shared.start(uid)
             start(uid)
@@ -199,7 +200,7 @@ class CrewLayoverStore private constructor() {
         isStarted = true
         myUserId = uid
 
-        Log.d(TAG, "start store uid=$uid")
+        CLog.d(TAG, "start store uid=$uid")
 
         val deviceId = getDeviceId()
 
@@ -239,7 +240,7 @@ class CrewLayoverStore private constructor() {
                             root.child("device_uid_map/$deviceId").setValue(uid)
                         }
                         override fun onCancelled(error: DatabaseError) {
-                            Log.e(TAG, "device_uid_map read failed: ${error.message}")
+                            CLog.e(TAG, "device_uid_map read failed: ${error.message}")
                             root.child("device_uid_map/$deviceId").setValue(uid)
                         }
                     })
@@ -272,7 +273,7 @@ class CrewLayoverStore private constructor() {
 
     fun refreshNow() {
         val uid = myUserId ?: FirebaseAuth.getInstance().currentUser?.uid ?: return
-        Log.d(TAG, "refreshNow uid=$uid")
+        CLog.d(TAG, "refreshNow uid=$uid")
         upsertMyProfile(uid)
         updateMyPresence(uid)
         rebuildNearbyListsFromCache()
@@ -370,7 +371,7 @@ class CrewLayoverStore private constructor() {
                     }
                 }
                 .addOnFailureListener { e ->
-                    Log.e(TAG, "Storage upload failed for photo $index: ${e.message}")
+                    CLog.e(TAG, "Storage upload failed for photo $index: ${e.message}")
                     remaining--
                     if (remaining == 0) {
                         isUploadingPhotos = false
@@ -399,7 +400,7 @@ class CrewLayoverStore private constructor() {
                     }
 
                     if (candidates.size <= 1) {
-                        Log.d(TAG, "Device cleanup skipped for $deviceId: candidates=${candidates.size}")
+                        CLog.d(TAG, "Device cleanup skipped for $deviceId: candidates=${candidates.size}")
                         return
                     }
 
@@ -408,7 +409,7 @@ class CrewLayoverStore private constructor() {
                     )?.first ?: return
 
                     val removedUids = candidates.map { it.first }.filterNot { it == keepUid }
-                    Log.d(
+                    CLog.d(
                         TAG,
                         "Device cleanup for $deviceId keep=$keepUid remove=${removedUids.joinToString(",")}"
                     )
@@ -427,16 +428,16 @@ class CrewLayoverStore private constructor() {
                     if (deletions.isNotEmpty()) {
                         root.updateChildren(deletions)
                             .addOnSuccessListener {
-                                Log.d(TAG, "Device cleanup applied for $deviceId keep=$keepUid removed=${removedUids.size}")
+                                CLog.d(TAG, "Device cleanup applied for $deviceId keep=$keepUid removed=${removedUids.size}")
                             }
                             .addOnFailureListener { e ->
-                                Log.e(TAG, "Failed cleaning duplicate device entries for $deviceId: ${e.message}")
+                                CLog.e(TAG, "Failed cleaning duplicate device entries for $deviceId: ${e.message}")
                             }
                     }
                 }
 
                 override fun onCancelled(error: DatabaseError) {
-                    Log.e(TAG, "cleanupDuplicateDeviceEntries failed: ${error.message}")
+                    CLog.e(TAG, "cleanupDuplicateDeviceEntries failed: ${error.message}")
                 }
             })
     }
@@ -468,7 +469,7 @@ class CrewLayoverStore private constructor() {
                         )?.first ?: return@forEach
                         val removed = items.filterNot { it.first == keepUid }
                         if (removed.isEmpty()) return@forEach
-                        Log.d(
+                        CLog.d(
                             TAG,
                             "Profile cleanup keep=$keepUid remove=${removed.joinToString(",") { it.first }}"
                         )
@@ -487,16 +488,16 @@ class CrewLayoverStore private constructor() {
                     if (deletions.isNotEmpty()) {
                         root.updateChildren(deletions)
                             .addOnSuccessListener {
-                                Log.d(TAG, "Profile cleanup applied removed=${deletions.size}")
+                                CLog.d(TAG, "Profile cleanup applied removed=${deletions.size}")
                             }
                             .addOnFailureListener { e ->
-                                Log.e(TAG, "Failed profile cleanup: ${e.message}")
+                                CLog.e(TAG, "Failed profile cleanup: ${e.message}")
                             }
                     }
                 }
 
                 override fun onCancelled(error: DatabaseError) {
-                    Log.e(TAG, "cleanupDuplicateProfileEntries failed: ${error.message}")
+                    CLog.e(TAG, "cleanupDuplicateProfileEntries failed: ${error.message}")
                 }
             })
     }
@@ -606,7 +607,7 @@ class CrewLayoverStore private constructor() {
                 if (e is StorageException && e.errorCode == StorageException.ERROR_OBJECT_NOT_FOUND) {
                     return@addOnFailureListener
                 }
-                Log.w(TAG, "deleteStoragePhotos: listAll failed for $uid: ${e.message}")
+                CLog.w(TAG, "deleteStoragePhotos: listAll failed for $uid: ${e.message}")
             }
     }
 
@@ -887,19 +888,19 @@ class CrewLayoverStore private constructor() {
 
         query.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                Log.d(TAG, "crew_users initial snapshot count=${snapshot.childrenCount}")
+                CLog.d(TAG, "crew_users initial snapshot count=${snapshot.childrenCount}")
                 usersCache.clear()
                 snapshot.children.forEach { c ->
                     val key = c.key ?: return@forEach
                     val dictAny = c.value as? Map<*, *> ?: return@forEach
                     usersCache[key] = buildUserDict(key, dictAny)
                 }
-                Log.d(TAG, "crew_users cache size=${usersCache.size} (initial)")
+                CLog.d(TAG, "crew_users cache size=${usersCache.size} (initial)")
                 rebuildNearbyListsFromCache()
             }
 
             override fun onCancelled(error: DatabaseError) {
-                Log.e(TAG, "crew_users initial onCancelled: ${error.message}")
+                CLog.e(TAG, "crew_users initial onCancelled: ${error.message}")
             }
         })
 
@@ -908,7 +909,7 @@ class CrewLayoverStore private constructor() {
                 val dictAny = snapshot.value as? Map<*, *> ?: return
                 val uid = snapshot.key ?: return
                 usersCache[uid] = buildUserDict(uid, dictAny)
-                Log.d(TAG, "crew_user_meta childAdded uid=$uid cacheSize=${usersCache.size}")
+                CLog.d(TAG, "crew_user_meta childAdded uid=$uid cacheSize=${usersCache.size}")
                 scheduleNearbyRebuild()
             }
 
@@ -916,19 +917,19 @@ class CrewLayoverStore private constructor() {
                 val dictAny = snapshot.value as? Map<*, *> ?: return
                 val uid = snapshot.key ?: return
                 usersCache[uid] = buildUserDict(uid, dictAny)
-                Log.d(TAG, "crew_user_meta childChanged uid=$uid cacheSize=${usersCache.size}")
+                CLog.d(TAG, "crew_user_meta childChanged uid=$uid cacheSize=${usersCache.size}")
                 scheduleNearbyRebuild()
             }
 
             override fun onChildRemoved(snapshot: DataSnapshot) {
                 usersCache.remove(snapshot.key)
-                Log.d(TAG, "crew_user_meta childRemoved uid=${snapshot.key} cacheSize=${usersCache.size}")
+                CLog.d(TAG, "crew_user_meta childRemoved uid=${snapshot.key} cacheSize=${usersCache.size}")
                 scheduleNearbyRebuild()
             }
 
             override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {}
             override fun onCancelled(error: DatabaseError) {
-                Log.e(TAG, "crew_user_meta child onCancelled: ${error.message}")
+                CLog.e(TAG, "crew_user_meta child onCancelled: ${error.message}")
             }
         }
         query.addChildEventListener(childListener)
@@ -1034,7 +1035,7 @@ class CrewLayoverStore private constructor() {
         val myRole = settings.role
         val myBase = settings.baseCountryCode.trim()
 
-        Log.d(TAG, "Nearby rebuild start uid=$uid cache=${usersCache.size}")
+        CLog.d(TAG, "Nearby rebuild start uid=$uid cache=${usersCache.size}")
         val visibleUsers = mutableListOf<NearbyCrewUser>()
         usersCache.forEach { (otherUid, dict) ->
             if (otherUid == uid) return@forEach
@@ -1056,7 +1057,7 @@ class CrewLayoverStore private constructor() {
             val photoKey = photoSignature(dict)
 
             if (otherUid == uid || nickname.equals("Assma", ignoreCase = true)) {
-                Log.d(
+                CLog.d(
                     TAG,
                     "Nearby identity uid=$otherUid nick=$nickname role=${role.raw} base=$baseCode device=${dict["deviceId"]} online=$isOnline lastSeen=$lastSeenMs photoKey=$photoKey stableKey=$stableKey"
                 )
@@ -1080,7 +1081,7 @@ class CrewLayoverStore private constructor() {
 
             if (!hasNearbyPhotoSource(dict)) {
                 if (otherUid == uid || nickname.equals("Assma", ignoreCase = true)) {
-                    Log.d(
+                    CLog.d(
                         TAG,
                         "Nearby skip no-photo uid=$otherUid nick=$nickname role=${role.raw} base=$baseCode device=${dict["deviceId"]}"
                     )
@@ -1116,7 +1117,7 @@ class CrewLayoverStore private constructor() {
         val online = visibleUsers.filter { it.isOnline }
         val last24 = visibleUsers.filter { !it.isOnline && it.lastSeenMs >= cutoffMs }
 
-        Log.d(TAG, "Nearby rebuild iOS-style uid=$uid visible=${visibleUsers.size} online=${online.size} last24=${last24.size}")
+        CLog.d(TAG, "Nearby rebuild iOS-style uid=$uid visible=${visibleUsers.size} online=${online.size} last24=${last24.size}")
 
         _onlineNow.postValue(online)
         _activeLast24h.postValue(last24)
@@ -1239,10 +1240,10 @@ class CrewLayoverStore private constructor() {
         )
         root.updateChildren(deletions)
             .addOnSuccessListener {
-                Log.d(TAG, "Deleted all data for stale UID $oldUid (deviceId=$deviceId)")
+                CLog.d(TAG, "Deleted all data for stale UID $oldUid (deviceId=$deviceId)")
             }
             .addOnFailureListener { e ->
-                Log.e(TAG, "Failed to delete stale UID $oldUid: ${e.message}")
+                CLog.e(TAG, "Failed to delete stale UID $oldUid: ${e.message}")
             }
     }
 
@@ -1250,7 +1251,7 @@ class CrewLayoverStore private constructor() {
         val settings = _settingsLive.value ?: CrewLayoverSettings()
         val loc = lastLocation
 
-        Log.d(
+        CLog.d(
             TAG,
             "upsertMyProfile uid=$uid nick=${settings.nickname.trim()} role=${settings.role.raw} base=${settings.baseCountryCode.trim()} device=${getDeviceId()} hasLoc=${loc != null}"
         )
@@ -1316,7 +1317,7 @@ class CrewLayoverStore private constructor() {
         val lat = loc?.latitude ?: 0.0
         val lon = loc?.longitude ?: 0.0
 
-        Log.d(
+        CLog.d(
             TAG,
             "updateMyPresence uid=$uid nick=${(_settingsLive.value ?: CrewLayoverSettings()).nickname.trim()} role=${(_settingsLive.value ?: CrewLayoverSettings()).role.raw} base=${(_settingsLive.value ?: CrewLayoverSettings()).baseCountryCode.trim()} device=${getDeviceId()} hasLoc=${loc != null} lat=$lat lon=$lon"
         )
@@ -1324,7 +1325,7 @@ class CrewLayoverStore private constructor() {
         if (lat != 0.0 && lon != 0.0) {
             CrewPresenceService.shared.updateLocation(lat, lon)
         } else {
-            Log.w(TAG, "⚠️ No valid location to update")
+            CLog.w(TAG, "⚠️ No valid location to update")
         }
 
         // Non-nullable map: avoids silent Firebase write failures on null values.
