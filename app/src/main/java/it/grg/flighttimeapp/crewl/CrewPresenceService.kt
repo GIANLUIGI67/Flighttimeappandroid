@@ -142,25 +142,12 @@ class CrewPresenceService private constructor() : DefaultLifecycleObserver {
     }
 
     fun updateLocation(lat: Double, lon: Double) {
-        val currentUid = uid ?: return
         if (lat == 0.0 && lon == 0.0) return
-
+        // Save in memory only — the heartbeat picks it up at the next tick (max 8s delay).
+        // This avoids a duplicate Firebase write every time GPS fires.
         lastLat = lat
         lastLon = lon
-
-        CLog.d(TAG, "Updating location in Firebase: $lat, $lon")
-
-        val updates = mutableMapOf<String, Any>(
-            "lat" to lat,
-            "lon" to lon,
-            "lastSeenMs" to ServerValue.TIMESTAMP
-        )
-        // If we are currently considered online by the service, keep it online in DB
-        if (myState == State.ONLINE) {
-            updates["isOnline"] = true
-        }
-
-        root.child("crew_users/$currentUid").updateChildren(updates)
+        CLog.d(TAG, "Location updated in memory: $lat, $lon")
     }
 
     fun stop() {
