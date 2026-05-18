@@ -145,9 +145,9 @@ class CrewLayoverStore private constructor() {
         val roleRaw = dict["role"] as? String
         val nicknameOk = nickname.isNotEmpty()
         val roleOk = roleRaw != null && CrewRole.fromRaw(roleRaw).raw == roleRaw
-        // Accept either a Storage URL (new) or legacy base64 (old) as a valid photo.
-        val photoOk = !(dict["photoUrl"] as? String).isNullOrBlank()
-                   || !(dict["photoB64"] as? String).isNullOrBlank()
+        // Accept a Storage URL, or a loader-cached bitmap (covers b64 users whose photoB64
+        // field was stripped from the dict by buildUserDict to avoid OOM).
+        val photoOk = hasPhoto(userId, dict)
         return nicknameOk && roleOk && photoOk
     }
 
@@ -846,13 +846,16 @@ class CrewLayoverStore private constructor() {
         val hasUrlPhoto = !(rawMap["photoUrl"] as? String).isNullOrBlank()
                        || firebaseListStrings(rawMap["photosUrls"]).isNotEmpty()
         if (!hasUrlPhoto) {
-            // Decode the first available b64 photo into the loader cache (downsampled to 512px).
-            // This lets hasPhoto() detect the photo via CrewPhotoLoader.image(uid) after the
-            // b64 fields are stripped from the dict below.
+            // Synchronously decode the first available b64 photo into the loader cache (512 px).
+            // Must be sync: rebuildNearbyListsFromCache runs immediately after buildUserDict and
+            // calls hasPhoto() which reads the loader cache. An async decode would always miss
+            // the first rebuild window. In practice only a small fraction of the 250-user window
+            // has b64-only photos (everyone else has a Storage URL), so the main-thread cost is
+            // a few milliseconds total.
             val b64 = firebaseListStrings(rawMap["photosB64"]).firstOrNull()
                    ?: rawMap["photoB64"] as? String
             if (!b64.isNullOrBlank()) {
-                appContext?.let { ctx -> CrewPhotoLoader.get(ctx).prefetchFromBase64(uid, b64, 512) }
+                appContext?.let { ctx -> CrewPhotoLoader.get(ctx).upsertFromBase64(uid, b64, 512) }
             }
         }
         return rawMap.entries
