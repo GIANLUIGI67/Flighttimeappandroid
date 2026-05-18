@@ -545,16 +545,6 @@ class CrewLayoverStore private constructor() {
     }
 
     /**
-     * Legacy nearby rows without any actual photo source should not be shown at all.
-     * We intentionally do not treat a cached bitmap as sufficient here, because the
-     * user wants stale incomplete records removed from the views rather than rendered
-     * as placeholder cards.
-     */
-    private fun hasNearbyPhotoSource(dict: Map<String, Any?>): Boolean {
-        return !photoSignature(dict).isNullOrBlank()
-    }
-
-    /**
      * Saves [bitmap] as the local primary profile photo, then uploads to Storage
      * and writes the URL to RTDB. Replaces the old updateMyPhotoBase64 path.
      */
@@ -853,6 +843,18 @@ class CrewLayoverStore private constructor() {
      * SDK, or sparse arrays). We handle both forms for robustness.
      */
     private fun buildUserDict(uid: String, rawMap: Map<*, *>): Map<String, Any?> {
+        val hasUrlPhoto = !(rawMap["photoUrl"] as? String).isNullOrBlank()
+                       || firebaseListStrings(rawMap["photosUrls"]).isNotEmpty()
+        if (!hasUrlPhoto) {
+            // Decode the first available b64 photo into the loader cache (downsampled to 512px).
+            // This lets hasPhoto() detect the photo via CrewPhotoLoader.image(uid) after the
+            // b64 fields are stripped from the dict below.
+            val b64 = firebaseListStrings(rawMap["photosB64"]).firstOrNull()
+                   ?: rawMap["photoB64"] as? String
+            if (!b64.isNullOrBlank()) {
+                appContext?.let { ctx -> CrewPhotoLoader.get(ctx).prefetchFromBase64(uid, b64, 512) }
+            }
+        }
         return rawMap.entries
             .mapNotNull { (k, v) -> (k as? String)?.let { it to v } }
             .filter { (k, _) -> k != "photoB64" && k != "photosB64" }
@@ -1079,7 +1081,7 @@ class CrewLayoverStore private constructor() {
                 return@forEach
             }
 
-            if (!hasNearbyPhotoSource(dict)) {
+            if (!hasPhoto(otherUid, dict)) {
                 if (otherUid == uid || nickname.equals("Assma", ignoreCase = true)) {
                     CLog.d(
                         TAG,
