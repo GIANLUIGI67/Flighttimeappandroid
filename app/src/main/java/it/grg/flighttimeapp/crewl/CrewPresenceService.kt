@@ -177,11 +177,15 @@ class CrewPresenceService private constructor() : DefaultLifecycleObserver {
     }
 
     override fun onStop(owner: LifecycleOwner) {
-        // Background mode: stop the frequent heartbeat to keep Firebase writes low.
-        // The explicit offline write keeps Android and iOS aligned.
+        // Do NOT write isOnline: false here.
+        // ProcessLifecycleOwner.onStop() fires whenever the app is backgrounded —
+        // even briefly when the user switches away. Writing offline here makes every
+        // user disappear from "Near Me" the instant they stop looking at the screen.
+        // The onDisconnect handler registered in start() takes care of marking offline
+        // when the Firebase connection truly drops (app killed / device goes offline).
+        // Pause the heartbeat only to reduce background battery/bandwidth usage.
         stopHeartbeat()
-        setOfflineNow()
-        CLog.d(TAG, "Lifecycle -> ON_STOP (App Background) — heartbeat paused")
+        CLog.d(TAG, "Lifecycle -> ON_STOP (App Background) — heartbeat paused, staying online")
     }
 
     companion object {
