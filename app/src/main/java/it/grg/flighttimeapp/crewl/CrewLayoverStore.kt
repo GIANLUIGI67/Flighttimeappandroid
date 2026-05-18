@@ -87,8 +87,9 @@ class CrewLayoverStore private constructor() {
     private val roleSetKey = "role_set_v1"
     private val distanceUnlimitedKey = "distance_unlimited_v1"
     private val distanceMaxKmKey = "distance_max_km_v1"
-    private val deviceIdKey = "crew_device_id_v1"
-    private val lastUidKey  = "crew_last_uid_v1"  // tracks previous UID for direct cleanup
+    private val deviceIdKey   = "crew_device_id_v1"
+    private val lastUidKey    = "crew_last_uid_v1"  // tracks previous UID for direct cleanup
+    private val myPhotoUrlKey = "my_photo_url_v1"   // persisted own photo URL (covers iOS/reinstall)
 
     private var distanceUnlimited: Boolean = true
     private var distanceMaxKm: Double = 50.0
@@ -149,6 +150,18 @@ class CrewLayoverStore private constructor() {
         // field was stripped from the dict by buildUserDict to avoid OOM).
         val photoOk = hasPhoto(userId, dict)
         return nicknameOk && roleOk && photoOk
+    }
+
+    /**
+     * Returns true if the current user is known to have any profile photo.
+     * Checks local SharedPreferences bitmap first (fastest), then the persisted photo URL
+     * (written on successful upload and synced from Firebase on startup). This avoids the
+     * timing dependency on usersCache, which is populated asynchronously from Firebase.
+     */
+    fun myHasPhoto(): Boolean {
+        val ctx = appContext ?: return false
+        if (CrewPhotoLoader.get(ctx).myLocalProfileImage() != null) return true
+        return prefs()?.getString(myPhotoUrlKey, null)?.isNotBlank() == true
     }
 
     fun init(context: Context) {
@@ -560,9 +573,11 @@ class CrewLayoverStore private constructor() {
             if (photoUrl.isEmpty()) {
                 ref.child("photoUrl").removeValue()
                 ref.child("photosUrls").removeValue()
+                prefs()?.edit { remove(myPhotoUrlKey) }
                 writeUserMeta(uid, _settingsLive.value ?: CrewLayoverSettings(), lastLocation, null, emptyList())
             } else {
                 ref.updateChildren(mapOf("photoUrl" to photoUrl, "photosUrls" to photosUrls))
+                prefs()?.edit { putString(myPhotoUrlKey, photoUrl) }
                 loader.loadFromUrl(photoUrl, uid)
                 writeUserMeta(uid, _settingsLive.value ?: CrewLayoverSettings(), lastLocation, photoUrl, photosUrls)
             }
@@ -577,6 +592,7 @@ class CrewLayoverStore private constructor() {
             root.child("crew_users").child(uid).child("photoUrl").removeValue()
             root.child("crew_users").child(uid).child("photosUrls").removeValue()
             appContext?.let { CrewPhotoLoader.get(it).invalidate(uid) }
+            prefs()?.edit { remove(myPhotoUrlKey) }
             deleteStoragePhotos(uid)
             writeUserMeta(uid, _settingsLive.value ?: CrewLayoverSettings(), lastLocation, null, emptyList())
         } else {
@@ -599,6 +615,31 @@ class CrewLayoverStore private constructor() {
                 }
                 CLog.w(TAG, "deleteStoragePhotos: listAll failed for $uid: ${e.message}")
             }
+    }
+
+    /**
+     * Reads the current user's photo URL from Firebase and downloads it to local storage.
+     * Called on startup when there is no local photo (iOS upload, reinstall, or first Android use).
+     * Persists the URL so myHasPhoto() returns true immediately on next launch without Firebase.
+     * Re-emits settingsLive on the main thread so open activities re-evaluate their profile gate.
+     */
+    private fun syncFirebasePhotoIfNeeded(uid: String) {
+        val ctx = appContext ?: return
+        val loader = CrewPhotoLoader.get(ctx)
+        if (loader.myLocalProfileImage() != null) return
+        if (prefs()?.getString(myPhotoUrlKey, null)?.isNotBlank() == true) return
+        root.child("crew_users/$uid").get().addOnSuccessListener { snapshot ->
+            val urls = firebaseListStrings(snapshot.child("photosUrls").value)
+            val url = urls.firstOrNull()?.takeIf { it.isNotBlank() }
+                ?: snapshot.child("photoUrl").getValue(String::class.java)?.takeIf { it.isNotBlank() }
+                ?: return@addOnSuccessListener
+            prefs()?.edit { putString(myPhotoUrlKey, url) }
+            loader.loadFromUrl(url, uid) { bitmap ->
+                if (bitmap != null) loader.setLocalProfileImage(bitmap)
+                // Re-emit so CrewSettingsActivity/CrewLayoverActivity re-run updateProfileReadyUI().
+                _settingsLive.setValue(_settingsLive.value ?: CrewLayoverSettings())
+            }
+        }
     }
 
     fun createEvent(defaultRadiusKm: Double, expiresHours: Double): String? {
@@ -1297,11 +1338,14 @@ class CrewLayoverStore private constructor() {
                 userRef.updateChildren(mapOf("photoUrl" to photoUrl, "photosUrls" to photosUrls))
                 userRef.child("photoB64").removeValue()
                 userRef.child("photosB64").removeValue()
+                prefs()?.edit { putString(myPhotoUrlKey, photoUrl) }
                 appContext?.let { CrewPhotoLoader.get(it).loadFromUrl(photoUrl, uid) }
                 writeUserMeta(uid, settings, loc, photoUrl, photosUrls)
+            } else {
+                // No local photos — sync an existing Firebase URL (from iOS or prior install)
+                // to local storage. Idempotent: exits early if a local photo already exists.
+                syncFirebasePhotoIfNeeded(uid)
             }
-            // If upload returns empty (no local photo or upload failed), keep existing
-            // b64 fields intact so iOS continues to see a valid photo reference.
         }
     }
 
@@ -1535,7 +1579,7 @@ class CrewLayoverStore private constructor() {
     private fun isProfileComplete(): Boolean {
         val s = _settingsLive.value ?: CrewLayoverSettings()
         val nicknameOk = s.nickname.trim().isNotEmpty()
-        val photoOk = CrewPhotoLoader.shared.myLocalProfileImage() != null
+        val photoOk = myHasPhoto()
         val roleOk = hasSetRole()
         return nicknameOk && photoOk && roleOk
     }

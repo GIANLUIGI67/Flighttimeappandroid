@@ -117,8 +117,7 @@ class CrewLayoverActivity : AppCompatActivity() {
     private fun isProfileReady(): Boolean {
         val s = store.settingsLive.value
         val nickname = s?.nickname?.trim().orEmpty()
-        val hasPhoto = CrewPhotoLoader.shared.myLocalProfileImage() != null
-        return nickname.isNotEmpty() && hasPhoto && s?.role != null
+        return nickname.isNotEmpty() && store.myHasPhoto() && s?.role != null
     }
 
     private fun ensureSignedInAndStart() {
