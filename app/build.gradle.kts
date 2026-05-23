@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.google.services)
 }
 
@@ -15,18 +14,18 @@ android {
     defaultConfig {
         applicationId = "it.grg.flighttimeapp"
         minSdk = 24
-        targetSdk = 35
+        targetSdk = 36
 
-        versionCode = 17
-        versionName = "1.1.4"
+        versionCode = 22
+        versionName = "1.1.9"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = false
+            isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -40,6 +39,11 @@ android {
         isCoreLibraryDesugaringEnabled = true
     }
 
+    packaging {
+        jniLibs {
+            keepDebugSymbols += "**/libdatastore_shared_counter.so"
+        }
+    }
 }
 
 kotlin {
@@ -58,15 +62,16 @@ dependencies {
     implementation(libs.androidx.lifecycle.livedata.ktx)
     implementation(libs.androidx.lifecycle.process)
     implementation(libs.gson)
-    implementation("androidx.viewpager2:viewpager2:1.0.0")
-    implementation("androidx.exifinterface:exifinterface:1.3.7")
-    implementation("androidx.security:security-crypto:1.1.0")
+    implementation(libs.androidx.viewpager2)
+    implementation(libs.androidx.exifinterface)
+    implementation(libs.androidx.security.crypto)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
     implementation(libs.firebase.database)
     implementation(libs.firebase.storage)
-    implementation("com.google.firebase:firebase-appcheck")
-    debugImplementation("com.google.firebase:firebase-appcheck-debug")
+    implementation(libs.firebase.appcheck)
+    implementation(libs.firebase.appcheck.playintegrity)
+    debugImplementation(libs.firebase.appcheck.debug)
     implementation(libs.play.services.location)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
 

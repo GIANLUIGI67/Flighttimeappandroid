@@ -57,7 +57,19 @@ class CrewChatActivity : AppCompatActivity() {
         threadId = intent.getStringExtra(EXTRA_THREAD_ID)
         peerId = intent.getStringExtra(EXTRA_PEER_ID)
         peerName = intent.getStringExtra(EXTRA_PEER_NAME)
-        title.text = peerName ?: getString(R.string.cl_chat)
+
+        fun updateTitle() {
+            val pid = peerId
+            val summaryName = if (pid != null) {
+                crewStore.getUserSummary(pid)?.nickname?.takeIf { it.isNotBlank() }
+            } else null
+            val displayName = summaryName
+                ?: peerName?.takeIf { it.isNotBlank() }
+                ?: getString(R.string.cl_chat)
+            peerName = displayName
+            title.text = displayName
+        }
+        updateTitle()
 
         fun updateBio() {
             val pid = peerId ?: return
@@ -87,7 +99,7 @@ class CrewChatActivity : AppCompatActivity() {
                 return
             }
             if (primaryRef.startsWith("http")) {
-                val cached = CrewPhotoLoader.shared.image(pid)
+                val cached = CrewPhotoLoader.shared.memoryImage(pid)
                 if (cached != null) {
                     peerPhoto.setImageBitmap(cached)
                     peerPhoto.visibility = android.view.View.VISIBLE
@@ -192,7 +204,9 @@ class CrewChatActivity : AppCompatActivity() {
             val complete = crewStore.isUserProfileComplete(pid)
             chatStore.sendProfileReminderToIncompleteUserIfNeeded(pid, complete)
             if (crewStore.getUserSummary(pid) == null) {
-                crewStore.fetchUserOnce(pid) { runOnUiThread { updateBio(); updatePeerPhoto() } }
+                crewStore.fetchUserOnce(pid) { runOnUiThread { updateTitle(); updateBio(); updatePeerPhoto() } }
+            } else {
+                updateTitle()
             }
         }
 

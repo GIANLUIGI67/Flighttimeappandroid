@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package it.grg.flighttimeapp.crewl
 
 // P-256 ECDH key agreement + AES-256-GCM encryption (Signal-grade, Play Store compliant).
@@ -9,6 +11,7 @@ package it.grg.flighttimeapp.crewl
 // Call CrewChatEncryption.getInstance(context).setup() after the user signs in.
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.util.Base64
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
@@ -34,13 +37,22 @@ class CrewChatEncryption private constructor(context: Context) {
     // threadId → derived AES-256 key bytes (cached after first derivation)
     private val sessionKeys = mutableMapOf<String, ByteArray>()
 
-    private val prefs by lazy {
+    private val prefs: SharedPreferences by lazy {
+        try {
+            createPrefs()
+        } catch (e: Exception) {
+            clearEncryptedPrefs()
+            createPrefs()
+        }
+    }
+
+    private fun createPrefs(): SharedPreferences {
         val masterKey = MasterKey.Builder(appContext)
             .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
             .build()
-        EncryptedSharedPreferences.create(
+        return EncryptedSharedPreferences.create(
             appContext,
-            "crew_e2e_prefs_v1",
+            PREFS_NAME,
             masterKey,
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
@@ -51,7 +63,7 @@ class CrewChatEncryption private constructor(context: Context) {
 
     suspend fun setup() {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        val keyPair = loadOrCreateKeyPair()
+        val keyPair = loadOrCreateKeyPair() ?: return
         val pubKeyB64 = encodePublicKeyToB64(keyPair.public as ECPublicKey)
         root.child("userPublicKeys").child(uid).setValue(mapOf("p256" to pubKeyB64))
     }
@@ -63,7 +75,7 @@ class CrewChatEncryption private constructor(context: Context) {
 
         val peerPubKeyB64 = fetchPeerPublicKey(peerUid) ?: return null
         val peerPublicKey = decodeB64ToPublicKey(peerPubKeyB64) ?: return null
-        val myKeyPair = loadOrCreateKeyPair()
+        val myKeyPair = loadOrCreateKeyPair() ?: return null
 
         val sharedSecret = try {
             val ka = KeyAgreement.getInstance("ECDH")
@@ -110,9 +122,38 @@ class CrewChatEncryption private constructor(context: Context) {
 
     // MARK: - Key management (EncryptedSharedPreferences → Android Keystore-backed)
 
-    private fun loadOrCreateKeyPair(): KeyPair {
-        val savedPriv = prefs.getString("ec_priv", null)
-        val savedPub = prefs.getString("ec_pub", null)
+    private fun prefsOrNull(): SharedPreferences? {
+        return try {
+            prefs
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun safeGetString(key: String): String? {
+        val p = prefsOrNull() ?: return null
+        return try {
+            p.getString(key, null)
+        } catch (_: Exception) {
+            clearEncryptedPrefs()
+            null
+        }
+    }
+
+    private fun clearEncryptedPrefs() {
+        try {
+            appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .clear()
+                .commit()
+        } catch (_: Exception) {
+        }
+    }
+
+    private fun loadOrCreateKeyPair(): KeyPair? {
+        val savedPriv = safeGetString("ec_priv")
+        val savedPub = safeGetString("ec_pub")
+
         if (savedPriv != null && savedPub != null) {
             return try {
                 val kf = KeyFactory.getInstance("EC")
@@ -126,15 +167,20 @@ class CrewChatEncryption private constructor(context: Context) {
         return generateAndSaveKeyPair()
     }
 
-    private fun generateAndSaveKeyPair(): KeyPair {
+    private fun generateAndSaveKeyPair(): KeyPair? {
+        val p = prefsOrNull() ?: return null
         val gen = KeyPairGenerator.getInstance("EC")
         gen.initialize(ECGenParameterSpec("secp256r1"))
         val kp = gen.generateKeyPair()
-        prefs.edit()
-            .putString("ec_priv", Base64.encodeToString(kp.private.encoded, Base64.NO_WRAP))
-            .putString("ec_pub", Base64.encodeToString(kp.public.encoded, Base64.NO_WRAP))
-            .apply()
-        return kp
+        return try {
+            val saved = p.edit()
+                .putString("ec_priv", Base64.encodeToString(kp.private.encoded, Base64.NO_WRAP))
+                .putString("ec_pub", Base64.encodeToString(kp.public.encoded, Base64.NO_WRAP))
+                .commit()
+            if (saved) kp else null
+        } catch (e: Exception) {
+            null
+        }
     }
 
     // MARK: - Cross-platform public key encoding (uncompressed EC point = iOS x963Representation)
@@ -208,6 +254,7 @@ class CrewChatEncryption private constructor(context: Context) {
     // MARK: - Singleton
 
     companion object {
+        private const val PREFS_NAME = "crew_e2e_prefs_v1"
         @Volatile private var instance: CrewChatEncryption? = null
 
         fun getInstance(context: Context): CrewChatEncryption =

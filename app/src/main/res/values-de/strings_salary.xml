@@ -155,4 +155,25 @@
     <string name="salary_duty_time_pay">Duty-Zeit Vergütung</string>
     <string name="salary_sector_pay">Sektorvergütung</string>
     <string name="salary_band_label_format">%1$s %2$d-%3$dh - %4$s/Std.</string>
+    <string name="salary_settings_use_automatic">Automatische Einstellungen verwenden</string>
+    <string name="salary_auto_settings_title">Automatische Einstellungen</string>
+    <string name="salary_auto_settings_saudi_national">Saudi-Staatsangehörigkeit</string>
+    <string name="salary_auto_settings_captain">Captain</string>
+    <string name="salary_auto_settings_first_officer">First Officer</string>
+    <string name="salary_auto_settings_purser">Purser</string>
+    <string name="salary_auto_settings_cabin_crew">Cabin Crew</string>
+    <string name="salary_auto_settings_instructor">Instructor</string>
+    <string name="salary_auto_settings_coming_soon">Demnächst</string>
+    <string name="salary_auto_preset_caption_captain">Aktuelle Captain-Einstellung</string>
+    <string name="salary_auto_preset_caption_first_officer">First-Officer-Einstellung</string>
+    <string name="salary_auto_preset_caption_cabin_crew">Flugstunden-Bänder für Cabin Crew</string>
+    <string name="salary_auto_preset_caption_soon">Preset noch nicht verfügbar</string>
+    <string name="salary_auto_settings_review_warning">Prüfen Sie die Zulagen in den Einstellungen immer sorgfältig, da Gehälter je nach individueller Stellenbeschreibung und Seniorität variieren und vom Benutzer angepasst werden sollten.</string>
+    <string name="salary_transport_allowance">Transportzulage</string>
+    <string name="allowance_type_saudization">Saudization-Zulage</string>
+    <string name="allowance_help_saudization">Monatliche Saudization-Zulage, die bei Konfiguration in die saudische GOSI-Basis einfließt.</string>
+    <string name="salary_auto_settings_applied">Automatische Einstellungen angewendet</string>
+    <string name="salary_flying_allowance">Flugzulage</string>
+    <string name="payslip_audit_details">Datensatzdetails</string>
+    <string name="payslip_header_place">Ort</string>
 </resources>

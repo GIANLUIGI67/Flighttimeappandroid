@@ -155,4 +155,25 @@
     <string name="salary_duty_time_pay">Duty時間手当</string>
     <string name="salary_sector_pay">セクター手当</string>
     <string name="salary_band_label_format">%1$s %2$d-%3$dh - %4$s/時</string>
+    <string name="salary_settings_use_automatic">自動設定を使用</string>
+    <string name="salary_auto_settings_title">自動設定</string>
+    <string name="salary_auto_settings_saudi_national">サウジ国籍</string>
+    <string name="salary_auto_settings_captain">Captain</string>
+    <string name="salary_auto_settings_first_officer">First Officer</string>
+    <string name="salary_auto_settings_purser">Purser</string>
+    <string name="salary_auto_settings_cabin_crew">Cabin Crew</string>
+    <string name="salary_auto_settings_instructor">Instructor</string>
+    <string name="salary_auto_settings_coming_soon">近日公開</string>
+    <string name="salary_auto_preset_caption_captain">現在のCaptain設定</string>
+    <string name="salary_auto_preset_caption_first_officer">First Officer設定</string>
+    <string name="salary_auto_preset_caption_cabin_crew">Cabin Crewの飛行時間帯</string>
+    <string name="salary_auto_preset_caption_soon">プリセットはまだ利用できません</string>
+    <string name="salary_auto_settings_review_warning">給与は個別の職務内容と勤続年数によって変わり、ユーザーがカスタマイズする必要があるため、設定画面の手当を必ず十分に確認してください。</string>
+    <string name="salary_transport_allowance">交通手当</string>
+    <string name="allowance_type_saudization">サウダイゼーション手当</string>
+    <string name="allowance_help_saudization">月額のサウダイゼーション手当です。設定されている場合、サウジGOSIの算定基礎に含まれます。</string>
+    <string name="salary_auto_settings_applied">自動設定を適用しました</string>
+    <string name="salary_flying_allowance">フライト手当</string>
+    <string name="payslip_audit_details">記録の詳細</string>
+    <string name="payslip_header_place">場所</string>
 </resources>

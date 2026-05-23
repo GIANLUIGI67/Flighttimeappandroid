@@ -99,8 +99,14 @@ class CrewChatsAdapter(
             cache: Map<String, CrewUserInfo>,
             onPhotoClick: ((peerId: String) -> Unit)?
         ) {
-            name.text = thread.peerNickname.ifBlank { thread.peerId }
-            val msg = thread.lastMessageText ?: ""
+            val pid = thread.peerId
+            val summary = CrewLayoverStore.shared.getUserSummary(pid)
+            val cachedInfo = cache[pid]
+            name.text = cachedInfo?.nickname?.takeIf { it.isNotBlank() }
+                ?: summary?.nickname?.takeIf { it.isNotBlank() }
+                ?: thread.peerNickname.ifBlank { thread.peerId }
+
+            val msg = displayPreview(thread.lastMessageText)
             val time = df.format(thread.lastMessageAt)
             subtitle.text = if (msg.isNotBlank()) "$msg • $time" else time
             unreadDot.visibility = if (isUnread) View.VISIBLE else View.GONE
@@ -108,10 +114,9 @@ class CrewChatsAdapter(
 
             // Load peer photo. Check loader cache first — b64 photos are stripped from usersCache
             // to save memory but are pre-decoded into CrewPhotoLoader during snapshot processing.
-            val pid = thread.peerId
-            val cachedBitmap = CrewPhotoLoader.shared.image(pid)
-            val summary = CrewLayoverStore.shared.getUserSummary(pid)
-            val primaryRef = cache[pid]?.primaryRef() ?: summary?.primaryRef()
+            photo.tag = pid
+            val cachedBitmap = CrewPhotoLoader.shared.memoryImage(pid)
+            val primaryRef = cachedInfo?.primaryRef() ?: summary?.primaryRef()
             if (cachedBitmap != null) {
                 photo.visibility = View.VISIBLE
                 photo.setImageBitmap(cachedBitmap)
@@ -121,7 +126,7 @@ class CrewChatsAdapter(
                 if (primaryRef.startsWith("http")) {
                     photo.setImageDrawable(null)
                     CrewPhotoLoader.shared.loadFromUrl(primaryRef, pid) { bmp ->
-                        if (bmp != null) photo.setImageBitmap(bmp)
+                        if (bmp != null && photo.tag == pid) photo.setImageBitmap(bmp)
                     }
                 } else {
                     val bmp = CrewPhotoLoader.shared.getBitmap(pid, primaryRef)
@@ -132,6 +137,17 @@ class CrewChatsAdapter(
                 photo.setImageDrawable(null)
                 photo.visibility = View.GONE
                 photo.setOnClickListener(null)
+            }
+        }
+
+        private fun displayPreview(raw: String?): String {
+            val value = raw?.trim().orEmpty()
+            return when {
+                value == "cl_e2e_message_preview" || value.startsWith("cl_e2e_") ->
+                    subtitle.context.getString(R.string.cl_e2e_message_preview)
+                value == "cl_photo_message_preview" ->
+                    subtitle.context.getString(R.string.cl_photo_message_preview)
+                else -> value
             }
         }
     }

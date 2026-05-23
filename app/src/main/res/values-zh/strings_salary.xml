@@ -155,4 +155,25 @@
     <string name="salary_duty_time_pay">值勤时间补贴</string>
     <string name="salary_sector_pay">航段补贴</string>
     <string name="salary_band_label_format">%1$s %2$d-%3$dh - %4$s/小时</string>
+    <string name="salary_settings_use_automatic">使用自动设置</string>
+    <string name="salary_auto_settings_title">自动设置</string>
+    <string name="salary_auto_settings_saudi_national">沙特国籍</string>
+    <string name="salary_auto_settings_captain">Captain</string>
+    <string name="salary_auto_settings_first_officer">First Officer</string>
+    <string name="salary_auto_settings_purser">Purser</string>
+    <string name="salary_auto_settings_cabin_crew">Cabin Crew</string>
+    <string name="salary_auto_settings_instructor">Instructor</string>
+    <string name="salary_auto_settings_coming_soon">即将推出</string>
+    <string name="salary_auto_preset_caption_captain">当前Captain设置</string>
+    <string name="salary_auto_preset_caption_first_officer">First Officer设置</string>
+    <string name="salary_auto_preset_caption_cabin_crew">Cabin Crew飞行小时档位</string>
+    <string name="salary_auto_preset_caption_soon">预设暂不可用</string>
+    <string name="salary_auto_settings_review_warning">请务必仔细检查设置页面中的各项津贴，因为薪资会根据个人职位描述和资历而变化，并应由用户自行定制。</string>
+    <string name="salary_transport_allowance">交通补贴</string>
+    <string name="allowance_type_saudization">沙特化津贴</string>
+    <string name="allowance_help_saudization">每月沙特化津贴；配置后计入沙特GOSI基数。</string>
+    <string name="salary_auto_settings_applied">已应用自动设置</string>
+    <string name="salary_flying_allowance">飞行津贴</string>
+    <string name="payslip_audit_details">记录明细</string>
+    <string name="payslip_header_place">地点</string>
 </resources>

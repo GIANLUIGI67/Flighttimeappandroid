@@ -18,6 +18,7 @@ class CrewChatsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_crew_chats)
+        CrewLayoverStore.shared.init(this)
 
         findViewById<ImageButton>(R.id.chatsBack).setOnClickListener { finish() }
 
@@ -26,11 +27,12 @@ class CrewChatsActivity : AppCompatActivity() {
         adapter = CrewChatsAdapter(
             emptyList(), emptySet(),
             onClick = { thread ->
+                val summary = CrewLayoverStore.shared.getUserSummary(thread.peerId)
                 val intent = Intent(this, CrewChatActivity::class.java).apply {
                     putExtra(CrewChatActivity.EXTRA_THREAD_ID, thread.id)
                     putExtra(CrewChatActivity.EXTRA_PEER_ID, thread.peerId)
-                    putExtra(CrewChatActivity.EXTRA_PEER_NAME, thread.peerNickname)
-                    putExtra(CrewChatActivity.EXTRA_PEER_COMPANY, thread.peerCompany ?: "")
+                    putExtra(CrewChatActivity.EXTRA_PEER_NAME, summary?.nickname ?: thread.peerNickname)
+                    putExtra(CrewChatActivity.EXTRA_PEER_COMPANY, summary?.companyName ?: thread.peerCompany ?: "")
                 }
                 startActivity(intent)
             },
@@ -83,7 +85,8 @@ class CrewChatsActivity : AppCompatActivity() {
             ): Boolean = false
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                val pos = viewHolder.adapterPosition
+                val pos = viewHolder.bindingAdapterPosition
+                if (pos == RecyclerView.NO_POSITION) return
                 val thread = adapter.getItem(pos)
                 if (thread != null) {
                     chatStore.deleteChat(thread.id, thread.peerId)

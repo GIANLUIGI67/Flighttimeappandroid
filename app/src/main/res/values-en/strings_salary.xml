@@ -155,4 +155,25 @@
     <string name="salary_duty_time_pay">Duty time pay</string>
     <string name="salary_sector_pay">Sector pay</string>
     <string name="salary_band_label_format">%1$s %2$d-%3$dh - %4$s/hr</string>
+    <string name="salary_settings_use_automatic">Use automatic settings</string>
+    <string name="salary_auto_settings_title">Automatic settings</string>
+    <string name="salary_auto_settings_saudi_national">Saudi national</string>
+    <string name="salary_auto_settings_captain">Captain</string>
+    <string name="salary_auto_settings_first_officer">First Officer</string>
+    <string name="salary_auto_settings_purser">Purser</string>
+    <string name="salary_auto_settings_cabin_crew">Cabin Crew</string>
+    <string name="salary_auto_settings_instructor">Instructor</string>
+    <string name="salary_auto_settings_coming_soon">Coming soon</string>
+    <string name="salary_auto_preset_caption_captain">Current captain setup</string>
+    <string name="salary_auto_preset_caption_first_officer">First Officer setup</string>
+    <string name="salary_auto_preset_caption_cabin_crew">Cabin crew flight bands</string>
+    <string name="salary_auto_preset_caption_soon">Preset not available yet</string>
+    <string name="salary_auto_settings_review_warning">Always check thoroughly the allowances in the settings view, because salaries change by individual job description and seniority and should be customized by the user.</string>
+    <string name="salary_transport_allowance">Transport allowance</string>
+    <string name="allowance_type_saudization">Saudization allowance</string>
+    <string name="allowance_help_saudization">Monthly Saudization allowance, included in the Saudi GOSI base when configured.</string>
+    <string name="salary_auto_settings_applied">Automatic settings applied</string>
+    <string name="salary_flying_allowance">Flying allowance</string>
+    <string name="payslip_audit_details">Record details</string>
+    <string name="payslip_header_place">Place</string>
 </resources>

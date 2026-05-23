@@ -155,4 +155,25 @@
     <string name="salary_duty_time_pay">Pago por tiempo de duty</string>
     <string name="salary_sector_pay">Pago por sector</string>
     <string name="salary_band_label_format">%1$s %2$d-%3$dh - %4$s/h</string>
+    <string name="salary_settings_use_automatic">Usar ajustes automáticos</string>
+    <string name="salary_auto_settings_title">Ajustes automáticos</string>
+    <string name="salary_auto_settings_saudi_national">Nacionalidad saudí</string>
+    <string name="salary_auto_settings_captain">Captain</string>
+    <string name="salary_auto_settings_first_officer">First Officer</string>
+    <string name="salary_auto_settings_purser">Purser</string>
+    <string name="salary_auto_settings_cabin_crew">Cabin Crew</string>
+    <string name="salary_auto_settings_instructor">Instructor</string>
+    <string name="salary_auto_settings_coming_soon">Próximamente</string>
+    <string name="salary_auto_preset_caption_captain">Configuración actual de Captain</string>
+    <string name="salary_auto_preset_caption_first_officer">Configuración de First Officer</string>
+    <string name="salary_auto_preset_caption_cabin_crew">Bandas de vuelo de Cabin Crew</string>
+    <string name="salary_auto_preset_caption_soon">Preset aún no disponible</string>
+    <string name="salary_auto_settings_review_warning">Comprueba siempre detenidamente las asignaciones en la pantalla de ajustes, porque los salarios cambian según la descripción individual del puesto y la antigüedad y deben ser personalizados por el usuario.</string>
+    <string name="salary_transport_allowance">Asignación de transporte</string>
+    <string name="allowance_type_saudization">Asignación de saudización</string>
+    <string name="allowance_help_saudization">Asignación mensual de saudización, incluida en la base GOSI saudí cuando está configurada.</string>
+    <string name="salary_auto_settings_applied">Ajustes automaticos aplicados</string>
+    <string name="salary_flying_allowance">Complemento de vuelo</string>
+    <string name="payslip_audit_details">Detalle de registros</string>
+    <string name="payslip_header_place">Lugar</string>
 </resources>

@@ -8,6 +8,7 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.result.contract.ActivityResultContracts
@@ -38,7 +39,9 @@ class SalaryMonthDetailActivity : AppCompatActivity() {
     private lateinit var resultBasic: TextView
     private lateinit var resultHousingRow: View
     private lateinit var resultHousing: TextView
+    private lateinit var resultAllowancesRow: View
     private lateinit var resultAllowances: TextView
+    private lateinit var resultAllowancesContainer: LinearLayout
     private lateinit var resultDeductionsRow: View
     private lateinit var resultDeductions: TextView
     private lateinit var resultTotal: TextView
@@ -85,7 +88,9 @@ class SalaryMonthDetailActivity : AppCompatActivity() {
         resultBasic = findViewById(R.id.monthDetailResultBasic)
         resultHousingRow = findViewById(R.id.monthDetailResultHousingRow)
         resultHousing = findViewById(R.id.monthDetailResultHousing)
+        resultAllowancesRow = findViewById(R.id.monthDetailResultAllowancesRow)
         resultAllowances = findViewById(R.id.monthDetailResultAllowances)
+        resultAllowancesContainer = findViewById(R.id.monthDetailResultAllowancesContainer)
         resultDeductionsRow = findViewById(R.id.monthDetailResultDeductionsRow)
         resultDeductions = findViewById(R.id.monthDetailResultDeductions)
         resultTotal = findViewById(R.id.monthDetailResultTotal)
@@ -184,12 +189,8 @@ class SalaryMonthDetailActivity : AppCompatActivity() {
 
     private fun updateHeader() {
         basicValue.text = MoneyFormatter.format(config.basicSalary, config.currencyCode)
-        if (config.housingAllowance > 0.0) {
-            housingRow.visibility = View.VISIBLE
-            housingValue.text = MoneyFormatter.format(config.housingAllowance, config.currencyCode)
-        } else {
-            housingRow.visibility = View.GONE
-        }
+        housingRow.visibility = View.GONE
+        housingValue.text = ""
         allowancesCount.text = config.monthlyAllowances.size.toString()
         deductionsCount.text = config.deductions.size.toString()
     }
@@ -205,23 +206,14 @@ class SalaryMonthDetailActivity : AppCompatActivity() {
 
     private fun updateTotals() {
         val basic = config.basicSalary
-        val housing = config.housingAllowance
-        val allowancesBase = config.monthlyAllowances
-            .filter { it.type != MonthlyAllowanceType.PER_BLOCK_HOURS_BANDS }
-            .sumOf { SalaryCalculatorEngine.computeAllowance(it, month, config) }
-        val bandsPay = SalaryCalculatorEngine.progressiveBlockPay(month, config)
-        val allowances = allowancesBase + bandsPay
+        val allowances = SalaryCalculatorEngine.allowancesTotal(month, config)
         val deductions = config.deductions.sumOf { SalaryCalculatorEngine.computeDeduction(it, month, config) }
-        val total = basic + housing + allowances - deductions
+        val total = basic + allowances - deductions
 
         resultBasic.text = MoneyFormatter.format(basic, config.currencyCode)
-        if (housing > 0.0) {
-            resultHousingRow.visibility = View.VISIBLE
-            resultHousing.text = MoneyFormatter.format(housing, config.currencyCode)
-        } else {
-            resultHousingRow.visibility = View.GONE
-        }
         resultAllowances.text = MoneyFormatter.format(allowances, config.currencyCode)
+        resultHousingRow.visibility = View.GONE
+        renderResultAllowanceLines()
         if (deductions > 0.0) {
             resultDeductionsRow.visibility = View.VISIBLE
             resultDeductions.text = MoneyFormatter.format(-deductions, config.currencyCode)
@@ -230,25 +222,8 @@ class SalaryMonthDetailActivity : AppCompatActivity() {
         }
         resultTotal.text = MoneyFormatter.format(total, config.currencyCode)
 
-        val dutyTimeTotal = config.monthlyAllowances
-            .filter { it.type == MonthlyAllowanceType.PER_DUTY_HOUR }
-            .sumOf { SalaryCalculatorEngine.computeAllowance(it, month, config) }
-        if (dutyTimeTotal > 0.0) {
-            resultDutyTimeRow.visibility = View.VISIBLE
-            resultDutyTime.text = MoneyFormatter.format(dutyTimeTotal, config.currencyCode)
-        } else {
-            resultDutyTimeRow.visibility = View.GONE
-        }
-
-        val sectorTotal = config.monthlyAllowances
-            .filter { it.type == MonthlyAllowanceType.PER_FLIGHT_SECTOR }
-            .sumOf { SalaryCalculatorEngine.computeAllowance(it, month, config) }
-        if (sectorTotal > 0.0) {
-            resultSectorRow.visibility = View.VISIBLE
-            resultSector.text = MoneyFormatter.format(sectorTotal, config.currencyCode)
-        } else {
-            resultSectorRow.visibility = View.GONE
-        }
+        resultDutyTimeRow.visibility = View.GONE
+        resultSectorRow.visibility = View.GONE
     }
 
     private fun persistMonth() {
@@ -257,14 +232,9 @@ class SalaryMonthDetailActivity : AppCompatActivity() {
 
     private fun openPayslip() {
         val basic = config.basicSalary
-        val housing = config.housingAllowance
-        val allowancesBase = config.monthlyAllowances
-            .filter { it.type != MonthlyAllowanceType.PER_BLOCK_HOURS_BANDS }
-            .sumOf { SalaryCalculatorEngine.computeAllowance(it, month, config) }
-        val bandsPay = SalaryCalculatorEngine.progressiveBlockPay(month, config)
-        val allowances = allowancesBase + bandsPay
+        val allowances = SalaryCalculatorEngine.allowancesTotal(month, config)
         val deductions = config.deductions.sumOf { SalaryCalculatorEngine.computeDeduction(it, month, config) }
-        val total = basic + housing + allowances - deductions
+        val total = basic + allowances - deductions
 
         val intent = Intent(this, PayslipActivity::class.java)
         intent.putExtra("month_title", month.title)
@@ -276,6 +246,81 @@ class SalaryMonthDetailActivity : AppCompatActivity() {
         intent.putExtra("total", total)
         intent.putExtra("currency", config.currencyCode)
         startActivity(intent)
+    }
+
+    private fun renderResultAllowanceLines() {
+        resultAllowancesContainer.removeAllViews()
+        val rows = SalaryCalculatorEngine.allowanceBreakdownLines(month, config)
+        if (rows.isEmpty()) {
+            resultAllowancesRow.visibility = View.GONE
+            resultAllowancesContainer.visibility = View.GONE
+            return
+        }
+
+        resultAllowancesRow.visibility = View.GONE
+        resultAllowancesContainer.visibility = View.VISIBLE
+        val inflater = layoutInflater
+        rows.forEachIndexed { index, line ->
+            val view = inflater.inflate(R.layout.item_allowance_row, resultAllowancesContainer, false)
+            view.findViewById<TextView>(R.id.allowanceName).text = displayAllowanceName(line)
+            val typeText = view.findViewById<TextView>(R.id.allowanceType)
+            val detail = displayAllowanceDetail(line)
+            if (detail.isBlank()) {
+                typeText.visibility = View.GONE
+            } else {
+                typeText.visibility = View.VISIBLE
+                typeText.text = detail
+            }
+            view.findViewById<TextView>(R.id.allowanceAmount).text = MoneyFormatter.format(line.amount, config.currencyCode)
+            resultAllowancesContainer.addView(view)
+
+            if (index < rows.size - 1) {
+                resultAllowancesContainer.addView(dividerView())
+            }
+        }
+    }
+
+    private fun displayAllowanceName(line: SalaryAllowanceLine): String {
+        return when {
+            line.id == "housing" -> getString(R.string.salary_housing_allowance)
+            line.name.isBlank() -> getString(R.string.salary_settings_allowance_fallback)
+            else -> line.name
+        }
+    }
+
+    private fun displayAllowanceDetail(line: SalaryAllowanceLine): String {
+        return runCatching { MonthlyAllowanceType.valueOf(line.type) }
+            .getOrNull()
+            ?.let { allowanceTypeLabel(it) }
+            ?: ""
+    }
+
+    private fun dividerView(): View {
+        return View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                resources.displayMetrics.density.toInt().coerceAtLeast(1)
+            ).apply {
+                topMargin = (6 * resources.displayMetrics.density).toInt()
+                bottomMargin = (6 * resources.displayMetrics.density).toInt()
+            }
+            setBackgroundColor(getColor(R.color.iosCardStroke))
+        }
+    }
+
+    private fun allowanceTypeLabel(type: MonthlyAllowanceType): String {
+        return when (type) {
+            MonthlyAllowanceType.FIXED_MONTHLY -> getString(R.string.allowance_type_fixed_monthly)
+            MonthlyAllowanceType.SAUDIZATION_ALLOWANCE -> getString(R.string.allowance_type_saudization)
+            MonthlyAllowanceType.PER_DUTY -> getString(R.string.allowance_type_per_duty)
+            MonthlyAllowanceType.PER_DUTY_HOUR -> getString(R.string.allowance_type_per_duty_hour)
+            MonthlyAllowanceType.PER_OVERTIME_DAY -> getString(R.string.allowance_type_per_overtime_day)
+            MonthlyAllowanceType.PER_DOMESTIC_LAYOVER_DAY -> getString(R.string.allowance_type_per_domestic_layover)
+            MonthlyAllowanceType.PER_INTERNATIONAL_LAYOVER_DAY -> getString(R.string.allowance_type_per_international_layover)
+            MonthlyAllowanceType.PER_FLIGHT_SECTOR -> getString(R.string.allowance_type_per_flight)
+            MonthlyAllowanceType.PER_BLOCK_HOURS_BANDS -> getString(R.string.allowance_type_progressive_block_bands)
+            MonthlyAllowanceType.OTHER -> getString(R.string.allowance_type_other)
+        }
     }
 
     private fun adjustOvertime(delta: Int) {

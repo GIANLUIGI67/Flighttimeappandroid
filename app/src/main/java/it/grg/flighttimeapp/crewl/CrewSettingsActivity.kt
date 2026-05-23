@@ -298,7 +298,8 @@ class CrewSettingsActivity : AppCompatActivity() {
             ): Boolean = false
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                val pos = viewHolder.adapterPosition
+                val pos = viewHolder.bindingAdapterPosition
+                if (pos == RecyclerView.NO_POSITION) return
                 val event = eventsAdapter.getItem(pos)
                 if (event != null) {
                     store.hideEventFromMyList(event.id)
@@ -337,10 +338,16 @@ class CrewSettingsActivity : AppCompatActivity() {
     }
 
     private fun ensureSignedInAndStart() {
-        CrewAuthManager.ensureSignedIn { uid ->
+        CrewAuthManager.ensureSignedInDetailed(this) { result ->
+            val uid = result.uid
             if (uid.isNullOrBlank()) {
-                Toast.makeText(this, getString(R.string.cl_auth_failed), Toast.LENGTH_SHORT).show()
-                return@ensureSignedIn
+                if (result.isNetworkFailure) {
+                    Toast.makeText(this, getString(R.string.cl_network_unavailable), Toast.LENGTH_SHORT).show()
+                    ensureLocationPermission()
+                } else {
+                    Toast.makeText(this, getString(R.string.cl_auth_failed), Toast.LENGTH_SHORT).show()
+                }
+                return@ensureSignedInDetailed
             }
             CrewPresenceService.shared.start(uid)
             store.start(uid)

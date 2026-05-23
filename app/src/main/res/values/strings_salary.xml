@@ -151,4 +151,25 @@
     <string name="salary_duty_time_pay">Duty time pay</string>
     <string name="salary_sector_pay">Sector pay</string>
     <string name="salary_band_label_format">%1$s %2$d&#8211;%3$dh &#8211; %4$s/ora</string>
+    <string name="salary_settings_use_automatic">Usa impostazioni automatiche</string>
+    <string name="salary_auto_settings_title">Impostazioni automatiche</string>
+    <string name="salary_auto_settings_saudi_national">Nazionalità saudita</string>
+    <string name="salary_auto_settings_captain">Captain</string>
+    <string name="salary_auto_settings_first_officer">First Officer</string>
+    <string name="salary_auto_settings_purser">Purser</string>
+    <string name="salary_auto_settings_cabin_crew">Cabin Crew</string>
+    <string name="salary_auto_settings_instructor">Istruttore</string>
+    <string name="salary_auto_settings_coming_soon">In arrivo</string>
+    <string name="salary_auto_preset_caption_captain">Configurazione Captain attuale</string>
+    <string name="salary_auto_preset_caption_first_officer">Configurazione First Officer</string>
+    <string name="salary_auto_preset_caption_cabin_crew">Fasce volo Cabin Crew</string>
+    <string name="salary_auto_preset_caption_soon">Preset non ancora disponibile</string>
+    <string name="salary_auto_settings_review_warning">Controlla sempre attentamente le indennità nella schermata impostazioni, perché le retribuzioni cambiano in base alla job description individuale e alla seniority e devono essere personalizzate dall’utente.</string>
+    <string name="salary_transport_allowance">Indennità trasporto</string>
+    <string name="allowance_type_saudization">Indennità Saudization</string>
+    <string name="allowance_help_saudization">Indennità Saudization mensile, inclusa nella base GOSI saudita quando configurata.</string>
+    <string name="salary_auto_settings_applied">Impostazioni automatiche applicate</string>
+    <string name="salary_flying_allowance">Indennita di volo</string>
+    <string name="payslip_audit_details">Dettaglio registrazioni</string>
+    <string name="payslip_header_place">Luogo</string>
 </resources>

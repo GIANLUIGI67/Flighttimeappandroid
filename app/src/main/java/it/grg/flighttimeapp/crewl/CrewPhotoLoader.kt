@@ -13,6 +13,8 @@ import androidx.core.content.edit
 class CrewPhotoLoader private constructor(context: Context) {
     private val appContext = context.applicationContext
     private val cache = LruCache<String, Bitmap>(64)
+    private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val ioExecutor = java.util.concurrent.Executors.newFixedThreadPool(2)
     private val maxExtraImages = 4
     /** Tracks which Storage URL is currently cached per user, to detect replacements. */
     private val cachedUrlByUserId = mutableMapOf<String, String>()
@@ -33,16 +35,20 @@ class CrewPhotoLoader private constructor(context: Context) {
     private fun loadFromDisk(userId: String): Bitmap? {
         val file = diskCacheFile(userId)
         if (!file.exists()) return null
-        return try { BitmapFactory.decodeFile(file.absolutePath) } catch (_: Exception) { null }
+        return try {
+            decodeBitmapWithExif(file.readBytes(), 1024)
+        } catch (_: Exception) {
+            null
+        }
     }
 
     private fun saveToDisk(userId: String, bytes: ByteArray) {
-        Thread {
+        ioExecutor.execute {
             try {
                 val file = diskCacheFile(userId)
                 file.outputStream().use { it.write(bytes) }
             } catch (_: Exception) {}
-        }.start()
+        }
     }
 
     private fun deleteDiskCacheFile(userId: String) {
@@ -75,6 +81,8 @@ class CrewPhotoLoader private constructor(context: Context) {
         return diskBitmap
     }
 
+    fun memoryImage(userId: String): Bitmap? = cache.get(userId)
+
     fun getBitmap(userId: String, b64: String?): Bitmap? {
         val cached = cache.get(userId)
         if (cached != null) return cached
@@ -91,16 +99,17 @@ class CrewPhotoLoader private constructor(context: Context) {
         }
     }
 
-    fun prefetchFromBase64(userId: String, b64: String, maxDimension: Int = 512) {
+    fun prefetchFromBase64(userId: String, b64: String, maxDimension: Int = 512, onComplete: (() -> Unit)? = null) {
         if (b64.isBlank()) return
         if (cache.get(userId) != null) return
-        Thread {
+        ioExecutor.execute {
             val data = try { Base64.decode(b64, Base64.DEFAULT) } catch (_: Exception) { null }
             val bmp = data?.let { decodeBitmapWithExif(it, maxDimension) }
             if (bmp != null) {
                 cache.put(userId, bmp)
+                onComplete?.let { callback -> mainHandler.post { callback() } }
             }
-        }.start()
+        }
     }
 
     fun invalidate(userId: String) {
@@ -111,11 +120,21 @@ class CrewPhotoLoader private constructor(context: Context) {
     }
 
     fun setLocalProfileImage(bitmap: Bitmap) {
-        val bytes = BitmapUtils.toJpeg(bitmap, 88)
+        val bytes = BitmapUtils.toJpeg(
+            bitmap = bitmap,
+            quality = 88,
+            maxDimension = 1600,
+            maxBytes = BitmapUtils.PROFILE_PHOTO_MAX_BYTES
+        )
         if (bytes != null) {
             val prefs = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             prefs.edit { putString(KEY_PROFILE_B64, Base64.encodeToString(bytes, Base64.NO_WRAP)) }
         }
+    }
+
+    fun clearLocalProfileImage() {
+        val prefs = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        prefs.edit { remove(KEY_PROFILE_B64) }
     }
 
     fun myLocalProfileImage(): Bitmap? {
@@ -137,7 +156,12 @@ class CrewPhotoLoader private constructor(context: Context) {
     fun appendLocalProfileExtraImage(bitmap: Bitmap) {
         val names = loadExtraNames()
         if (names.size >= maxExtraImages) return
-        val bytes = BitmapUtils.toJpeg(bitmap, 82) ?: return
+        val bytes = BitmapUtils.toJpeg(
+            bitmap = bitmap,
+            quality = 82,
+            maxDimension = 1600,
+            maxBytes = BitmapUtils.PROFILE_PHOTO_MAX_BYTES
+        ) ?: return
         val name = "extra_${System.currentTimeMillis()}_${names.size}.jpg"
         val file = extraFile(name)
         try {
@@ -194,21 +218,21 @@ class CrewPhotoLoader private constructor(context: Context) {
             return
         }
 
-        // Disk hit → warm LruCache, return immediately without network
-        if (knownUrl == url) {
-            loadFromDisk(userId)?.let { diskBitmap ->
-                synchronized(this) {
-                    cache.put(userId, diskBitmap)
-                    cachedUrlByUserId[userId] = url
-                    inFlightUrlByUserId.remove(userId)
-                }
-                android.os.Handler(android.os.Looper.getMainLooper()).post { onResult?.invoke(diskBitmap) }
-                return
-            }
-        }
-
-        Thread {
+        ioExecutor.execute {
             try {
+                // Disk hit: warm LruCache off the UI thread, then return without network.
+                if (knownUrl == url) {
+                    loadFromDisk(userId)?.let { diskBitmap ->
+                        synchronized(this) {
+                            cache.put(userId, diskBitmap)
+                            cachedUrlByUserId[userId] = url
+                            inFlightUrlByUserId.remove(userId)
+                        }
+                        mainHandler.post { onResult?.invoke(diskBitmap) }
+                        return@execute
+                    }
+                }
+
                 val connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection
                 connection.connectTimeout = 10_000
                 connection.readTimeout = 15_000
@@ -233,21 +257,21 @@ class CrewPhotoLoader private constructor(context: Context) {
                         }
                     }
                 }
-                android.os.Handler(android.os.Looper.getMainLooper()).post {
+                mainHandler.post {
                     synchronized(this) {
                         if (inFlightUrlByUserId[userId] == url) inFlightUrlByUserId.remove(userId)
                     }
                     onResult?.invoke(bitmap)
                 }
             } catch (_: Exception) {
-                android.os.Handler(android.os.Looper.getMainLooper()).post {
+                mainHandler.post {
                     synchronized(this) {
                         if (inFlightUrlByUserId[userId] == url) inFlightUrlByUserId.remove(userId)
                     }
                     onResult?.invoke(null)
                 }
             }
-        }.start()
+        }
     }
 
     fun prefetchFromUrl(url: String, userId: String) {
@@ -269,6 +293,10 @@ class CrewPhotoLoader private constructor(context: Context) {
         return data?.let { decodeBitmapWithExif(it) }
     }
 
+    fun decodeBytesToBitmap(bytes: ByteArray, maxDimension: Int = 0): Bitmap? {
+        return decodeBitmapWithExif(bytes, maxDimension)
+    }
+
     private fun decodeBitmapWithExif(bytes: ByteArray, maxDimension: Int = 0): Bitmap? {
         val sampleSize = if (maxDimension > 0) {
             val sizeOpts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
@@ -281,19 +309,33 @@ class CrewPhotoLoader private constructor(context: Context) {
         val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, decodeOpts) ?: return null
         return try {
             val exif = ExifInterface(ByteArrayInputStream(bytes))
-            when (exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)) {
-                ExifInterface.ORIENTATION_ROTATE_90 -> rotate(bmp, 90f)
-                ExifInterface.ORIENTATION_ROTATE_180 -> rotate(bmp, 180f)
-                ExifInterface.ORIENTATION_ROTATE_270 -> rotate(bmp, 270f)
-                else -> bmp
-            }
+            transformForExif(bmp, exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL))
         } catch (_: Exception) {
             bmp
         }
     }
 
-    private fun rotate(src: Bitmap, degrees: Float): Bitmap {
-        val matrix = Matrix().apply { postRotate(degrees) }
+    private fun transformForExif(src: Bitmap, orientation: Int): Bitmap {
+        val matrix = Matrix()
+        when (orientation) {
+            ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.postScale(-1f, 1f)
+            ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
+            ExifInterface.ORIENTATION_FLIP_VERTICAL -> {
+                matrix.postRotate(180f)
+                matrix.postScale(-1f, 1f)
+            }
+            ExifInterface.ORIENTATION_TRANSPOSE -> {
+                matrix.postRotate(90f)
+                matrix.postScale(-1f, 1f)
+            }
+            ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
+            ExifInterface.ORIENTATION_TRANSVERSE -> {
+                matrix.postRotate(270f)
+                matrix.postScale(-1f, 1f)
+            }
+            ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
+            else -> return src
+        }
         return Bitmap.createBitmap(src, 0, 0, src.width, src.height, matrix, true)
     }
 
@@ -345,11 +387,33 @@ class CrewPhotoLoader private constructor(context: Context) {
 }
 
 object BitmapUtils {
-    fun toJpeg(bitmap: Bitmap, quality: Int): ByteArray? {
+    const val PROFILE_PHOTO_MAX_BYTES = 4_500_000
+
+    fun toJpeg(
+        bitmap: Bitmap,
+        quality: Int,
+        maxDimension: Int = 0,
+        maxBytes: Int = Int.MAX_VALUE
+    ): ByteArray? {
         return try {
-            val stream = java.io.ByteArrayOutputStream()
-            bitmap.compress(Bitmap.CompressFormat.JPEG, quality, stream)
-            stream.toByteArray()
+            var source = if (maxDimension > 0) scaledToMaxDimension(bitmap, maxDimension) else bitmap
+            var currentMaxDimension = maxDimension
+            var lastBytes: ByteArray? = null
+
+            repeat(3) {
+                var q = quality.coerceIn(45, 100)
+                while (q >= 45) {
+                    val bytes = compressJpeg(source, q)
+                    lastBytes = bytes
+                    if (bytes.size <= maxBytes) return bytes
+                    q -= 8
+                }
+                if (maxBytes == Int.MAX_VALUE || currentMaxDimension <= 0) return lastBytes
+                currentMaxDimension = (currentMaxDimension * 0.8f).toInt().coerceAtLeast(720)
+                source = scaledToMaxDimension(bitmap, currentMaxDimension)
+            }
+
+            lastBytes
         } catch (_: Exception) {
             null
         }
@@ -358,5 +422,20 @@ object BitmapUtils {
     fun toBase64(bitmap: Bitmap, quality: Int = 88): String {
         val bytes = toJpeg(bitmap, quality) ?: return ""
         return Base64.encodeToString(bytes, Base64.NO_WRAP)
+    }
+
+    private fun compressJpeg(bitmap: Bitmap, quality: Int): ByteArray {
+        val stream = java.io.ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.JPEG, quality, stream)
+        return stream.toByteArray()
+    }
+
+    private fun scaledToMaxDimension(bitmap: Bitmap, maxDimension: Int): Bitmap {
+        val longest = maxOf(bitmap.width, bitmap.height)
+        if (longest <= maxDimension) return bitmap
+        val scale = maxDimension.toFloat() / longest.toFloat()
+        val width = (bitmap.width * scale).toInt().coerceAtLeast(1)
+        val height = (bitmap.height * scale).toInt().coerceAtLeast(1)
+        return Bitmap.createScaledBitmap(bitmap, width, height, true)
     }
 }

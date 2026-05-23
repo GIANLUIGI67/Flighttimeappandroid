@@ -169,6 +169,7 @@
     <string name="cl_clear_photo">Remove photo</string>
     <string name="cl_profile_photo">Profile photo</string>
     <string name="cl_auth_failed">Authentication failed</string>
+    <string name="cl_network_unavailable">Network unavailable. Check your internet connection and try again.</string>
     <string name="settings_button">Settings</string>
     <string name="cl_role_cabin_crew">Cabin crew</string>
     <string name="cl_role_flight_deck">Flight deck</string>

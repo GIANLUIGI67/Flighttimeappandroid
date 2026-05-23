@@ -83,7 +83,9 @@ class CrewLayoverChatStore private constructor() {
 
                 peerNameByThread.clear()
                 newThreads.forEach { t ->
-                    val name = t.peerNickname.ifBlank { t.peerId }
+                    val summaryName = CrewLayoverStore.shared.getUserSummary(t.peerId)?.nickname
+                        ?.takeIf { it.isNotBlank() }
+                    val name = summaryName ?: t.peerNickname.ifBlank { t.peerId }
                     peerNameByThread[t.id] = name
                 }
 
@@ -233,6 +235,8 @@ class CrewLayoverChatStore private constructor() {
         val me = myUid() ?: return null
         val threadId = threadIdFor(peer)
         val now = System.currentTimeMillis()
+        val myNickname = myProfileNickname()
+        val myCompany = myProfileCompany()
 
         val meThread = mapOf(
             "peerId" to peer.userId,
@@ -247,8 +251,8 @@ class CrewLayoverChatStore private constructor() {
         )
         val peerThread = mapOf(
             "peerId" to me,
-            "peerNickname" to "",
-            "peerCompany" to "",
+            "peerNickname" to myNickname,
+            "peerCompany" to myCompany,
             "createdAt" to now,
             "lastMessageAt" to now,
             "lastMessageText" to "",
@@ -302,6 +306,7 @@ class CrewLayoverChatStore private constructor() {
                 "/userThreads/$peerUid/$threadId/lastMessageText" to preview,
                 "/userThreads/$peerUid/$threadId/lastMessageSender" to me
             )
+            addMyProfileToPeerThread(updates, peerUid, threadId)
             root.updateChildren(updates)
         }
     }
@@ -353,6 +358,7 @@ class CrewLayoverChatStore private constructor() {
                 "/userThreads/$peerUid/$threadId/lastMessageText" to previewText,
                 "/userThreads/$peerUid/$threadId/lastMessageSender" to me
             )
+            addMyProfileToPeerThread(updates, peerUid, threadId)
             root.updateChildren(updates)
 
             if (expiresInSeconds != null && expiresInSeconds > 0) {
@@ -552,6 +558,32 @@ class CrewLayoverChatStore private constructor() {
             is Number -> value.toLong()
             else -> 0L
         }
+    }
+
+    private fun addMyProfileToPeerThread(
+        updates: MutableMap<String, Any>,
+        peerUid: String,
+        threadId: String
+    ) {
+        val nickname = myProfileNickname()
+        if (nickname.isNotBlank()) {
+            updates["/userThreads/$peerUid/$threadId/peerNickname"] = nickname
+        }
+        updates["/userThreads/$peerUid/$threadId/peerCompany"] = myProfileCompany()
+    }
+
+    private fun myProfileNickname(): String {
+        val settingsName = CrewLayoverStore.shared.settingsLive.value?.nickname?.trim().orEmpty()
+        if (settingsName.isNotBlank()) return settingsName
+        val me = myUid() ?: return ""
+        return CrewLayoverStore.shared.getUserSummary(me)?.nickname?.trim().orEmpty()
+    }
+
+    private fun myProfileCompany(): String {
+        val settingsCompany = CrewLayoverStore.shared.settingsLive.value?.companyName?.trim().orEmpty()
+        if (settingsCompany.isNotBlank()) return settingsCompany
+        val me = myUid() ?: return ""
+        return CrewLayoverStore.shared.getUserSummary(me)?.companyName?.trim().orEmpty()
     }
 
     private fun bitmapToBase64(bitmap: Bitmap): String {

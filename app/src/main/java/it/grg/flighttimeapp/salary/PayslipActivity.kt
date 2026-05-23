@@ -44,26 +44,17 @@ class PayslipActivity : AppCompatActivity() {
             storage.currentMonth()
         }
 
-        val allowancesBase = config.monthlyAllowances
-            .filter { it.type != MonthlyAllowanceType.PER_BLOCK_HOURS_BANDS }
-            .sumOf { SalaryCalculatorEngine.computeAllowance(it, month, config) }
-        val bandsPay = SalaryCalculatorEngine.progressiveBlockPay(month, config)
-        val housing = config.housingAllowance
-        val allowances = allowancesBase + bandsPay
+        val allowances = SalaryCalculatorEngine.allowancesTotal(month, config)
         val deductions = config.deductions.sumOf { SalaryCalculatorEngine.computeDeduction(it, month, config) }
         val basic = config.basicSalary
-        val total = basic + housing + allowances - deductions
+        val total = basic + allowances - deductions
 
         findViewById<TextView>(R.id.payslipMonth).text = month.title
         findViewById<TextView>(R.id.payslipBasic).text = MoneyFormatter.format(basic, config.currencyCode)
         val housingRow = findViewById<View>(R.id.payslipHousingRow)
         val housingText = findViewById<TextView>(R.id.payslipHousing)
-        if (housing > 0.0) {
-            housingRow.visibility = View.VISIBLE
-            housingText.text = MoneyFormatter.format(housing, config.currencyCode)
-        } else {
-            housingRow.visibility = View.GONE
-        }
+        housingRow.visibility = View.GONE
+        housingText.text = ""
         findViewById<TextView>(R.id.payslipAllowances).text = MoneyFormatter.format(allowances, config.currencyCode)
         val deductionsRow = findViewById<View>(R.id.payslipDeductionsRow)
         val deductionsText = findViewById<TextView>(R.id.payslipDeductions)
@@ -87,59 +78,28 @@ class PayslipActivity : AppCompatActivity() {
         container.removeAllViews()
 
         val inflater = LayoutInflater.from(this)
-        val allowanceItems = config.monthlyAllowances
-            .filter { it.type != MonthlyAllowanceType.PER_BLOCK_HOURS_BANDS }
-            .map { allowance ->
-                val amount = SalaryCalculatorEngine.computeAllowance(allowance, month, config)
-                AllowanceRowData(
-                    name = allowance.name,
-                    detail = allowanceTypeLabel(allowance.type),
-                    amount = amount
-                )
-            }
-            .filter { it.amount > 0.0 }
-
-        val bandTitle = config.monthlyAllowances
-            .firstOrNull { it.type == MonthlyAllowanceType.PER_BLOCK_HOURS_BANDS }
-            ?.name
-            ?: getString(R.string.allowance_type_progressive_block_bands)
-        val bandSegments = SalaryCalculatorEngine.progressiveBandsBreakdown(month, config, bandTitle)
-            .filter { it.amount > 0.0 }
-            .map {
-                val rateText = MoneyFormatter.format(it.ratePerHour, config.currencyCode)
-                val label = getString(
-                    R.string.salary_band_label_format,
-                    bandTitle,
-                    it.fromHours,
-                    it.toHours,
-                    rateText
-                )
-                AllowanceRowData(
-                    name = label,
-                    detail = "",
-                    amount = it.amount
-                )
-            }
-
-        val rows = allowanceItems + bandSegments
+        val rows = SalaryCalculatorEngine.allowanceBreakdownLines(month, config)
         if (rows.isEmpty()) {
             container.visibility = View.GONE
+            findViewById<View>(R.id.payslipAllowancesRow).visibility = View.GONE
             return
         }
 
         container.visibility = View.VISIBLE
+        findViewById<View>(R.id.payslipAllowancesRow).visibility = View.GONE
         rows.forEachIndexed { index, row ->
             val view = inflater.inflate(R.layout.item_allowance_row, container, false)
             val nameText = view.findViewById<TextView>(R.id.allowanceName)
             val typeText = view.findViewById<TextView>(R.id.allowanceType)
             val amountText = view.findViewById<TextView>(R.id.allowanceAmount)
 
-            nameText.text = row.name
-            if (row.detail.isBlank()) {
+            nameText.text = displayAllowanceName(row)
+            val detail = displayAllowanceDetail(row)
+            if (detail.isBlank()) {
                 typeText.visibility = View.GONE
             } else {
                 typeText.visibility = View.VISIBLE
-                typeText.text = row.detail
+                typeText.text = detail
             }
             amountText.text = MoneyFormatter.format(row.amount, config.currencyCode)
             container.addView(view)
@@ -221,6 +181,7 @@ class PayslipActivity : AppCompatActivity() {
     private fun allowanceTypeLabel(type: MonthlyAllowanceType): String {
         return when (type) {
             MonthlyAllowanceType.FIXED_MONTHLY -> getString(R.string.allowance_type_fixed_monthly)
+            MonthlyAllowanceType.SAUDIZATION_ALLOWANCE -> getString(R.string.allowance_type_saudization)
             MonthlyAllowanceType.PER_DUTY -> getString(R.string.allowance_type_per_duty)
             MonthlyAllowanceType.PER_DUTY_HOUR -> getString(R.string.allowance_type_per_duty_hour)
             MonthlyAllowanceType.PER_OVERTIME_DAY -> getString(R.string.allowance_type_per_overtime_day)
@@ -240,11 +201,20 @@ class PayslipActivity : AppCompatActivity() {
         }
     }
 
-    private data class AllowanceRowData(
-        val name: String,
-        val detail: String,
-        val amount: Double
-    )
+    private fun displayAllowanceName(line: SalaryAllowanceLine): String {
+        return when {
+            line.id == "housing" -> getString(R.string.salary_housing_allowance)
+            line.name.isBlank() -> getString(R.string.salary_settings_allowance_fallback)
+            else -> line.name
+        }
+    }
+
+    private fun displayAllowanceDetail(line: SalaryAllowanceLine): String {
+        return runCatching { MonthlyAllowanceType.valueOf(line.type) }
+            .getOrNull()
+            ?.let { allowanceTypeLabel(it) }
+            ?: ""
+    }
 
     private data class DeductionRowData(
         val name: String,
@@ -283,9 +253,10 @@ class PayslipActivity : AppCompatActivity() {
         val file = File(cacheDir, fileName)
 
         val document = PdfDocument()
-        val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create()
-        val page = document.startPage(pageInfo)
-        val canvas: Canvas = page.canvas
+        var pageNumber = 1
+        var pageInfo = PdfDocument.PageInfo.Builder(595, 842, pageNumber).create()
+        var page = document.startPage(pageInfo)
+        var canvas: Canvas = page.canvas
 
         val margin = 36f
         var y = margin
@@ -313,9 +284,38 @@ class PayslipActivity : AppCompatActivity() {
             strokeWidth = 1f
         }
 
+        fun newPage() {
+            document.finishPage(page)
+            pageNumber += 1
+            pageInfo = PdfDocument.PageInfo.Builder(595, 842, pageNumber).create()
+            page = document.startPage(pageInfo)
+            canvas = page.canvas
+            y = margin
+        }
+
+        fun ensureSpace(points: Float = 22f) {
+            if (y + points > pageInfo.pageHeight - margin) {
+                newPage()
+            }
+        }
+
         fun drawLine() {
+            ensureSpace(14f)
             canvas.drawLine(margin, y, pageInfo.pageWidth - margin, y, linePaint)
             y += 12f
+        }
+
+        fun drawTextLine(text: String, paint: Paint = textPaint, indent: Float = 0f) {
+            ensureSpace(18f)
+            canvas.drawText(text, margin + indent, y, paint)
+            y += 16f
+        }
+
+        fun drawAmountLine(label: String, amount: String, paint: Paint = textPaint) {
+            ensureSpace(18f)
+            canvas.drawText(label, margin, y, paint)
+            canvas.drawText(amount, pageInfo.pageWidth - margin - 130f, y, paint)
+            y += 18f
         }
 
         canvas.drawText(getString(R.string.payslip_title), margin, y, titlePaint)
@@ -325,105 +325,111 @@ class PayslipActivity : AppCompatActivity() {
         drawLine()
 
         val basic = config.basicSalary
-        val allowancesBase = config.monthlyAllowances
-            .filter { it.type != MonthlyAllowanceType.PER_BLOCK_HOURS_BANDS }
-            .sumOf { SalaryCalculatorEngine.computeAllowance(it, month, config) }
-        val bandsPay = SalaryCalculatorEngine.progressiveBlockPay(month, config)
-        val housing = config.housingAllowance
-        val allowances = allowancesBase + bandsPay
+        val allowanceLines = SalaryCalculatorEngine.allowanceBreakdownLines(month, config)
+        val allowances = allowanceLines.sumOf { it.amount }
         val deductions = config.deductions.sumOf { SalaryCalculatorEngine.computeDeduction(it, month, config) }
-        val total = basic + housing + allowances - deductions
+        val total = basic + allowances - deductions
 
-        canvas.drawText(getString(R.string.payslip_basic), margin, y, textPaint)
-        canvas.drawText(MoneyFormatter.format(basic, config.currencyCode), pageInfo.pageWidth - margin - 120f, y, textPaint)
-        y += 18f
-        if (housing > 0.0) {
-            canvas.drawText(getString(R.string.salary_housing_allowance), margin, y, textPaint)
-            canvas.drawText(MoneyFormatter.format(housing, config.currencyCode), pageInfo.pageWidth - margin - 120f, y, textPaint)
-            y += 18f
+        drawAmountLine(getString(R.string.payslip_basic), MoneyFormatter.format(basic, config.currencyCode))
+        if (allowanceLines.isNotEmpty()) {
+            drawTextLine(getString(R.string.payslip_allowances), boldPaint)
+            allowanceLines.forEach { line ->
+                drawAmountLine(displayAllowanceName(line), MoneyFormatter.format(line.amount, config.currencyCode))
+            }
         }
-        canvas.drawText(getString(R.string.payslip_allowances), margin, y, textPaint)
-        canvas.drawText(MoneyFormatter.format(allowances, config.currencyCode), pageInfo.pageWidth - margin - 120f, y, textPaint)
-        y += 18f
 
         if (deductions > 0.0) {
-            canvas.drawText(getString(R.string.payslip_deductions), margin, y, textPaint)
-            canvas.drawText(MoneyFormatter.format(-deductions, config.currencyCode), pageInfo.pageWidth - margin - 120f, y, textPaint)
-            y += 18f
-        }
-
-        val dutyTimeTotal = config.monthlyAllowances
-            .filter { it.type == MonthlyAllowanceType.PER_DUTY_HOUR }
-            .sumOf { SalaryCalculatorEngine.computeAllowance(it, month, config) }
-        if (dutyTimeTotal > 0.0) {
-            canvas.drawText(getString(R.string.salary_duty_time_pay), margin, y, textPaint)
-            canvas.drawText(MoneyFormatter.format(dutyTimeTotal, config.currencyCode), pageInfo.pageWidth - margin - 120f, y, textPaint)
-            y += 18f
-        }
-
-        val sectorTotal = config.monthlyAllowances
-            .filter { it.type == MonthlyAllowanceType.PER_FLIGHT_SECTOR }
-            .sumOf { SalaryCalculatorEngine.computeAllowance(it, month, config) }
-        if (sectorTotal > 0.0) {
-            canvas.drawText(getString(R.string.salary_sector_pay), margin, y, textPaint)
-            canvas.drawText(MoneyFormatter.format(sectorTotal, config.currencyCode), pageInfo.pageWidth - margin - 120f, y, textPaint)
-            y += 18f
-        }
-
-        if (bandsPay > 0.0) {
-            canvas.drawText(getString(R.string.allowance_type_progressive_block_bands), margin, y, textPaint)
-            canvas.drawText(MoneyFormatter.format(bandsPay, config.currencyCode), pageInfo.pageWidth - margin - 120f, y, textPaint)
-            y += 18f
+            drawTextLine(getString(R.string.payslip_deductions), boldPaint)
+            config.deductions.forEach { deduction ->
+                val value = SalaryCalculatorEngine.computeDeduction(deduction, month, config)
+                if (value == 0.0) return@forEach
+                val label = when {
+                    deduction.name.isNotBlank() -> deduction.name
+                    deduction.type == DeductionType.GOSI_PERSONAL_SAUDI -> getString(R.string.salary_deduction_gosi_name)
+                    else -> getString(R.string.salary_settings_deduction_fallback)
+                }
+                drawAmountLine(label, MoneyFormatter.format(-value, config.currencyCode))
+            }
         }
 
         drawLine()
-        canvas.drawText(getString(R.string.payslip_total), margin, y, boldPaint)
-        canvas.drawText(MoneyFormatter.format(total, config.currencyCode), pageInfo.pageWidth - margin - 120f, y, boldPaint)
+        drawAmountLine(getString(R.string.payslip_total), MoneyFormatter.format(total, config.currencyCode), boldPaint)
         y += 24f
 
         drawLine()
-
-        // Flights table
-        val headerDate = getString(R.string.payslip_header_date)
-        val headerRoute = getString(R.string.payslip_header_route)
-        val headerTime = getString(R.string.payslip_header_time)
+        drawTextLine(getString(R.string.payslip_audit_details), titlePaint)
+        y += 4f
 
         val dateCol = margin
         val routeCol = margin + 120f
         val timeCol = pageInfo.pageWidth - margin - 80f
 
-        canvas.drawText(headerDate, dateCol, y, boldPaint)
-        canvas.drawText(headerRoute, routeCol, y, boldPaint)
-        canvas.drawText(headerTime, timeCol, y, boldPaint)
-        y += 16f
-        drawLine()
-
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
         val flights = month.flightLogs.sortedBy { it.date }
         var totalMinutes = 0
 
-        flights.forEach { f ->
-            if (y > pageInfo.pageHeight - 60f) {
-                document.finishPage(page)
-            }
-            totalMinutes += maxOf(0, f.minutes)
-            val dateText = f.date.format(formatter)
-            val routeText = if (f.route.isBlank()) "—" else f.route
-            val timeText = SalaryCalculatorEngine.hhmm(f.minutes)
-
-            canvas.drawText(dateText, dateCol, y, textPaint)
-            canvas.drawText(routeText, routeCol, y, textPaint)
-            canvas.drawText(timeText, timeCol, y, textPaint)
-            y += 16f
-        }
-
         if (flights.isNotEmpty()) {
+            drawTextLine(getString(R.string.salary_flights_section_title), boldPaint)
+            ensureSpace(18f)
+            canvas.drawText(getString(R.string.payslip_header_date), dateCol, y, boldPaint)
+            canvas.drawText(getString(R.string.payslip_header_route), routeCol, y, boldPaint)
+            canvas.drawText(getString(R.string.payslip_header_time), timeCol, y, boldPaint)
+            y += 16f
+            drawLine()
+
+            flights.forEach { f ->
+                totalMinutes += maxOf(0, f.minutes)
+                ensureSpace(16f)
+                canvas.drawText(f.date.format(formatter), dateCol, y, textPaint)
+                canvas.drawText(if (f.route.isBlank()) "-" else f.route, routeCol, y, textPaint)
+                canvas.drawText(SalaryCalculatorEngine.hhmm(f.minutes), timeCol, y, textPaint)
+                y += 16f
+            }
+
             drawLine()
             canvas.drawText("", dateCol, y, textPaint)
             canvas.drawText(getString(R.string.payslip_flights_total), routeCol, y, boldPaint)
             canvas.drawText(SalaryCalculatorEngine.hhmm(totalMinutes), timeCol, y, boldPaint)
             y += 16f
+            y += 8f
         }
+
+        fun drawDateDetailSection(title: String, rows: List<Pair<LocalDate, String>>) {
+            if (rows.isEmpty()) return
+            drawTextLine(title, boldPaint)
+            ensureSpace(18f)
+            canvas.drawText(getString(R.string.payslip_header_date), dateCol, y, boldPaint)
+            canvas.drawText(getString(R.string.payslip_header_place), routeCol, y, boldPaint)
+            canvas.drawText(getString(R.string.payslip_flights_total), timeCol, y, boldPaint)
+            y += 16f
+            drawLine()
+            rows.sortedBy { it.first }.forEach { row ->
+                ensureSpace(16f)
+                canvas.drawText(row.first.format(formatter), dateCol, y, textPaint)
+                canvas.drawText(if (row.second.isBlank()) "-" else row.second, routeCol, y, textPaint)
+                canvas.drawText("1", timeCol, y, textPaint)
+                y += 16f
+            }
+            drawLine()
+            canvas.drawText("", dateCol, y, textPaint)
+            canvas.drawText(getString(R.string.payslip_flights_total), routeCol, y, boldPaint)
+            canvas.drawText(rows.size.toString(), timeCol, y, boldPaint)
+            y += 16f
+            y += 8f
+        }
+
+        drawDateDetailSection(
+            getString(R.string.salary_summary_overtime_total_days),
+            month.overtimeLogs.map { it.date to getString(R.string.salary_add_menu_overtime) }
+        )
+        drawDateDetailSection(
+            getString(R.string.salary_summary_layover_domestic_total),
+            month.layoverLogs.filter { it.kind == LayoverKind.DOMESTIC }.map { it.date to it.location }
+        )
+        drawDateDetailSection(
+            getString(R.string.salary_summary_layover_international_total),
+            month.layoverLogs.filter { it.kind == LayoverKind.INTERNATIONAL }.map { it.date to it.location }
+        )
 
         document.finishPage(page)
         FileOutputStream(file).use { output ->

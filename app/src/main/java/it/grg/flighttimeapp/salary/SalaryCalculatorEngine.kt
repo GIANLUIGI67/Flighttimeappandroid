@@ -7,6 +7,11 @@ object SalaryCalculatorEngine {
 
     const val DEFAULT_BAND_HOURS = 100
     const val MAX_BAND_HOURS_LIMIT = 120
+    val DEFAULT_BLOCK_PAY_BANDS = listOf(
+        BlockPayBand(fromHours = 0, ratePerHour = 150.0),
+        BlockPayBand(fromHours = 50, ratePerHour = 300.0),
+        BlockPayBand(fromHours = 75, ratePerHour = 500.0)
+    )
 
     private fun effectiveMaxBandHours(config: SalaryConfiguration): Int {
         val normalized = max(config.blockPayBandsMaxHours, DEFAULT_BAND_HOURS)
@@ -56,13 +61,18 @@ object SalaryCalculatorEngine {
         return logs.sumOf { sectorsForRoute(it.route) }.coerceAtLeast(0)
     }
 
+    fun effectiveBlockPayBands(config: SalaryConfiguration): List<BlockPayBand> {
+        return if (config.blockPayBands.isEmpty()) DEFAULT_BLOCK_PAY_BANDS else config.blockPayBands
+    }
+
     fun computeAllowance(
         allowance: MonthlyAllowance,
         month: SalaryMonth,
         config: SalaryConfiguration
     ): Double {
         return when (allowance.type) {
-            MonthlyAllowanceType.FIXED_MONTHLY -> allowance.amount
+            MonthlyAllowanceType.FIXED_MONTHLY,
+            MonthlyAllowanceType.SAUDIZATION_ALLOWANCE -> allowance.amount
             MonthlyAllowanceType.PER_DUTY -> month.dutyCount * allowance.amount
             MonthlyAllowanceType.PER_DUTY_HOUR -> (month.dutyMinutes.coerceAtLeast(0) / 60.0) * allowance.amount
             MonthlyAllowanceType.PER_OVERTIME_DAY -> month.overtimeDays * allowance.amount
@@ -72,7 +82,7 @@ object SalaryCalculatorEngine {
             MonthlyAllowanceType.PER_BLOCK_HOURS_BANDS -> {
                 val minutes = baseBlockMinutes(month, config)
                 val maxHours = effectiveMaxBandHours(config)
-                computeProgressiveBlockPay(minutes, config.blockPayBands, maxHours)
+                computeProgressiveBlockPay(minutes, effectiveBlockPayBands(config), maxHours)
             }
             MonthlyAllowanceType.OTHER -> allowance.amount
         }
@@ -87,17 +97,74 @@ object SalaryCalculatorEngine {
             DeductionType.MONTHLY -> deduction.amount
             DeductionType.DAILY -> month.dutyCount * deduction.amount
             DeductionType.GOSI_PERSONAL_SAUDI -> {
-                val base = config.basicSalary + config.housingAllowance
+                val saudizationAllowances = config.monthlyAllowances
+                    .filter { it.type == MonthlyAllowanceType.SAUDIZATION_ALLOWANCE }
+                    .sumOf { it.amount }
+                val base = config.basicSalary + config.housingAllowance + saudizationAllowances
                 base * 0.0975
             }
         }
     }
 
     fun progressiveBlockPay(month: SalaryMonth, config: SalaryConfiguration): Double {
-        if (config.blockPayBands.isEmpty()) return 0.0
         val minutes = baseBlockMinutes(month, config)
         val maxHours = effectiveMaxBandHours(config)
-        return computeProgressiveBlockPay(minutes, config.blockPayBands, maxHours)
+        return computeProgressiveBlockPay(minutes, effectiveBlockPayBands(config), maxHours)
+    }
+
+    fun allowancesTotal(month: SalaryMonth, config: SalaryConfiguration, includeHousing: Boolean = true): Double {
+        return allowanceBreakdownLines(month, config, includeHousing).sumOf { it.amount }
+    }
+
+    fun allowanceBreakdownLines(
+        month: SalaryMonth,
+        config: SalaryConfiguration,
+        includeHousing: Boolean = true
+    ): List<SalaryAllowanceLine> {
+        val lines = mutableListOf<SalaryAllowanceLine>()
+        val flightBandAllowance = config.monthlyAllowances.firstOrNull { it.type == MonthlyAllowanceType.PER_BLOCK_HOURS_BANDS }
+        val flightBandTitle = flightBandAllowance?.name?.trim()?.takeIf { it.isNotEmpty() } ?: "Flying allowance"
+
+        progressiveBandsBreakdown(month, config, flightBandTitle)
+            .filter { it.amount != 0.0 }
+            .forEach { segment ->
+                lines.add(
+                    SalaryAllowanceLine(
+                        id = "automatic-flight-${segment.fromHours}-${segment.toHours}-${segment.ratePerHour}",
+                        name = segment.label,
+                        type = "",
+                        amount = segment.amount
+                    )
+                )
+            }
+
+        config.monthlyAllowances
+            .filter { it.type != MonthlyAllowanceType.PER_BLOCK_HOURS_BANDS }
+            .forEach { allowance ->
+                val amount = computeAllowance(allowance, month, config)
+                if (amount == 0.0) return@forEach
+                lines.add(
+                    SalaryAllowanceLine(
+                        id = "allowance-${allowance.id}",
+                        name = allowance.name.trim().ifEmpty { allowance.type.name },
+                        type = allowance.type.name,
+                        amount = amount
+                    )
+                )
+            }
+
+        if (includeHousing && config.housingAllowance != 0.0) {
+            lines.add(
+                SalaryAllowanceLine(
+                    id = "housing",
+                    name = "Housing allowance",
+                    type = "",
+                    amount = config.housingAllowance
+                )
+            )
+        }
+
+        return lines
     }
 
     fun computeProgressiveBlockPay(
@@ -121,7 +188,7 @@ object SalaryCalculatorEngine {
         val cleanTitle = title.trim()
         val baseTitle = if (cleanTitle.isEmpty()) "Flying allowance" else cleanTitle
 
-        val internals = computeProgressiveSegments(capped, config.blockPayBands, maxBandHours)
+        val internals = computeProgressiveSegments(capped, effectiveBlockPayBands(config), maxBandHours)
         return internals.map { s ->
             var label = "$baseTitle ${s.fromHours}–${s.toHours}h"
             if (s.toHours == maxBandHours) {
@@ -193,6 +260,16 @@ object SalaryCalculatorEngine {
 
         return result
     }
+}
+
+data class SalaryAllowanceLine(
+    val id: String,
+    val name: String,
+    val type: String,
+    val amount: Double
+) {
+    val title: String
+        get() = if (type.trim().isEmpty()) name else "$name ($type)"
 }
 
 data class ProgressiveBandSegment(

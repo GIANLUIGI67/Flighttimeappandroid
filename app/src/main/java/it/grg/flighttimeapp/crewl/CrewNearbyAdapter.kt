@@ -97,7 +97,7 @@ class CrewNearbyAdapter(
             // Try memory cache first; then Storage URL; then base64 fallback.
             // setImageDrawable(null) lets the bg_ios_circle XML background show through
             // as a proper circular placeholder for users who have no photo at all.
-            val cached = CrewPhotoLoader.shared.image(user.userId)
+            val cached = CrewPhotoLoader.shared.memoryImage(user.userId)
             if (cached != null) {
                 photo.setImageBitmap(cached)
             } else {
@@ -169,7 +169,7 @@ class CrewNearbyAdapter(
             onlineDot.visibility = if (user.isOnline) View.VISIBLE else View.GONE
             onlineDot.background?.setTint(itemView.context.getColor(R.color.green_ok))
 
-            val cached = CrewPhotoLoader.shared.image(user.userId)
+            val cached = CrewPhotoLoader.shared.memoryImage(user.userId)
             if (cached != null) {
                 photo.setImageBitmap(cached)
             } else {

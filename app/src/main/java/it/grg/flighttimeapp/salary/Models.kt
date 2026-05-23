@@ -13,6 +13,7 @@ enum class BlockTimeBase {
 
 enum class MonthlyAllowanceType {
     FIXED_MONTHLY,
+    SAUDIZATION_ALLOWANCE,
     PER_DUTY,
     PER_DUTY_HOUR,
     PER_OVERTIME_DAY,
@@ -64,34 +65,9 @@ data class SalaryConfiguration(
             return SalaryConfiguration(
                 currencyCode = "SAR",
                 blockTimeBase = BlockTimeBase.SCHEDULED,
-                monthlyAllowances = listOf(
-                    MonthlyAllowance(
-                        name = "Housing",
-                        type = MonthlyAllowanceType.FIXED_MONTHLY,
-                        amount = 8333.0
-                    ),
-                    MonthlyAllowance(
-                        name = "Transport",
-                        type = MonthlyAllowanceType.FIXED_MONTHLY,
-                        amount = 1200.0
-                    ),
-                    MonthlyAllowance(
-                        name = "Domestic layover",
-                        type = MonthlyAllowanceType.PER_DOMESTIC_LAYOVER_DAY,
-                        amount = 150.0
-                    ),
-                    MonthlyAllowance(
-                        name = "International layover",
-                        type = MonthlyAllowanceType.PER_INTERNATIONAL_LAYOVER_DAY,
-                        amount = 300.0
-                    )
-                ),
+                monthlyAllowances = emptyList(),
                 deductions = emptyList(),
-                blockPayBands = listOf(
-                    BlockPayBand(fromHours = 0, ratePerHour = 150.0),
-                    BlockPayBand(fromHours = 50, ratePerHour = 300.0),
-                    BlockPayBand(fromHours = 75, ratePerHour = 500.0)
-                ),
+                blockPayBands = emptyList(),
                 blockPayBandsMaxHours = SalaryCalculatorEngine.DEFAULT_BAND_HOURS,
                 basicSalary = 0.0,
                 housingAllowance = 0.0

@@ -232,10 +232,12 @@ class CrewProfileSettingsActivity : AppCompatActivity() {
     private fun loadBitmap(uri: Uri): android.graphics.Bitmap? {
         return if (android.os.Build.VERSION.SDK_INT >= 28) {
             val src = ImageDecoder.createSource(contentResolver, uri)
-            ImageDecoder.decodeBitmap(src)
+            ImageDecoder.decodeBitmap(src) { decoder, _, _ ->
+                decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+            }
         } else {
             contentResolver.openInputStream(uri)?.use { stream ->
-                android.graphics.BitmapFactory.decodeStream(stream)
+                CrewPhotoLoader.shared.decodeBytesToBitmap(stream.readBytes(), 1600)
             }
         }
     }

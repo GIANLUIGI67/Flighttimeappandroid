@@ -155,4 +155,25 @@
     <string name="salary_duty_time_pay">Paiement temps de duty</string>
     <string name="salary_sector_pay">Paiement par secteur</string>
     <string name="salary_band_label_format">%1$s %2$d-%3$dh - %4$s/heure</string>
+    <string name="salary_settings_use_automatic">Utiliser les paramètres automatiques</string>
+    <string name="salary_auto_settings_title">Paramètres automatiques</string>
+    <string name="salary_auto_settings_saudi_national">Nationalité saoudienne</string>
+    <string name="salary_auto_settings_captain">Captain</string>
+    <string name="salary_auto_settings_first_officer">First Officer</string>
+    <string name="salary_auto_settings_purser">Purser</string>
+    <string name="salary_auto_settings_cabin_crew">Cabin Crew</string>
+    <string name="salary_auto_settings_instructor">Instructeur</string>
+    <string name="salary_auto_settings_coming_soon">Bientôt</string>
+    <string name="salary_auto_preset_caption_captain">Configuration Captain actuelle</string>
+    <string name="salary_auto_preset_caption_first_officer">Configuration First Officer</string>
+    <string name="salary_auto_preset_caption_cabin_crew">Paliers de vol Cabin Crew</string>
+    <string name="salary_auto_preset_caption_soon">Preset pas encore disponible</string>
+    <string name="salary_auto_settings_review_warning">Vérifiez toujours attentivement les indemnités dans l’écran des paramètres, car les salaires varient selon la fiche de poste individuelle et l’ancienneté et doivent être personnalisés par l’utilisateur.</string>
+    <string name="salary_transport_allowance">Indemnité de transport</string>
+    <string name="allowance_type_saudization">Indemnité Saudization</string>
+    <string name="allowance_help_saudization">Indemnité Saudization mensuelle, incluse dans la base GOSI saoudienne lorsqu’elle est configurée.</string>
+    <string name="salary_auto_settings_applied">Parametres automatiques appliques</string>
+    <string name="salary_flying_allowance">Indemnite de vol</string>
+    <string name="payslip_audit_details">Detail des enregistrements</string>
+    <string name="payslip_header_place">Lieu</string>
 </resources>

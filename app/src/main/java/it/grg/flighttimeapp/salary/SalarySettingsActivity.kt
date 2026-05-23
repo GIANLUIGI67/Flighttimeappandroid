@@ -57,6 +57,10 @@ class SalarySettingsActivity : AppCompatActivity() {
             persistConfig()
             finish()
         }
+        findViewById<View>(R.id.settingsAutomaticPreset).setOnClickListener {
+            persistConfig()
+            startActivity(Intent(this, SalaryAutomaticSettingsActivity::class.java))
+        }
 
         setupCurrency()
         setupBasicSalary()
@@ -332,6 +336,7 @@ class SalarySettingsActivity : AppCompatActivity() {
     private fun allowanceTypeLabel(type: MonthlyAllowanceType): String {
         return when (type) {
             MonthlyAllowanceType.FIXED_MONTHLY -> getString(R.string.allowance_type_fixed_monthly)
+            MonthlyAllowanceType.SAUDIZATION_ALLOWANCE -> getString(R.string.allowance_type_saudization)
             MonthlyAllowanceType.PER_DUTY -> getString(R.string.allowance_type_per_duty)
             MonthlyAllowanceType.PER_DUTY_HOUR -> getString(R.string.allowance_type_per_duty_hour)
             MonthlyAllowanceType.PER_OVERTIME_DAY -> getString(R.string.allowance_type_per_overtime_day)

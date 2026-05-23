@@ -3,6 +3,8 @@ package it.grg.flighttimeapp
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.View
 import android.widget.EditText
 import android.widget.ImageButton
@@ -37,7 +39,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var adapter: FlightsAdapter
 
     private var allowNegativeTotals = false
-    private val chatStore = CrewLayoverChatStore.shared
+    private var chatStore: CrewLayoverChatStore? = null
+    private var mainStarted = false
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val startChatObserverRunnable = Runnable {
+        if (!mainStarted || isFinishing || isDestroyed) return@Runnable
+        ensureChatStore().startThreadsObserver()
+    }
     private lateinit var crewLayoverUnreadDot: View
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -124,20 +132,29 @@ class MainActivity : AppCompatActivity() {
 
         updateTotal()
         updateEmptyState()
-
-        chatStore.unreadThreadIds.observe(this) { unread ->
-            crewLayoverUnreadDot.visibility = if (unread.isNotEmpty()) View.VISIBLE else View.GONE
-        }
     }
 
     override fun onStart() {
         super.onStart()
-        chatStore.startThreadsObserver()
+        mainStarted = true
+        mainHandler.postDelayed(startChatObserverRunnable, 500L)
     }
 
     override fun onStop() {
         super.onStop()
-        chatStore.stopThreadsObserver()
+        mainStarted = false
+        mainHandler.removeCallbacks(startChatObserverRunnable)
+        chatStore?.stopThreadsObserver()
+    }
+
+    private fun ensureChatStore(): CrewLayoverChatStore {
+        chatStore?.let { return it }
+        return CrewLayoverChatStore.shared.also { store ->
+            chatStore = store
+            store.unreadThreadIds.observe(this) { unread ->
+                crewLayoverUnreadDot.visibility = if (unread.isNotEmpty()) View.VISIBLE else View.GONE
+            }
+        }
     }
 
     private fun addFlight(isPositive: Boolean) {

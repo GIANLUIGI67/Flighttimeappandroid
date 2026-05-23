@@ -39,6 +39,9 @@
             android:name=".salary.SalarySettingsActivity"
             android:exported="false" />
         <activity
+            android:name=".salary.SalaryAutomaticSettingsActivity"
+            android:exported="false" />
+        <activity
             android:name=".salary.AllowanceEditorActivity"
             android:exported="false" />
         <activity

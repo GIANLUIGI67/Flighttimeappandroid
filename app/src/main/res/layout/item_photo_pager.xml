@@ -8,6 +8,7 @@
         android:id="@+id/pagerImage"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:contentDescription="@string/cl_photo_message_preview"
         android:scaleType="fitCenter" />
 
 </FrameLayout>

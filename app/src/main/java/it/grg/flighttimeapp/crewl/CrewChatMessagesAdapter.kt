@@ -24,6 +24,7 @@ class CrewChatMessagesAdapter(
     private var myName: String? = null
     private var myPhoto: Bitmap? = null
     private val userCache: MutableMap<String, CrewUserInfo> = mutableMapOf()
+    private val fetchingUsers: MutableSet<String> = mutableSetOf()
 
     fun submit(newItems: List<CrewChatMessage>) {
         val diffResult = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
@@ -54,12 +55,19 @@ class CrewChatMessagesAdapter(
 
     override fun onBindViewHolder(holder: MsgVH, position: Int) {
         holder.bind(items[position], myUid, myName, myPhoto, userCache, onImageClick, onAvatarClick) { uid ->
-            if (userCache.containsKey(uid)) return@bind
+            if (fetchingUsers.contains(uid) ||
+                userCache.containsKey(uid) ||
+                CrewLayoverStore.shared.getUserSummary(uid) != null
+            ) {
+                return@bind
+            }
             fetchUser(uid)
         }
     }
 
     private fun fetchUser(uid: String) {
+        if (uid.isBlank() || fetchingUsers.contains(uid)) return
+        fetchingUsers.add(uid)
         FirebaseDatabase.getInstance().reference.child("crew_users").child(uid)
             .get()
             .addOnSuccessListener { snapshot ->
@@ -79,6 +87,9 @@ class CrewChatMessagesAdapter(
                         notifyItemChanged(index)
                     }
                 }
+            }
+            .addOnCompleteListener {
+                fetchingUsers.remove(uid)
             }
     }
 
@@ -103,6 +114,10 @@ class CrewChatMessagesAdapter(
         private val image: ImageView = itemView.findViewById(R.id.messageImage)
         private val content: LinearLayout = itemView.findViewById(R.id.messageContent)
 
+        init {
+            avatar.clipToOutline = true
+        }
+
         fun bind(
             msg: CrewChatMessage,
             myUid: String?,
@@ -114,7 +129,12 @@ class CrewChatMessagesAdapter(
             onNeedUser: (String) -> Unit
         ) {
             val isMe = msg.senderUid == myUid
-            val hasImage = !msg.imageBase64.isNullOrBlank()
+            val summary = CrewLayoverStore.shared.getUserSummary(msg.senderUid)
+            val info = cache[msg.senderUid]
+            if (msg.senderUid != "system" && info == null && summary == null) {
+                onNeedUser(msg.senderUid)
+            }
+            val hasImage = !msg.imageBase64.isNullOrBlank() && !msg.isE2EEncrypted
             val now = System.currentTimeMillis()
             val isExpired = hasImage && msg.imageExpiresAtMs > 0L && now > msg.imageExpiresAtMs
 
@@ -126,10 +146,10 @@ class CrewChatMessagesAdapter(
             } else {
                 image.visibility = View.GONE
                 tv.visibility = View.VISIBLE
-                tv.text = if (hasImage) { // Simplified as isExpired is always true if hasImage is true here
-                    tv.context.getString(R.string.cl_photo_expired)
-                } else {
-                    msg.text
+                tv.text = when {
+                    msg.isE2EEncrypted -> tv.context.getString(R.string.cl_e2e_message_preview)
+                    hasImage -> tv.context.getString(R.string.cl_photo_expired)
+                    else -> displayMessageText(msg.text)
                 }
                 image.setOnClickListener(null)
             }
@@ -137,7 +157,9 @@ class CrewChatMessagesAdapter(
             if (isMe) {
                 tv.setTextColor(tv.context.getColor(R.color.white))
                 tv.setBackgroundResource(R.drawable.bg_ios_btn_blue)
-                name.text = myName ?: tv.context.getString(R.string.cl_chat)
+                name.text = myName?.takeIf { it.isNotBlank() }
+                    ?: summary?.nickname?.takeIf { it.isNotBlank() }
+                    ?: tv.context.getString(R.string.cl_chat)
                 name.textAlignment = View.TEXT_ALIGNMENT_VIEW_END
             } else {
                 tv.setTextColor(tv.context.getColor(R.color.iosText))
@@ -145,14 +167,11 @@ class CrewChatMessagesAdapter(
                 if (msg.senderUid == "system") {
                     name.text = tv.context.getString(R.string.cl_system_sender_name)
                 } else {
-                    val info = cache[msg.senderUid]
-                    name.text = info?.nickname ?: tv.context.getString(R.string.cl_chat)
+                    name.text = info?.nickname?.takeIf { it.isNotBlank() }
+                        ?: summary?.nickname?.takeIf { it.isNotBlank() }
+                        ?: tv.context.getString(R.string.cl_chat)
                 }
                 name.textAlignment = View.TEXT_ALIGNMENT_VIEW_START
-                val info = cache[msg.senderUid]
-                if (msg.senderUid != "system" && info == null) {
-                    onNeedUser(msg.senderUid)
-                }
             }
 
             val rowLp = row.layoutParams as FrameLayout.LayoutParams
@@ -161,39 +180,50 @@ class CrewChatMessagesAdapter(
             row.layoutDirection = if (isMe) View.LAYOUT_DIRECTION_RTL else View.LAYOUT_DIRECTION_LTR
             content.layoutDirection = View.LAYOUT_DIRECTION_LTR
 
-            if (isMe) {
-                if (myPhoto != null) {
-                    avatar.setImageBitmap(myPhoto)
-                } else {
-                    avatar.setImageDrawable(null)
-                }
-            } else {
-                val info = cache[msg.senderUid]
-                val primaryRef = info?.primaryRef()
-                val bmp = when {
-                    primaryRef == null -> null
-                    primaryRef.startsWith("http") -> {
-                        val cached = CrewPhotoLoader.shared.image(msg.senderUid)
-                        if (cached != null) {
-                            cached
-                        } else {
-                            CrewPhotoLoader.shared.loadFromUrl(primaryRef, msg.senderUid) { loaded ->
-                                if (loaded != null) avatar.setImageBitmap(loaded)
-                            }
-                            null
-                        }
-                    }
-                    else -> CrewPhotoLoader.shared.getBitmap(msg.senderUid, primaryRef)
-                }
-                if (bmp != null) {
-                    avatar.setImageBitmap(bmp)
-                } else {
-                    avatar.setImageDrawable(null)
-                }
-            }
+            val primaryRef = info?.primaryRef() ?: summary?.primaryRef()
+            bindAvatar(msg.senderUid, if (isMe) myPhoto else null, primaryRef)
 
             avatar.setOnClickListener {
                 onAvatarClick?.invoke(msg)
+            }
+        }
+
+        private fun bindAvatar(uid: String, localBitmap: Bitmap?, primaryRef: String?) {
+            avatar.tag = uid
+            if (localBitmap != null) {
+                avatar.setImageBitmap(localBitmap)
+                return
+            }
+
+            CrewPhotoLoader.shared.memoryImage(uid)?.let {
+                avatar.setImageBitmap(it)
+                return
+            }
+
+            if (primaryRef.isNullOrBlank()) {
+                avatar.setImageDrawable(null)
+                return
+            }
+
+            if (primaryRef.startsWith("http")) {
+                avatar.setImageDrawable(null)
+                CrewPhotoLoader.shared.loadFromUrl(primaryRef, uid) { loaded ->
+                    if (loaded != null && avatar.tag == uid) avatar.setImageBitmap(loaded)
+                }
+            } else {
+                val bmp = CrewPhotoLoader.shared.getBitmap(uid, primaryRef)
+                if (bmp != null) avatar.setImageBitmap(bmp) else avatar.setImageDrawable(null)
+            }
+        }
+
+        private fun displayMessageText(raw: String): String {
+            val value = raw.trim()
+            return when {
+                value == "cl_e2e_message_preview" || value.startsWith("cl_e2e_") ->
+                    tv.context.getString(R.string.cl_e2e_message_preview)
+                value == "cl_photo_message_preview" ->
+                    tv.context.getString(R.string.cl_photo_message_preview)
+                else -> raw
             }
         }
     }

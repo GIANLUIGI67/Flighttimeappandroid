@@ -149,9 +149,10 @@ class CrewNearbyActivity : AppCompatActivity() {
     private fun hasPhoto(user: NearbyCrewUser): Boolean {
         if (user.photosUrls.isNotEmpty() || !user.photoUrl.isNullOrBlank()) return true
         if (user.photosB64.isNotEmpty() || !user.photoB64.isNullOrBlank()) return true
-        // b64 photos are stripped from NearbyCrewUser to save memory, but their decoded
-        // bitmaps are pre-cached in CrewPhotoLoader during snapshot processing.
-        return CrewPhotoLoader.shared.image(user.userId) != null
+        if (user.hasKnownPhoto) return true
+        // b64 photos are stripped from NearbyCrewUser to save memory; use only memory
+        // cache here so section building never decodes JPEGs on the UI thread.
+        return CrewPhotoLoader.shared.memoryImage(user.userId) != null
     }
 
     private fun applyDistanceUi(isUnlimited: Boolean, maxKm: Double) {

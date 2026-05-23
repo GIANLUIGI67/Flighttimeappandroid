@@ -23,6 +23,7 @@ class CrewPresenceService private constructor() : DefaultLifecycleObserver {
 
     @Volatile private var lastLat: Double = 0.0
     @Volatile private var lastLon: Double = 0.0
+    @Volatile private var lastPresenceWriteAtMs: Long = 0L
 
     private val root: DatabaseReference = FirebaseDatabase.getInstance().reference
     private var connectedHandle: ValueEventListener? = null
@@ -95,7 +96,9 @@ class CrewPresenceService private constructor() : DefaultLifecycleObserver {
                     updates["lat"] = lastLat
                     updates["lon"] = lastLon
                 }
+                lastPresenceWriteAtMs = System.currentTimeMillis()
                 root.child("crew_users/$currentUid").updateChildren(updates)
+                    .addOnFailureListener { CLog.e(TAG, "Presence heartbeat failed: ${it.message}") }
                 handler.postDelayed(this, CrewTiming.PRESENCE_HEARTBEAT_INTERVAL_MS)
             }
         }
@@ -123,6 +126,7 @@ class CrewPresenceService private constructor() : DefaultLifecycleObserver {
             updates["lon"] = lastLon
         }
 
+        lastPresenceWriteAtMs = System.currentTimeMillis()
         root.child("crew_users/$currentUid").updateChildren(updates)
             .addOnSuccessListener { CLog.d(TAG, "Presence -> ONLINE") }
             .addOnFailureListener { CLog.e(TAG, "Presence failed to set ONLINE: ${it.message}") }
@@ -137,17 +141,31 @@ class CrewPresenceService private constructor() : DefaultLifecycleObserver {
             "isOnline" to false,
             "lastSeenMs" to ServerValue.TIMESTAMP
         )
+        lastPresenceWriteAtMs = System.currentTimeMillis()
         root.child("crew_users/$currentUid").updateChildren(updates)
         CLog.d(TAG, "Presence -> OFFLINE")
     }
 
     fun updateLocation(lat: Double, lon: Double) {
+        val currentUid = uid
         if (lat == 0.0 && lon == 0.0) return
-        // Save in memory only — the heartbeat picks it up at the next tick (max 8s delay).
-        // This avoids a duplicate Firebase write every time GPS fires.
         lastLat = lat
         lastLon = lon
         CLog.d(TAG, "Location updated in memory: $lat, $lon")
+        if (currentUid == null || myState != State.ONLINE) return
+
+        val nowMs = System.currentTimeMillis()
+        if (nowMs - lastPresenceWriteAtMs < CrewTiming.PRESENCE_MIN_LOCATION_WRITE_INTERVAL_MS) return
+
+        val updates = mutableMapOf<String, Any>(
+            "isOnline" to true,
+            "lastSeenMs" to ServerValue.TIMESTAMP,
+            "lat" to lat,
+            "lon" to lon
+        )
+        lastPresenceWriteAtMs = nowMs
+        root.child("crew_users/$currentUid").updateChildren(updates)
+            .addOnFailureListener { CLog.e(TAG, "Presence location write failed: ${it.message}") }
     }
 
     fun stop() {
@@ -157,6 +175,7 @@ class CrewPresenceService private constructor() : DefaultLifecycleObserver {
                 "isOnline" to false,
                 "lastSeenMs" to ServerValue.TIMESTAMP
             )
+            lastPresenceWriteAtMs = System.currentTimeMillis()
             root.child("crew_users/$currentUid").updateChildren(updates)
 
             connectedHandle?.let { root.child(".info/connected").removeEventListener(it) }

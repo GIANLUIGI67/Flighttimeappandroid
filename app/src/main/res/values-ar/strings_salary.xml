@@ -155,4 +155,25 @@
     <string name="salary_duty_time_pay">بدل وقت المناوبة</string>
     <string name="salary_sector_pay">بدل القطاع</string>
     <string name="salary_band_label_format">%1$s %2$d-%3$dh - %4$s/ساعة</string>
+    <string name="salary_settings_use_automatic">استخدام الإعدادات التلقائية</string>
+    <string name="salary_auto_settings_title">الإعدادات التلقائية</string>
+    <string name="salary_auto_settings_saudi_national">سعودي الجنسية</string>
+    <string name="salary_auto_settings_captain">كابتن</string>
+    <string name="salary_auto_settings_first_officer">مساعد طيار</string>
+    <string name="salary_auto_settings_purser">رئيس طاقم المقصورة</string>
+    <string name="salary_auto_settings_cabin_crew">طاقم المقصورة</string>
+    <string name="salary_auto_settings_instructor">مدرب</string>
+    <string name="salary_auto_settings_coming_soon">قريباً</string>
+    <string name="salary_auto_preset_caption_captain">إعداد الكابتن الحالي</string>
+    <string name="salary_auto_preset_caption_first_officer">إعداد مساعد الطيار</string>
+    <string name="salary_auto_preset_caption_cabin_crew">شرائح ساعات طيران طاقم المقصورة</string>
+    <string name="salary_auto_preset_caption_soon">الإعداد غير متاح حالياً</string>
+    <string name="salary_auto_settings_review_warning">تحقق دائماً بعناية من البدلات في شاشة الإعدادات، لأن الرواتب تختلف حسب الوصف الوظيفي الفردي والأقدمية ويجب أن يخصصها المستخدم.</string>
+    <string name="salary_transport_allowance">بدل النقل</string>
+    <string name="allowance_type_saudization">بدل السعودة</string>
+    <string name="allowance_help_saudization">بدل السعودة الشهري، ويُدرج في أساس GOSI السعودي عند تهيئته.</string>
+    <string name="salary_auto_settings_applied">تم تطبيق الإعدادات التلقائية</string>
+    <string name="salary_flying_allowance">بدل الطيران</string>
+    <string name="payslip_audit_details">تفاصيل السجلات</string>
+    <string name="payslip_header_place">المكان</string>
 </resources>
