@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">飛行時間</string>
+    <string name="app_name">FlightTimeApp</string>
     <string name="pro_label">PRO</string>
     <string name="pro_active">有効</string>
     <string name="update_access">アクセスを更新</string>

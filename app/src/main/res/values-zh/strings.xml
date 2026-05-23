@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">飞行时间</string>
+    <string name="app_name">FlightTimeApp</string>
     <string name="pro_label">PRO</string>
     <string name="pro_active">激活</string>
     <string name="update_access">更新权限</string>

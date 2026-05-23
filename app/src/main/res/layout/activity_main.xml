@@ -6,339 +6,320 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/iosBackground"
-    android:fillViewport="true"
-    android:clipToPadding="false">
+    android:clipToPadding="false"
+    android:fillViewport="true">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingBottom="48dp">
+        android:paddingBottom="42dp">
 
-        <!-- HEADER ROW -->
-        <LinearLayout
-            android:id="@+id/headerRow"
+        <FrameLayout
+            android:id="@+id/homeHero"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:paddingHorizontal="18dp"
-            android:paddingVertical="12dp"
+            android:layout_height="330dp"
+            android:background="@drawable/bg_home_hero"
             app:layout_constraintTop_toTopOf="parent">
 
-            <LinearLayout
-                android:layout_width="wrap_content"
+            <ImageView
+                android:id="@+id/heroPlane"
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:layout_gravity="top|end"
+                android:layout_marginTop="112dp"
+                android:layout_marginEnd="58dp"
+                android:contentDescription="@string/app_name"
+                android:rotation="-22"
+                android:src="@drawable/ic_airplane" />
+
+            <TextView
+                android:id="@+id/heroTitle"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:gravity="center">
+                android:layout_gravity="bottom"
+                android:layout_marginStart="32dp"
+                android:layout_marginEnd="32dp"
+                android:layout_marginBottom="105dp"
+                android:ellipsize="end"
+                android:includeFontPadding="false"
+                android:singleLine="true"
+                android:text="@string/app_name"
+                android:textColor="@android:color/white"
+                android:textSize="41sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/heroSubtitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom"
+                android:layout_marginStart="32dp"
+                android:layout_marginEnd="32dp"
+                android:layout_marginBottom="72dp"
+                android:ellipsize="end"
+                android:singleLine="true"
+                android:text="@string/home_companion"
+                android:textColor="#D6FFFFFF"
+                android:textSize="21sp"
+                android:textStyle="bold" />
+        </FrameLayout>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardCalculator"
+            android:layout_width="0dp"
+            android:layout_height="126dp"
+            android:layout_marginHorizontal="18dp"
+            android:layout_marginTop="-28dp"
+            android:clickable="true"
+            android:focusable="true"
+            app:cardBackgroundColor="@android:color/white"
+            app:cardCornerRadius="26dp"
+            app:cardElevation="8dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/homeHero"
+            app:strokeColor="@color/homeCardStroke"
+            app:strokeWidth="1dp">
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:paddingHorizontal="20dp">
+
                 <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:src="@drawable/ic_check_circle"
-                    android:contentDescription="@string/cd_pro_icon"
-                    app:tint="@color/iosGreen"/>
+                    android:id="@+id/calculatorIcon"
+                    android:layout_width="82dp"
+                    android:layout_height="82dp"
+                    android:contentDescription="@string/flight_time_calculator"
+                    android:src="@drawable/ic_calculator_clock"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:id="@+id/calculatorTitle"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="@string/pro_label"
-                    android:textColor="@color/iosGreen"
-                    android:textSize="14sp"
-                    android:textStyle="bold"/>
+                    android:layout_marginStart="18dp"
+                    android:layout_marginEnd="14dp"
+                    android:ellipsize="end"
+                    android:includeFontPadding="false"
+                    android:text="@string/flight_time_line_1"
+                    android:textColor="@color/homeNavy"
+                    android:textSize="25sp"
+                    android:textStyle="bold"
+                    app:layout_constraintBottom_toTopOf="@id/calculatorSubtitle"
+                    app:layout_constraintEnd_toStartOf="@id/startButtonLabel"
+                    app:layout_constraintStart_toEndOf="@id/calculatorIcon"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintVertical_chainStyle="packed" />
+
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:id="@+id/calculatorSubtitle"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="@string/pro_active"
-                    android:textColor="@color/iosHint"
-                    android:textSize="11sp"/>
-            </LinearLayout>
+                    android:layout_marginStart="18dp"
+                    android:layout_marginEnd="14dp"
+                    android:ellipsize="end"
+                    android:includeFontPadding="false"
+                    android:text="@string/calculator_line_2"
+                    android:textColor="@color/homeNavy"
+                    android:textSize="25sp"
+                    android:textStyle="bold"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/startButtonLabel"
+                    app:layout_constraintStart_toEndOf="@id/calculatorIcon"
+                    app:layout_constraintTop_toBottomOf="@id/calculatorTitle" />
 
-            <View
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:layout_weight="1"/>
+                <ImageView
+                    android:id="@+id/calculatorChevron"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:contentDescription="@string/cd_chevron"
+                    android:src="@drawable/ic_chevron_right"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:tint="@color/homeNavy" />
 
-            <TextView
-                android:id="@+id/upgradeLink"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/update_access"
-                android:textColor="@color/iosBlue"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:layout_marginEnd="12dp"/>
+                <TextView
+                    android:id="@+id/startButtonLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="42dp"
+                    android:background="@drawable/bg_home_start"
+                    android:gravity="center"
+                    android:minWidth="92dp"
+                    android:paddingHorizontal="18dp"
+                    android:text="@string/start"
+                    android:textColor="@android:color/white"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+        </com.google.android.material.card.MaterialCardView>
 
-            <TextView
-                android:id="@+id/detailsLink"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/details"
-                android:textColor="@color/iosBlue"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:layout_marginEnd="12dp"/>
-
-            <TextView
-                android:id="@+id/restoreLink"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/restore_purchases"
-                android:textColor="@color/iosBlue"
-                android:textSize="15sp"
-                android:textStyle="bold"/>
-        </LinearLayout>
-
-        <View
-            android:id="@+id/headerDivider"
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@color/iosCardStroke"
-            app:layout_constraintTop_toBottomOf="@id/headerRow"/>
-
-        <!-- CARDS -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/cardSalary"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:layout_marginHorizontal="18dp"
-            app:cardBackgroundColor="@color/iosCardBg"
-            app:cardCornerRadius="10dp"
-            app:cardElevation="0dp"
-            app:strokeWidth="0.5dp"
-            app:strokeColor="@color/iosCardStroke"
-            app:layout_constraintTop_toBottomOf="@id/headerDivider"
+            style="@style/HomeTile"
+            android:layout_marginStart="28dp"
+            android:layout_marginTop="22dp"
+            app:layout_constraintEnd_toStartOf="@id/cardLayover"
+            app:layout_constraintHorizontal_chainStyle="spread"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="48dp" android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp">
-                <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_money" android:contentDescription="@string/cd_salary_icon" app:tint="@color/iosIcon"/>
-                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="12dp" android:text="@string/salary_calculator" android:textSize="17sp" android:textStyle="bold" android:textColor="@color/iosText"/>
-                <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@drawable/ic_chevron_right" android:contentDescription="@string/cd_chevron" app:tint="@color/iosChevron"/>
-            </LinearLayout>
+            app:layout_constraintTop_toBottomOf="@id/cardCalculator">
+            <include layout="@layout/include_tile_salary" />
         </com.google.android.material.card.MaterialCardView>
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/cardLayover"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:layout_marginHorizontal="18dp"
-            app:cardBackgroundColor="@color/iosCardBg"
-            app:cardCornerRadius="10dp"
-            app:cardElevation="0dp"
-            app:strokeWidth="0.5dp"
-            app:strokeColor="@color/iosCardStroke"
-            app:layout_constraintTop_toBottomOf="@id/cardSalary"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="48dp" android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp">
-                <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_groups" android:contentDescription="@string/cd_crew_icon" app:tint="@color/iosIcon"/>
-                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="12dp" android:text="@string/crew_layover" android:textSize="17sp" android:textStyle="bold" android:textColor="@color/iosText"/>
-                <View
-                    android:id="@+id/crewLayoverUnreadDot"
-                    android:layout_width="10dp"
-                    android:layout_height="10dp"
-                    android:layout_marginEnd="8dp"
-                    android:background="@drawable/unread_dot"
-                    android:visibility="gone" />
-                <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@drawable/ic_chevron_right" android:contentDescription="@string/cd_chevron" app:tint="@color/iosChevron"/>
-            </LinearLayout>
+            style="@style/HomeTile"
+            android:layout_marginHorizontal="14dp"
+            app:layout_constraintEnd_toStartOf="@id/cardTraining"
+            app:layout_constraintStart_toEndOf="@id/cardSalary"
+            app:layout_constraintTop_toTopOf="@id/cardSalary">
+            <include layout="@layout/include_tile_layover" />
         </com.google.android.material.card.MaterialCardView>
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/cardTraining"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:layout_marginHorizontal="18dp"
-            app:cardBackgroundColor="@color/iosCardBg"
-            app:cardCornerRadius="10dp"
-            app:cardElevation="0dp"
-            app:strokeWidth="0.5dp"
-            app:strokeColor="@color/iosCardStroke"
-            app:layout_constraintTop_toBottomOf="@id/cardLayover"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="48dp" android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp">
-                <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_school" android:contentDescription="@string/cd_training_icon" app:tint="@color/iosIcon"/>
-                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="12dp" android:text="@string/training" android:textSize="17sp" android:textStyle="bold" android:textColor="@color/iosText"/>
-                <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@drawable/ic_chevron_right" android:contentDescription="@string/cd_chevron" app:tint="@color/iosChevron"/>
-            </LinearLayout>
+            style="@style/HomeTile"
+            android:layout_marginEnd="28dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/cardLayover"
+            app:layout_constraintTop_toTopOf="@id/cardSalary">
+            <include layout="@layout/include_tile_training" />
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- TOTAL SECTION (Centered) -->
-        <LinearLayout
-            android:id="@+id/totalBlock"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center"
-            app:layout_constraintTop_toBottomOf="@id/cardTraining"
-            app:layout_constraintBottom_toTopOf="@id/negativeSwitch"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            android:layout_marginTop="18dp">
-            <TextView
-                android:id="@+id/totalTitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/total_flight_time"
-                android:textSize="20sp"
-                android:textStyle="bold"
-                android:textColor="@color/iosText"/>
-            <TextView
-                android:id="@+id/totalText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="@string/total_time_default"
-                android:textSize="52sp"
-                android:fontFamily="sans-serif-condensed"
-                android:textStyle="bold"
-                android:fontFeatureSettings="'zero'"
-                android:textColor="@color/iosText"/>
-        </LinearLayout>
-
-        <!-- TOGGLE -->
-        <com.google.android.material.materialswitch.MaterialSwitch
-            android:id="@+id/negativeSwitch"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:layout_marginHorizontal="18dp"
-            android:text="@string/enable_negative_totals"
-            android:textColor="@color/iosText"
-            android:textSize="17sp"
-            app:trackTint="@color/switch_track_green"
-            app:thumbTint="@color/switch_thumb_white"
-            app:layout_constraintTop_toBottomOf="@id/totalBlock"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"/>
-
-        <!-- INPUT ROW -->
-        <LinearLayout
-            android:id="@+id/inputRow"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:layout_marginHorizontal="18dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            app:layout_constraintTop_toBottomOf="@id/negativeSwitch"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
-            <EditText android:id="@+id/hhInput" android:layout_width="60dp" android:layout_height="44dp" android:background="@drawable/bg_ios_field" android:gravity="center" android:hint="@string/hours_hint" android:inputType="number" android:maxLength="2" android:textColor="@color/iosText" android:textSize="17sp"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:paddingHorizontal="6dp" android:text="@string/colon" android:textSize="18sp" android:textColor="@color/iosText"/>
-            <EditText android:id="@+id/mmInput" android:layout_width="60dp" android:layout_height="44dp" android:background="@drawable/bg_ios_field" android:gravity="center" android:hint="@string/minutes_hint" android:inputType="number" android:maxLength="2" android:textColor="@color/iosText" android:textSize="17sp"/>
-            <EditText android:id="@+id/noteInput" android:layout_width="0dp" android:layout_height="44dp" android:layout_marginStart="8dp" android:layout_weight="1" android:background="@drawable/bg_ios_field" android:hint="@string/note_hint" android:paddingHorizontal="12dp" android:singleLine="true" android:textColor="@color/iosText" android:textSize="17sp"/>
-            <ImageButton android:id="@+id/addBtn" android:layout_width="38dp" android:layout_height="32dp" android:layout_marginStart="8dp" android:background="@drawable/bg_ios_btn_blue" android:src="@drawable/ic_plus_white" android:contentDescription="@string/plus"/>
-            <ImageButton android:id="@+id/subtractBtn" android:layout_width="38dp" android:layout_height="32dp" android:layout_marginStart="8dp" android:background="@drawable/bg_ios_btn_grey" android:src="@drawable/ic_minus_blue" android:contentDescription="@string/minus"/>
-        </LinearLayout>
-
-        <!-- EMPTY STATE / RECYCLER -->
-        <TextView
-            android:id="@+id/emptyText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:layout_marginHorizontal="18dp"
-            android:text="@string/no_flights_added"
-            android:textSize="20sp"
-            android:textColor="@color/iosHint"
-            app:layout_constraintTop_toBottomOf="@id/inputRow"/>
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/flightsRecycler"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:nestedScrollingEnabled="false"
-            android:visibility="gone"
-            app:layout_constraintTop_toBottomOf="@id/inputRow"/>
-
-        <androidx.constraintlayout.widget.Barrier
-            android:id="@+id/listBarrier"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:barrierDirection="bottom"
-            app:constraint_referenced_ids="emptyText,flightsRecycler" />
-
-        <!-- CONTACT SECTION -->
-        <TextView
-            android:id="@+id/contactHint"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:layout_marginHorizontal="24dp"
-            android:gravity="center"
-            android:text="@string/contact_hint"
-            android:textColor="@color/iosHint"
-            android:textSize="17sp"
-            app:layout_constraintTop_toBottomOf="@id/listBarrier"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"/>
-
-        <TextView
-            android:id="@+id/contactBtn"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/contact_me"
-            android:textColor="@color/iosBlue"
-            android:textSize="19sp"
-            android:textStyle="bold"
-            app:layout_constraintTop_toBottomOf="@id/contactHint"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"/>
-
-        <!-- SHARE CARD -->
         <com.google.android.material.card.MaterialCardView
-            android:id="@+id/shareCard"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:layout_marginHorizontal="18dp"
-            app:cardBackgroundColor="@color/iosCardBg"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="0dp"
-            app:layout_constraintTop_toBottomOf="@id/contactBtn"
+            android:id="@+id/contactBtn"
+            style="@style/HomeTile"
+            android:layout_marginStart="28dp"
+            android:layout_marginTop="16dp"
+            app:layout_constraintEnd_toStartOf="@id/shareBtnCard"
+            app:layout_constraintHorizontal_chainStyle="spread"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:padding="20dp"
-                android:text="@string/share_hint"
-                android:gravity="center"
-                android:textColor="@color/iosText"
-                android:textSize="16sp"
-                android:lineSpacingExtra="4dp"/>
+            app:layout_constraintTop_toBottomOf="@id/cardSalary">
+            <include layout="@layout/include_tile_contact" />
         </com.google.android.material.card.MaterialCardView>
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/shareBtnCard"
-            android:layout_width="0dp"
-            android:layout_height="44dp"
-            android:layout_marginTop="14dp"
-            android:layout_marginBottom="12dp"
-            android:layout_marginHorizontal="18dp"
-            app:cardBackgroundColor="@color/iosCardBg"
-            app:cardCornerRadius="10dp"
-            app:cardElevation="0dp"
-            app:strokeWidth="0.5dp"
-            app:strokeColor="@color/iosCardStroke"
-            app:layout_constraintTop_toBottomOf="@id/shareCard"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
+            style="@style/HomeTile"
+            android:layout_marginHorizontal="14dp"
+            app:layout_constraintEnd_toStartOf="@id/cardPro"
+            app:layout_constraintStart_toEndOf="@id/contactBtn"
+            app:layout_constraintTop_toTopOf="@id/contactBtn">
+            <include layout="@layout/include_tile_share" />
+        </com.google.android.material.card.MaterialCardView>
 
-            <TextView
-                android:id="@+id/shareBtnText"
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardPro"
+            style="@style/HomeTile"
+            android:layout_marginEnd="28dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/shareBtnCard"
+            app:layout_constraintTop_toTopOf="@id/contactBtn">
+            <include layout="@layout/include_tile_pro" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/crewReadyCard"
+            android:layout_width="0dp"
+            android:layout_height="96dp"
+            android:layout_marginHorizontal="18dp"
+            android:layout_marginTop="24dp"
+            app:cardBackgroundColor="@android:color/white"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="6dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/contactBtn"
+            app:strokeColor="@color/homeCardStroke"
+            app:strokeWidth="1dp">
+
+            <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:gravity="center"
-                android:text="@string/share_app"
-                android:textColor="@color/iosText"
-                android:textSize="17sp"
-                android:textStyle="bold"/>
+                android:paddingHorizontal="18dp">
+
+                <FrameLayout
+                    android:id="@+id/crewIconCircle"
+                    android:layout_width="54dp"
+                    android:layout_height="54dp"
+                    android:background="@drawable/bg_home_orange_circle"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent">
+                    <ImageView
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:layout_gravity="center"
+                        android:contentDescription="@string/crew_ready"
+                        android:src="@drawable/ic_people" />
+                </FrameLayout>
+
+                <TextView
+                    android:id="@+id/crewReadyTitle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginEnd="8dp"
+                    android:ellipsize="end"
+                    android:singleLine="true"
+                    android:text="@string/crew_ready"
+                    android:textColor="@color/homeNavy"
+                    android:textSize="24sp"
+                    android:textStyle="bold"
+                    app:layout_constraintBottom_toTopOf="@id/crewReadyMessage"
+                    app:layout_constraintEnd_toStartOf="@id/crewWindow"
+                    app:layout_constraintStart_toEndOf="@id/crewIconCircle"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintVertical_chainStyle="packed" />
+
+                <View
+                    android:id="@+id/crewReadyDot"
+                    android:layout_width="9dp"
+                    android:layout_height="9dp"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/unread_dot_green"
+                    app:layout_constraintBottom_toBottomOf="@id/crewReadyTitle"
+                    app:layout_constraintStart_toEndOf="@id/crewReadyTitle"
+                    app:layout_constraintTop_toTopOf="@id/crewReadyTitle" />
+
+                <TextView
+                    android:id="@+id/crewReadyMessage"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginEnd="8dp"
+                    android:ellipsize="end"
+                    android:singleLine="true"
+                    android:text="@string/crew_ready_message"
+                    android:textColor="@color/iosHint"
+                    android:textSize="15sp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/crewWindow"
+                    app:layout_constraintStart_toEndOf="@id/crewIconCircle"
+                    app:layout_constraintTop_toBottomOf="@id/crewReadyTitle" />
+
+                <FrameLayout
+                    android:id="@+id/crewWindow"
+                    android:layout_width="70dp"
+                    android:layout_height="60dp"
+                    android:background="@drawable/bg_home_window"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent">
+                    <ImageView
+                        android:layout_width="34dp"
+                        android:layout_height="34dp"
+                        android:layout_gravity="center"
+                        android:contentDescription="@string/app_name"
+                        android:rotation="-18"
+                        android:src="@drawable/ic_airplane" />
+                </FrameLayout>
+            </androidx.constraintlayout.widget.ConstraintLayout>
         </com.google.android.material.card.MaterialCardView>
 
     </androidx.constraintlayout.widget.ConstraintLayout>

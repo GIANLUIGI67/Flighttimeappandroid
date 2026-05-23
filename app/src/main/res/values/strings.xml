@@ -1,6 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Flight Time</string>
+    <string name="app_name">FlightTimeApp</string>
+    <string name="home_companion">Your crew companion</string>
+    <string name="flight_time_calculator">Flight Time Calculator</string>
+    <string name="flight_time_line_1">Flight Time</string>
+    <string name="calculator_line_2">Calculator</string>
+    <string name="start">Start</string>
+    <string name="layover">Layover</string>
+    <string name="crew_ready">Crew ready</string>
+    <string name="crew_ready_message">All set. Have a great flight!</string>
+    <string name="scientific">Scientific</string>
+    <string name="tape">Tape</string>
+    <string name="no_calculations_yet">No calculations yet.</string>
+    <string name="clear">Clear</string>
+    <string name="negative_totals_on">Negative totals on</string>
+    <string name="negative_totals_off">Negative totals off</string>
+    <string name="division_by_zero">Division by zero</string>
     <string name="pro_label">PRO</string>
     <string name="pro_active">ACTIVE</string>
     <string name="update_access">Update access</string>

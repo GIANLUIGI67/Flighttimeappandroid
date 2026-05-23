@@ -32,6 +32,11 @@
     <color name="iosBackground">#FFFFFF</color>
     <color name="iosButtonGrey">#E9E9EE</color>
     <color name="ic_launcher_background">#0B1E3D</color>
+    <color name="homeNavy">#031B3D</color>
+    <color name="homeOrange">#FF6A00</color>
+    <color name="homeGold">#FFB21A</color>
+    <color name="homeSoftBg">#F8FAFD</color>
+    <color name="homeCardStroke">#E3E7EE</color>
 
     <color name="qbOptionNormalBg">@color/iosBackground</color>
     <color name="qbOptionNormalStroke">@color/iosCardStroke</color>

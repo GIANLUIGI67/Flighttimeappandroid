@@ -99,6 +99,9 @@
             android:name=".SubscriptionDetailsActivity"
             android:exported="false" />
         <activity
+            android:name=".FlightTimeCalculatorActivity"
+            android:exported="false" />
+        <activity
             android:name=".crewl.CrewLayoverActivity"
             android:exported="false" />
         <activity
