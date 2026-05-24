@@ -80,9 +80,26 @@ object CrewAuthManager {
     }
 
     private fun isNetworkError(error: Exception): Boolean {
-        if (error is FirebaseNetworkException) return true
-        val message = error.message?.lowercase().orEmpty()
-        return listOf("network", "timeout", "unreachable", "host", "connection").any { message.contains(it) }
+        var current: Throwable? = error
+        while (current != null) {
+            if (current is FirebaseNetworkException) return true
+            val message = current.message?.lowercase().orEmpty()
+            val looksNetworkRelated = listOf(
+                "network",
+                "timeout",
+                "timed out",
+                "unreachable",
+                "host",
+                "connect",
+                "connection",
+                "socket",
+                "unable to resolve",
+                "no route"
+            ).any { message.contains(it) }
+            if (looksNetworkRelated) return true
+            current = current.cause
+        }
+        return false
     }
 
     private fun hasValidatedInternet(context: Context): Boolean {

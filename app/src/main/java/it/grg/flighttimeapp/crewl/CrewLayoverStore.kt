@@ -207,10 +207,15 @@ class CrewLayoverStore private constructor() {
         if (isStarted || isStarting) return
         isStarting = true
         CLog.d(TAG, "startIfPossible begin")
-        CrewAuthManager.ensureSignedIn { uid ->
+        CrewAuthManager.ensureSignedInDetailed(appContext) { result ->
             isStarting = false
+            val uid = result.uid
+            if (uid.isNullOrBlank() && result.isNetworkFailure) {
+                CLog.w(TAG, "startIfPossible skipped: network unavailable")
+                return@ensureSignedInDetailed
+            }
             CLog.d(TAG, "startIfPossible uid=${uid ?: "null"}")
-            if (uid.isNullOrBlank()) return@ensureSignedIn
+            if (uid.isNullOrBlank()) return@ensureSignedInDetailed
             CrewPresenceService.shared.start(uid)
             start(uid)
         }
