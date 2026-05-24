@@ -19,7 +19,7 @@
         android:ellipsize="end"
         android:gravity="center"
         android:maxLines="1"
-        android:text="@string/salary_calculator"
+        android:text="@string/home_salary_short"
         android:textColor="@color/homeNavy"
         android:textSize="16sp"
         android:textStyle="bold" />
