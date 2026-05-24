@@ -53,6 +53,8 @@ class CrewLayoverStore private constructor() {
 
     private val usersCache: MutableMap<String, Map<String, Any?>> = mutableMapOf()
     private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private var authRetryRunnable: Runnable? = null
+    private var authRetryAttempt = 0
     private var nearbyRebuildRunnable: Runnable? = null
     private var staleSweepRunnable: Runnable? = null
     private var legacyProfileCleanupInFlight = false
@@ -205,20 +207,41 @@ class CrewLayoverStore private constructor() {
 
     private fun startIfPossible() {
         if (isStarted || isStarting) return
+        cancelAuthRetry()
         isStarting = true
         CLog.d(TAG, "startIfPossible begin")
         CrewAuthManager.ensureSignedInDetailed(appContext) { result ->
             isStarting = false
             val uid = result.uid
             if (uid.isNullOrBlank() && result.isNetworkFailure) {
-                CLog.w(TAG, "startIfPossible skipped: network unavailable")
+                scheduleAuthRetry("network unavailable")
                 return@ensureSignedInDetailed
             }
             CLog.d(TAG, "startIfPossible uid=${uid ?: "null"}")
             if (uid.isNullOrBlank()) return@ensureSignedInDetailed
+            authRetryAttempt = 0
             CrewPresenceService.shared.start(uid)
             start(uid)
         }
+    }
+
+    private fun scheduleAuthRetry(reason: String) {
+        if (isStarted || authRetryRunnable != null) return
+        val delays = longArrayOf(2_000L, 5_000L, 10_000L, 20_000L, 30_000L)
+        val delayMs = delays[authRetryAttempt.coerceAtMost(delays.lastIndex)]
+        authRetryAttempt += 1
+        CLog.w(TAG, "startIfPossible retry in ${delayMs}ms: $reason")
+        val retry = Runnable {
+            authRetryRunnable = null
+            startIfPossible()
+        }
+        authRetryRunnable = retry
+        mainHandler.postDelayed(retry, delayMs)
+    }
+
+    private fun cancelAuthRetry() {
+        authRetryRunnable?.let { mainHandler.removeCallbacks(it) }
+        authRetryRunnable = null
     }
 
     fun start(userId: String) {
@@ -296,6 +319,8 @@ class CrewLayoverStore private constructor() {
     }
 
     fun stop() {
+        cancelAuthRetry()
+        authRetryAttempt = 0
         stopAllObservers()
         stopStaleSweepTimer()
         CrewPresenceService.shared.stop()
