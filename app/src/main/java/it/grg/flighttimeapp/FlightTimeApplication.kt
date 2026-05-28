@@ -2,10 +2,13 @@ package it.grg.flighttimeapp
 
 import android.app.Activity
 import android.app.Application
+import android.content.res.Resources
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.View
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import android.util.Log
@@ -13,12 +16,14 @@ import com.google.firebase.appcheck.AppCheckProviderFactory
 import com.google.firebase.appcheck.FirebaseAppCheck
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
 import com.google.firebase.database.FirebaseDatabase
+import java.util.Locale
 
 class FlightTimeApplication : Application() {
     private val mainHandler = Handler(Looper.getMainLooper())
 
     override fun onCreate() {
         super.onCreate()
+        AppLanguageFallback.apply()
         installAppCheckProvider()
         scheduleStartupDiagnostics()
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
@@ -104,5 +109,20 @@ class FlightTimeApplication : Application() {
             Log.w("FlightTimeApp", "Debug App Check provider unavailable: ${e.message}")
             null
         }
+    }
+}
+
+private object AppLanguageFallback {
+    private val supportedLanguages = setOf("en", "fr", "it", "ar", "es", "zh", "de", "ja", "cs")
+
+    fun apply() {
+        val primaryLocale = Resources.getSystem().configuration.locales.get(0)
+        val languageTag = resolvedLanguageTag(primaryLocale)
+        AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(languageTag))
+    }
+
+    private fun resolvedLanguageTag(locale: Locale): String {
+        val language = locale.language.lowercase(Locale.US)
+        return if (supportedLanguages.contains(language)) language else "en"
     }
 }

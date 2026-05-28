@@ -1,8 +1,10 @@
 package it.grg.flighttimeapp
 
+import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
@@ -58,10 +60,12 @@ class FlightTimeCalculatorActivity : AppCompatActivity() {
         val scroll = ScrollView(this).apply {
             setBackgroundColor(color(R.color.iosBackground))
             isFillViewport = true
+            preventForceDark(this)
         }
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(18), dp(20), dp(18), dp(28))
+            preventForceDark(this)
         }
         scroll.addView(root, LinearLayout.LayoutParams(-1, -2))
         setContentView(scroll)
@@ -104,8 +108,9 @@ class FlightTimeCalculatorActivity : AppCompatActivity() {
     private fun segmentControl(): View {
         return LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            background = rounded(0xFFECEEF3.toInt(), dp(20).toFloat())
+            background = rounded(if (isDarkMode) 0xFF1C1C1E.toInt() else 0xFFECEEF3.toInt(), dp(20).toFloat())
             setPadding(dp(3), dp(3), dp(3), dp(3))
+            preventForceDark(this)
 
             flightTab = segmentTab(getString(R.string.flight_time_line_1)) { showMode(Mode.FLIGHT_TIME) }
             scientificTab = segmentTab(getString(R.string.scientific)) { showMode(Mode.SCIENTIFIC) }
@@ -126,10 +131,18 @@ class FlightTimeCalculatorActivity : AppCompatActivity() {
 
     private fun showMode(newMode: Mode) {
         mode = newMode
-        flightTab.background = if (mode == Mode.FLIGHT_TIME) rounded(Color.WHITE, dp(18).toFloat()) else null
-        scientificTab.background = if (mode == Mode.SCIENTIFIC) rounded(Color.WHITE, dp(18).toFloat()) else null
-        flightTab.setTextColor(color(if (mode == Mode.FLIGHT_TIME) R.color.homeNavy else R.color.iosText))
-        scientificTab.setTextColor(color(if (mode == Mode.SCIENTIFIC) R.color.homeNavy else R.color.iosText))
+        flightTab.background = if (mode == Mode.FLIGHT_TIME) {
+            rounded(if (isDarkMode) 0xFF2C2C2E.toInt() else Color.WHITE, dp(18).toFloat())
+        } else {
+            null
+        }
+        scientificTab.background = if (mode == Mode.SCIENTIFIC) {
+            rounded(if (isDarkMode) 0xFF2C2C2E.toInt() else Color.WHITE, dp(18).toFloat())
+        } else {
+            null
+        }
+        flightTab.setTextColor(segmentTextColor(mode == Mode.FLIGHT_TIME))
+        scientificTab.setTextColor(segmentTextColor(mode == Mode.SCIENTIFIC))
 
         contentHost.removeAllViews()
         contentHost.addView(if (mode == Mode.FLIGHT_TIME) buildFlightTimePanel() else buildScientificPanel())
@@ -231,7 +244,7 @@ class FlightTimeCalculatorActivity : AppCompatActivity() {
             }
             header.addView(TextView(context).apply {
                 text = getString(R.string.tape)
-                setTextColor(color(R.color.homeNavy))
+                setTextColor(calculatorPrimaryText())
                 textSize = 21f
                 typeface = Typeface.DEFAULT_BOLD
             }, LinearLayout.LayoutParams(0, -2, 1f))
@@ -324,9 +337,10 @@ class FlightTimeCalculatorActivity : AppCompatActivity() {
     }
 
     private fun setTimeOperation(operation: String) {
-        if (timePendingOperation != null) {
-            resolveTimeOperation()
-        } else {
+        if (timePendingOperation != null && !timeShouldResetInput) {
+            resolveTimeOperation(keepAccumulator = true)
+            if (timeDisplay == "Error") return
+        } else if (timePendingOperation == null) {
             timeAccumulatorMinutes = parseMinutes(timeDisplay)
         }
         timePendingOperation = operation
@@ -334,7 +348,7 @@ class FlightTimeCalculatorActivity : AppCompatActivity() {
         timeShouldResetInput = true
     }
 
-    private fun resolveTimeOperation() {
+    private fun resolveTimeOperation(keepAccumulator: Boolean = false) {
         val operation = timePendingOperation ?: return
         val left = timeAccumulatorMinutes ?: return
         val rightText = timeDisplay
@@ -361,7 +375,7 @@ class FlightTimeCalculatorActivity : AppCompatActivity() {
         timeExpression = "$leftText $operation $rightText ="
         timeDisplay = resultText
         timeTape.add("$leftText $operation $rightText = $resultText")
-        timeAccumulatorMinutes = result
+        timeAccumulatorMinutes = if (keepAccumulator) result else null
         timePendingOperation = null
         timeShouldResetInput = true
         renderTimeTape()
@@ -419,7 +433,7 @@ class FlightTimeCalculatorActivity : AppCompatActivity() {
             timeTape.takeLast(5).forEach {
                 timeTapeList.addView(TextView(this).apply {
                     text = it
-                    setTextColor(color(R.color.homeNavy))
+                    setTextColor(calculatorPrimaryText())
                     textSize = 15f
                     typeface = Typeface.MONOSPACE
                 }, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(6) })
@@ -452,7 +466,7 @@ class FlightTimeCalculatorActivity : AppCompatActivity() {
             stack.addView(sciExpressionText, LinearLayout.LayoutParams(-1, -2))
             sciDisplayText = TextView(context).apply {
                 text = sciDisplay
-                setTextColor(color(R.color.homeNavy))
+                setTextColor(calculatorPrimaryText())
                 textSize = 42f
                 typeface = Typeface.DEFAULT_BOLD
                 gravity = Gravity.END
@@ -546,9 +560,10 @@ class FlightTimeCalculatorActivity : AppCompatActivity() {
     }
 
     private fun setScientificOperation(operation: String) {
-        if (sciPendingOperation != null) {
-            resolveScientificOperation()
-        } else {
+        if (sciPendingOperation != null && !sciShouldResetInput) {
+            resolveScientificOperation(keepAccumulator = true)
+            if (sciDisplay == "Error") return
+        } else if (sciPendingOperation == null) {
             sciAccumulator = sciDisplay.toDoubleOrNull() ?: 0.0
         }
         sciPendingOperation = operation
@@ -556,7 +571,7 @@ class FlightTimeCalculatorActivity : AppCompatActivity() {
         sciShouldResetInput = true
     }
 
-    private fun resolveScientificOperation() {
+    private fun resolveScientificOperation(keepAccumulator: Boolean = false) {
         val operation = sciPendingOperation ?: return
         val left = sciAccumulator ?: return
         val right = sciDisplay.toDoubleOrNull() ?: 0.0
@@ -569,7 +584,7 @@ class FlightTimeCalculatorActivity : AppCompatActivity() {
         }
         sciExpression = "${formatNumber(left)} $operation ${formatNumber(right)} ="
         sciDisplay = formatNumber(result)
-        sciAccumulator = null
+        sciAccumulator = if (keepAccumulator) result else null
         sciPendingOperation = null
         sciShouldResetInput = true
     }
@@ -623,11 +638,12 @@ class FlightTimeCalculatorActivity : AppCompatActivity() {
                 when {
                     isEquals -> Color.WHITE
                     isOperator -> color(R.color.homeOrange)
-                    isUtility -> color(R.color.iosHint)
-                    else -> color(R.color.homeNavy)
+                    isUtility -> calculatorUtilityText()
+                    else -> calculatorPrimaryText()
                 }
             )
-            background = if (isEquals) gradientButton() else rounded(0xFFF7F8FB.toInt(), dp(16).toFloat())
+            background = if (isEquals) gradientButton() else rounded(calculatorKeyBackground(), dp(16).toFloat())
+            preventForceDark(this)
             setOnClickListener { onPress(key) }
         }
     }
@@ -636,10 +652,11 @@ class FlightTimeCalculatorActivity : AppCompatActivity() {
         return MaterialCardView(this).apply {
             radius = dp(24).toFloat()
             cardElevation = dp(6).toFloat()
-            setCardBackgroundColor(Color.WHITE)
+            setCardBackgroundColor(calculatorCardBackground())
             strokeWidth = dp(1)
-            strokeColor = color(R.color.homeCardStroke)
+            strokeColor = calculatorCardStroke()
             layoutParams = LinearLayout.LayoutParams(-1, -2)
+            preventForceDark(this)
         }
     }
 
@@ -665,6 +682,34 @@ class FlightTimeCalculatorActivity : AppCompatActivity() {
         return GradientDrawable().apply {
             setColor(colorValue)
             cornerRadius = radius
+        }
+    }
+
+    private val isDarkMode: Boolean
+        get() = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+
+    private fun calculatorPrimaryText(): Int = if (isDarkMode) Color.WHITE else color(R.color.homeNavy)
+
+    private fun calculatorUtilityText(): Int = if (isDarkMode) 0xFFC7C7CC.toInt() else color(R.color.iosHint)
+
+    private fun calculatorKeyBackground(): Int = if (isDarkMode) 0xFF2C2C2E.toInt() else 0xFFF7F8FB.toInt()
+
+    private fun calculatorCardBackground(): Int = if (isDarkMode) 0xFF1C1C1E.toInt() else Color.WHITE
+
+    private fun calculatorCardStroke(): Int = if (isDarkMode) 0xFF3A3A3C.toInt() else color(R.color.homeCardStroke)
+
+    private fun segmentTextColor(isSelected: Boolean): Int {
+        return when {
+            isSelected && isDarkMode -> Color.WHITE
+            isSelected -> color(R.color.homeNavy)
+            isDarkMode -> 0xFFC7C7CC.toInt()
+            else -> color(R.color.iosText)
+        }
+    }
+
+    private fun preventForceDark(view: View) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            view.isForceDarkAllowed = false
         }
     }
 
