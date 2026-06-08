@@ -108,7 +108,7 @@ class FlightTimeCalculatorActivity : AppCompatActivity() {
     private fun segmentControl(): View {
         return LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            background = rounded(if (isDarkMode) 0xFF1C1C1E.toInt() else 0xFFECEEF3.toInt(), dp(20).toFloat())
+            background = rounded(if (isDarkMode) 0xFF101014.toInt() else 0xFFECEEF3.toInt(), dp(20).toFloat())
             setPadding(dp(3), dp(3), dp(3), dp(3))
             preventForceDark(this)
 
@@ -132,12 +132,12 @@ class FlightTimeCalculatorActivity : AppCompatActivity() {
     private fun showMode(newMode: Mode) {
         mode = newMode
         flightTab.background = if (mode == Mode.FLIGHT_TIME) {
-            rounded(if (isDarkMode) 0xFF2C2C2E.toInt() else Color.WHITE, dp(18).toFloat())
+            rounded(if (isDarkMode) color(R.color.homeOrange) else Color.WHITE, dp(18).toFloat())
         } else {
             null
         }
         scientificTab.background = if (mode == Mode.SCIENTIFIC) {
-            rounded(if (isDarkMode) 0xFF2C2C2E.toInt() else Color.WHITE, dp(18).toFloat())
+            rounded(if (isDarkMode) color(R.color.homeOrange) else Color.WHITE, dp(18).toFloat())
         } else {
             null
         }
@@ -702,8 +702,8 @@ class FlightTimeCalculatorActivity : AppCompatActivity() {
         return when {
             isSelected && isDarkMode -> Color.WHITE
             isSelected -> color(R.color.homeNavy)
-            isDarkMode -> 0xFFC7C7CC.toInt()
-            else -> color(R.color.iosText)
+            isDarkMode -> 0xE6FFFFFF.toInt()
+            else -> color(R.color.homeNavy)
         }
     }
 

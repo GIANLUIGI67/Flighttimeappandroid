@@ -11,6 +11,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
+import it.grg.flighttimeapp.crewl.CrewForumActivity
 import it.grg.flighttimeapp.crewl.CrewLayoverChatStore
 import it.grg.flighttimeapp.crewl.CrewSettingsActivity
 import it.grg.flighttimeapp.salary.SalaryGate
@@ -47,6 +48,15 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.cardTraining).setOnClickListener {
             startActivity(Intent(this, TrainingActivity::class.java))
         }
+        findViewById<View>(R.id.cardCrewJobs).setOnClickListener {
+            showComingSoon()
+        }
+        findViewById<View>(R.id.cardCrewTools).setOnClickListener {
+            showComingSoon()
+        }
+        findViewById<View>(R.id.cardCrewForum).setOnClickListener {
+            startActivity(Intent(this, CrewForumActivity::class.java))
+        }
         findViewById<View>(R.id.contactBtn).setOnClickListener {
             openFeedbackEmail()
         }
@@ -58,6 +68,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         updateProTile()
+    }
+
+    private fun showComingSoon() {
+        Toast.makeText(this, getString(R.string.coming_soon), Toast.LENGTH_SHORT).show()
     }
 
     override fun onStart() {

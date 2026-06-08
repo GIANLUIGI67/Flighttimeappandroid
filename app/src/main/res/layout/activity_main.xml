@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.core.widget.NestedScrollView
+<androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/main"
@@ -7,17 +7,12 @@
     android:layout_height="match_parent"
     android:background="@color/iosBackground"
     android:clipToPadding="false"
-    android:fillViewport="true">
+    android:paddingBottom="28dp">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <FrameLayout
+        android:id="@+id/homeHero"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingBottom="42dp">
-
-        <FrameLayout
-            android:id="@+id/homeHero"
-            android:layout_width="match_parent"
-            android:layout_height="322dp"
+        android:layout_height="250dp"
             android:background="@drawable/bg_home_hero"
             app:layout_constraintTop_toTopOf="parent">
 
@@ -38,9 +33,9 @@
             <ImageView
                 android:id="@+id/heroSwoosh"
                 android:layout_width="match_parent"
-                android:layout_height="220dp"
+                android:layout_height="180dp"
                 android:layout_gravity="bottom"
-                android:layout_marginBottom="6dp"
+                android:layout_marginBottom="2dp"
                 android:alpha="0.96"
                 android:contentDescription="@string/app_name"
                 android:scaleType="fitXY"
@@ -48,13 +43,13 @@
 
             <ImageView
                 android:id="@+id/heroPlane"
-                android:layout_width="92dp"
-                android:layout_height="92dp"
+                android:layout_width="74dp"
+                android:layout_height="74dp"
                 android:layout_gravity="top|end"
-                android:layout_marginTop="104dp"
-                android:layout_marginEnd="46dp"
+                android:layout_marginTop="88dp"
+                android:layout_marginEnd="18dp"
                 android:contentDescription="@string/app_name"
-                android:rotation="45"
+                android:rotation="49"
                 android:src="@drawable/ic_plane_badge" />
 
             <TextView
@@ -63,14 +58,14 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="bottom"
                 android:layout_marginStart="32dp"
-                android:layout_marginEnd="32dp"
-                android:layout_marginBottom="96dp"
+                android:layout_marginEnd="102dp"
+                android:layout_marginBottom="82dp"
                 android:ellipsize="end"
                 android:includeFontPadding="false"
                 android:singleLine="true"
                 android:text="@string/app_name"
                 android:textColor="@android:color/white"
-                android:textSize="38sp"
+                android:textSize="35sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -79,13 +74,13 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="bottom"
                 android:layout_marginStart="32dp"
-                android:layout_marginEnd="32dp"
-                android:layout_marginBottom="64dp"
+                android:layout_marginEnd="96dp"
+                android:layout_marginBottom="52dp"
                 android:ellipsize="end"
                 android:singleLine="true"
                 android:text="@string/home_companion"
                 android:textColor="#D6FFFFFF"
-                android:textSize="20sp"
+                android:textSize="18sp"
                 android:textStyle="bold" />
 
             <View
@@ -100,9 +95,9 @@
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/cardCalculator"
             android:layout_width="0dp"
-            android:layout_height="118dp"
+            android:layout_height="104dp"
             android:layout_marginHorizontal="18dp"
-            android:layout_marginTop="-36dp"
+            android:layout_marginTop="-42dp"
             android:clickable="true"
             android:focusable="true"
             app:cardBackgroundColor="@android:color/white"
@@ -121,8 +116,8 @@
 
                 <ImageView
                     android:id="@+id/calculatorIcon"
-                    android:layout_width="70dp"
-                    android:layout_height="70dp"
+                    android:layout_width="62dp"
+                    android:layout_height="62dp"
                     android:contentDescription="@string/flight_time_calculator"
                     android:src="@drawable/ic_calculator_clock"
                     app:layout_constraintBottom_toBottomOf="parent"
@@ -139,7 +134,7 @@
                     android:includeFontPadding="false"
                     android:text="@string/flight_time_line_1"
                     android:textColor="@color/homeNavy"
-                    android:textSize="22sp"
+                    android:textSize="20sp"
                     android:textStyle="bold"
                     app:layout_constraintBottom_toTopOf="@id/calculatorSubtitle"
                     app:layout_constraintEnd_toStartOf="@id/startButtonLabel"
@@ -157,7 +152,7 @@
                     android:includeFontPadding="false"
                     android:text="@string/calculator_line_2"
                     android:textColor="@color/homeNavy"
-                    android:textSize="22sp"
+                    android:textSize="20sp"
                     android:textStyle="bold"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toStartOf="@id/startButtonLabel"
@@ -177,14 +172,14 @@
                 <TextView
                     android:id="@+id/startButtonLabel"
                     android:layout_width="wrap_content"
-                    android:layout_height="48dp"
+                    android:layout_height="44dp"
                     android:background="@drawable/bg_home_start"
                     android:gravity="center"
                     android:minWidth="84dp"
                     android:paddingHorizontal="16dp"
                     android:text="@string/start"
                     android:textColor="@android:color/white"
-                    android:textSize="17sp"
+                    android:textSize="16sp"
                     android:textStyle="bold"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
@@ -196,7 +191,7 @@
             android:id="@+id/cardSalary"
             style="@style/HomeTile"
             android:layout_marginStart="24dp"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="10dp"
             app:layout_constraintEnd_toStartOf="@id/cardLayover"
             app:layout_constraintHorizontal_chainStyle="spread"
             app:layout_constraintStart_toStartOf="parent"
@@ -225,14 +220,46 @@
         </com.google.android.material.card.MaterialCardView>
 
         <com.google.android.material.card.MaterialCardView
-            android:id="@+id/contactBtn"
+            android:id="@+id/cardCrewJobs"
             style="@style/HomeTile"
             android:layout_marginStart="24dp"
-            android:layout_marginTop="14dp"
-            app:layout_constraintEnd_toStartOf="@id/shareBtnCard"
+            android:layout_marginTop="8dp"
+            app:layout_constraintEnd_toStartOf="@id/cardCrewTools"
             app:layout_constraintHorizontal_chainStyle="spread"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/cardSalary">
+            <include layout="@layout/include_tile_crew_jobs" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardCrewTools"
+            style="@style/HomeTile"
+            android:layout_marginHorizontal="12dp"
+            app:layout_constraintEnd_toStartOf="@id/cardCrewForum"
+            app:layout_constraintStart_toEndOf="@id/cardCrewJobs"
+            app:layout_constraintTop_toTopOf="@id/cardCrewJobs">
+            <include layout="@layout/include_tile_crew_tools" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardCrewForum"
+            style="@style/HomeTile"
+            android:layout_marginEnd="24dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/cardCrewTools"
+            app:layout_constraintTop_toTopOf="@id/cardCrewJobs">
+            <include layout="@layout/include_tile_crew_forum" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/contactBtn"
+            style="@style/HomeTile"
+            android:layout_marginStart="24dp"
+            android:layout_marginTop="8dp"
+            app:layout_constraintEnd_toStartOf="@id/shareBtnCard"
+            app:layout_constraintHorizontal_chainStyle="spread"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/cardCrewJobs">
             <include layout="@layout/include_tile_contact" />
         </com.google.android.material.card.MaterialCardView>
 
@@ -259,15 +286,18 @@
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/crewReadyCard"
             android:layout_width="0dp"
-            android:layout_height="96dp"
+            android:layout_height="84dp"
             android:layout_marginHorizontal="18dp"
-            android:layout_marginTop="18dp"
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="18dp"
             app:cardBackgroundColor="@android:color/white"
             app:cardCornerRadius="24dp"
             app:cardElevation="6dp"
             app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/contactBtn"
+            app:layout_constraintVertical_bias="1"
             app:strokeColor="@color/homeCardStroke"
             app:strokeWidth="1dp">
 
@@ -278,15 +308,15 @@
 
                 <FrameLayout
                     android:id="@+id/crewIconCircle"
-                    android:layout_width="58dp"
-                    android:layout_height="58dp"
+                    android:layout_width="52dp"
+                    android:layout_height="52dp"
                     android:background="@drawable/bg_home_orange_circle"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent">
                     <ImageView
-                        android:layout_width="34dp"
-                        android:layout_height="34dp"
+                        android:layout_width="30dp"
+                        android:layout_height="30dp"
                         android:layout_gravity="center"
                         android:contentDescription="@string/crew_ready"
                         android:src="@drawable/ic_people"
@@ -303,7 +333,7 @@
                     android:singleLine="true"
                     android:text="@string/crew_ready"
                     android:textColor="@color/homeNavy"
-                    android:textSize="24sp"
+                    android:textSize="22sp"
                     android:textStyle="bold"
                     app:layout_constraintBottom_toTopOf="@id/crewReadyMessage"
                     app:layout_constraintEnd_toStartOf="@id/crewWindow"
@@ -331,7 +361,7 @@
                     android:maxLines="1"
                     android:text="@string/crew_ready_message"
                     android:textColor="@color/iosHint"
-                    android:textSize="13sp"
+                    android:textSize="12sp"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toStartOf="@id/crewWindow"
                     app:layout_constraintStart_toEndOf="@id/crewIconCircle"
@@ -339,8 +369,8 @@
 
                 <FrameLayout
                     android:id="@+id/crewWindow"
-                    android:layout_width="72dp"
-                    android:layout_height="62dp"
+                    android:layout_width="68dp"
+                    android:layout_height="56dp"
                     android:background="@drawable/bg_home_window"
                     android:clipToOutline="true"
                     app:layout_constraintBottom_toBottomOf="parent"
@@ -357,15 +387,24 @@
                         android:layout_height="match_parent"
                         android:background="#33031B3D" />
                     <ImageView
-                        android:layout_width="44dp"
-                        android:layout_height="44dp"
-                        android:layout_gravity="center"
+                        android:layout_width="74dp"
+                        android:layout_height="50dp"
+                        android:layout_gravity="bottom|start"
+                        android:layout_marginStart="-4dp"
+                        android:layout_marginBottom="3dp"
                         android:contentDescription="@string/app_name"
-                        android:rotation="45"
+                        android:scaleType="fitXY"
+                        android:src="@drawable/ic_home_mini_swoosh" />
+                    <ImageView
+                        android:layout_width="42dp"
+                        android:layout_height="42dp"
+                        android:layout_gravity="center_vertical|end"
+                        android:layout_marginEnd="7dp"
+                        android:contentDescription="@string/app_name"
+                        android:rotation="49"
                         android:src="@drawable/ic_plane_badge" />
                 </FrameLayout>
             </androidx.constraintlayout.widget.ConstraintLayout>
         </com.google.android.material.card.MaterialCardView>
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
-</androidx.core.widget.NestedScrollView>
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -44,7 +44,7 @@
 
     <style name="HomeTile">
         <item name="android:layout_width">0dp</item>
-        <item name="android:layout_height">108dp</item>
+        <item name="android:layout_height">94dp</item>
         <item name="android:clickable">true</item>
         <item name="android:focusable">true</item>
         <item name="cardBackgroundColor">@android:color/white</item>

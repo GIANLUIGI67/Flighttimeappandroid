@@ -16,8 +16,8 @@ android {
         minSdk = 24
         targetSdk = 36
 
-        versionCode = 25
-        versionName = "1.12.3"
+        versionCode = 26
+        versionName = "1.12.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -68,6 +68,7 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
     implementation(libs.firebase.database)
+    implementation(libs.firebase.firestore)
     implementation(libs.firebase.storage)
     implementation(libs.firebase.appcheck)
     implementation(libs.firebase.appcheck.playintegrity)

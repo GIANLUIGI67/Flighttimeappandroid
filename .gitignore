@@ -11,3 +11,8 @@ local.properties
 # Firebase config (contains API keys — embedded in app bundle at build time, not needed in repo)
 google-services.json
 app/google-services.json
+
+# Release artifacts
+app/release/
+*.aab
+*.apk
