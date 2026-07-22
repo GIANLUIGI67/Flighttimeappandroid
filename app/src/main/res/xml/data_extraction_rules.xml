@@ -5,15 +5,11 @@
 -->
 <data-extraction-rules>
     <cloud-backup>
-        <!-- TODO: Use <include> and <exclude> to control what is backed up.
-        <include .../>
-        <exclude .../>
-        -->
+        <!-- Preserve Salary history while excluding device/auth identity by
+             allowing only the dedicated Salary SharedPreferences file. -->
+        <include domain="sharedpref" path="salary_storage.xml" />
     </cloud-backup>
-    <!--
     <device-transfer>
-        <include .../>
-        <exclude .../>
+        <include domain="sharedpref" path="salary_storage.xml" />
     </device-transfer>
-    -->
 </data-extraction-rules>

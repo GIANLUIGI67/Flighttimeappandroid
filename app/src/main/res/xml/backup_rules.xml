@@ -6,8 +6,11 @@
    See https://developer.android.com/about/versions/12/backup-restore
 -->
 <full-backup-content>
-    <!--
-   <include domain="sharedpref" path="."/>
-   <exclude domain="sharedpref" path="device.xml"/>
--->
+    <!-- Salary months and settings are user-created records. Keep this file
+         eligible for encrypted Android Auto Backup without restoring device
+         identity or authentication preferences onto another installation. -->
+    <include
+        domain="sharedpref"
+        path="salary_storage.xml"
+        requireFlags="clientSideEncryption" />
 </full-backup-content>
