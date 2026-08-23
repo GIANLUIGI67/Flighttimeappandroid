@@ -3,6 +3,19 @@ plugins {
     alias(libs.plugins.google.services)
 }
 
+val packageReleaseNativeSymbolFallback by tasks.registering(Zip::class) {
+    group = "build"
+    description = "Packages exported symbols from pre-stripped native dependencies for Play Console."
+    dependsOn("mergeReleaseNativeLibs")
+    from(layout.buildDirectory.dir("intermediates/merged_native_libs/release/mergeReleaseNativeLibs/out/lib"))
+    archiveFileName.set("native-debug-symbols.zip")
+    destinationDirectory.set(layout.buildDirectory.dir("outputs/native-debug-symbols/release"))
+}
+
+tasks.matching { it.name == "bundleRelease" }.configureEach {
+    finalizedBy(packageReleaseNativeSymbolFallback)
+}
+
 android {
     namespace = "it.grg.flighttimeapp"
     compileSdk = 36
