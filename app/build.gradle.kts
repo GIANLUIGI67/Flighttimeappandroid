@@ -16,16 +16,21 @@ android {
         minSdk = 24
         targetSdk = 36
 
-        versionCode = 34
-        versionName = "1.12.12"
+        versionCode = 35
+        versionName = "1.12.13"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             isShrinkResources = false
+            // Package native symbols automatically whenever dependencies provide them.
+            // AndroidX DataStore currently ships its shared-counter library already stripped.
+            ndk {
+                debugSymbolLevel = "SYMBOL_TABLE"
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -37,12 +42,6 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
         isCoreLibraryDesugaringEnabled = true
-    }
-
-    packaging {
-        jniLibs {
-            keepDebugSymbols += "**/libdatastore_shared_counter.so"
-        }
     }
 }
 
