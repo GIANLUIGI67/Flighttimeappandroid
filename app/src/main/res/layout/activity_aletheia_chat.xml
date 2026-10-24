@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/iosBackground"
+    android:fitsSystemWindows="true">
+
+    <ImageButton
+        android:id="@+id/aletheiaChatBack"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:background="@android:color/transparent"
+        android:contentDescription="@string/aletheia_back"
+        android:src="@drawable/ic_back"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:tint="@color/iosText" />
+
+    <TextView
+        android:id="@+id/aletheiaChatTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="@string/aletheia_brand"
+        android:textColor="@color/iosText"
+        android:textSize="17sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="@id/aletheiaChatBack"
+        app:layout_constraintEnd_toStartOf="@id/aletheiaChatSettings"
+        app:layout_constraintStart_toEndOf="@id/aletheiaChatBack"
+        app:layout_constraintTop_toTopOf="@id/aletheiaChatBack" />
+
+    <ImageButton
+        android:id="@+id/aletheiaChatSettings"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginEnd="8dp"
+        android:background="@android:color/transparent"
+        android:contentDescription="@string/aletheia_settings"
+        android:src="@drawable/ic_settings"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/aletheiaChatBack"
+        app:tint="@color/iosText" />
+
+    <TextView
+        android:id="@+id/aletheiaChatSubtitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:textColor="@color/iosHint"
+        android:textSize="12sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/aletheiaChatBack" />
+
+    <LinearLayout
+        android:id="@+id/aletheiaModeRow"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="8dp"
+        android:gravity="center"
+        android:orientation="horizontal"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/aletheiaChatSubtitle">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/aletheiaModeOnline"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="6dp"
+            android:layout_weight="1"
+            android:text="@string/aletheia_mode_online"
+            android:textAllCaps="false" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/aletheiaModeOffline"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:text="@string/aletheia_mode_offline"
+            android:textAllCaps="false" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/aletheiaThinkingRow"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/aletheiaModeRow">
+
+        <ImageView
+            android:id="@+id/aletheiaThinkingIcon"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:contentDescription="@string/aletheia_thinking"
+            android:src="@drawable/ic_aletheia_thinking"
+            app:tint="@color/homeOrange" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="@string/aletheia_thinking"
+            android:textColor="@color/iosHint"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/aletheiaRecycler"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:paddingHorizontal="12dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        app:layout_constraintBottom_toTopOf="@id/aletheiaInputRow"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/aletheiaThinkingRow" />
+
+    <LinearLayout
+        android:id="@+id/aletheiaInputRow"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="@color/homeSoftBg"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="10dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <EditText
+            android:id="@+id/aletheiaInput"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@drawable/bg_ios_field"
+            android:hint="@string/aletheia_input_hint"
+            android:importantForAutofill="no"
+            android:inputType="textCapSentences|textMultiLine"
+            android:maxLines="5"
+            android:minHeight="44dp"
+            android:padding="12dp"
+            android:textColor="@color/iosText"
+            android:textColorHint="@color/iosHint"
+            android:textSize="15sp" />
+
+        <ImageButton
+            android:id="@+id/aletheiaSend"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_ios_circle"
+            android:contentDescription="@string/aletheia_send"
+            android:src="@drawable/ic_send"
+            app:tint="@color/homeOrange" />
+    </LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

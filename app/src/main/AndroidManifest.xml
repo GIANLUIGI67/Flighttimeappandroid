@@ -11,6 +11,7 @@
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="com.android.vending.BILLING" />
 
     <application
         android:name=".FlightTimeApplication"
@@ -101,6 +102,19 @@
             android:exported="false" />
         <activity
             android:name=".SubscriptionDetailsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".aletheia.AletheiaHubActivity"
+            android:exported="false" />
+        <activity
+            android:name=".aletheia.AletheiaChatActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".aletheia.AletheiaPaywallActivity"
+            android:exported="false" />
+        <activity
+            android:name=".aletheia.AletheiaSettingsActivity"
             android:exported="false" />
         <activity
             android:name=".FlightTimeCalculatorActivity"

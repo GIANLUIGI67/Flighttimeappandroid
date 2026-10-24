@@ -11,6 +11,8 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
+import it.grg.flighttimeapp.aletheia.AletheiaFeature
+import it.grg.flighttimeapp.aletheia.AletheiaHubActivity
 import it.grg.flighttimeapp.crewl.CrewForumActivity
 import it.grg.flighttimeapp.crewl.CrewLayoverChatStore
 import it.grg.flighttimeapp.crewl.CrewSettingsActivity
@@ -52,7 +54,11 @@ class MainActivity : AppCompatActivity() {
             showComingSoon()
         }
         findViewById<View>(R.id.cardCrewTools).setOnClickListener {
-            showComingSoon()
+            if (AletheiaFeature.isEnabled) {
+                startActivity(Intent(this, AletheiaHubActivity::class.java))
+            } else {
+                showComingSoon()
+            }
         }
         findViewById<View>(R.id.cardCrewForum).setOnClickListener {
             startActivity(Intent(this, CrewForumActivity::class.java))

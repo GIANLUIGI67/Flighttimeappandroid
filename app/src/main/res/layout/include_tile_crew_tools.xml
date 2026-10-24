@@ -24,13 +24,14 @@
         android:textSize="13sp"
         android:textStyle="bold" />
     <TextView
+        android:id="@+id/crewToolsBadge"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="3dp"
         android:background="@drawable/bg_coming_soon_badge"
         android:paddingHorizontal="8dp"
         android:paddingVertical="3dp"
-        android:text="@string/coming_soon"
+        android:text="@string/aletheia_brand"
         android:textColor="@color/homeOrange"
         android:textSize="8sp"
         android:textStyle="bold" />

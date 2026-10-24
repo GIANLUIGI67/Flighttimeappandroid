@@ -19,10 +19,17 @@ android {
         versionCode = 26
         versionName = "1.12.4"
 
+        // Rollback-safe gate for Aletheia Beta (Crew Tools). Flip false to hide entry points.
+        buildConfigField("boolean", "ALETHEIA_ENABLED", "true")
+        buildConfigField("String", "ALETHEIA_VERSION", "\"1.1\"")
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
+        debug {
+            buildConfigField("boolean", "ALETHEIA_ENABLED", "true")
+        }
         release {
             isMinifyEnabled = false
             isShrinkResources = false
@@ -30,6 +37,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            buildConfigField("boolean", "ALETHEIA_ENABLED", "true")
         }
     }
 
@@ -73,6 +81,10 @@ dependencies {
     implementation(libs.firebase.appcheck)
     implementation(libs.firebase.appcheck.playintegrity)
     debugImplementation(libs.firebase.appcheck.debug)
+    implementation(libs.firebase.functions)
+    implementation(libs.billing.ktx)
+    implementation(libs.androidx.recyclerview)
+    implementation(libs.kotlinx.coroutines.android)
     implementation(libs.play.services.location)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
 
