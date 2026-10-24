@@ -19,7 +19,8 @@ android {
         versionCode = 26
         versionName = "1.12.4"
 
-        // Rollback-safe gate for Aletheia Beta (Crew Tools). Flip false to hide entry points.
+        // Aletheia Beta (Crew Tools). Product ships enabled.
+        // Rollback: set this AND every buildType override below to false (buildType fields win).
         buildConfigField("boolean", "ALETHEIA_ENABLED", "true")
         buildConfigField("String", "ALETHEIA_VERSION", "\"1.1\"")
 
@@ -28,6 +29,7 @@ android {
 
     buildTypes {
         debug {
+            // Intentionally enabled for product; override to false together with defaultConfig to roll back.
             buildConfigField("boolean", "ALETHEIA_ENABLED", "true")
         }
         release {
@@ -37,6 +39,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Product wants Aletheia on in release. Changing only defaultConfig does NOT disable this.
             buildConfigField("boolean", "ALETHEIA_ENABLED", "true")
         }
     }

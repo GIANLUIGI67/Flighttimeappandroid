@@ -2,12 +2,15 @@ package it.grg.flighttimeapp.aletheia
 
 import android.app.Activity
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import com.android.billingclient.api.AcknowledgePurchaseParams
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
 import com.android.billingclient.api.BillingResult
+import com.android.billingclient.api.ConsumeParams
 import com.android.billingclient.api.PendingPurchasesParams
 import com.android.billingclient.api.ProductDetails
 import com.android.billingclient.api.ProductDetailsResponseListener
@@ -19,12 +22,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
+import kotlin.math.min
 
 /**
  * Play Billing for Aletheia Plus / Pro / Max + credit packs.
- * Server entitlement unlock requires Cloud Function aletheiaVerifyPlayPurchase
- * (not deployed yet at port time) — tokens are still acknowledged locally and
- * forwarded when the function becomes available.
+ * Entitlements are granted only after [AletheiaApi.verifyPlayPurchase] succeeds.
+ * Credit packs are consumed after a verified grant so they can be bought again.
  */
 class AletheiaBillingManager(
     context: Context,
@@ -34,17 +37,23 @@ class AletheiaBillingManager(
 ) {
     interface Listener {
         fun onProductsUpdated(products: List<ProductDetails>)
-        fun onPurchasesUpdated(activePlanId: String?, creditsHint: Int)
+        /** Restored / refreshed owned purchases — must not close the paywall. */
+        fun onPurchasesRestored(activePlanId: String?, creditsHint: Int)
+        /** A newly verified purchase completed — paywall may continue/finish. */
+        fun onPurchaseCompleted(activePlanId: String?, creditsHint: Int)
         fun onBillingMessage(message: String)
     }
 
     private val appContext = context.applicationContext
+    private val mainHandler = Handler(Looper.getMainLooper())
     var listener: Listener? = null
 
     private val client: BillingClient = BillingClient.newBuilder(appContext)
         .setListener { result, purchases ->
             if (result.responseCode == BillingClient.BillingResponseCode.OK && purchases != null) {
-                handlePurchases(purchases)
+                scope.launch(Dispatchers.IO) {
+                    handlePurchases(purchases, fromUserPurchase = true)
+                }
             } else if (result.responseCode != BillingClient.BillingResponseCode.USER_CANCELED) {
                 listener?.onBillingMessage(result.debugMessage.ifBlank { "Billing error ${result.responseCode}" })
             }
@@ -55,27 +64,17 @@ class AletheiaBillingManager(
         .build()
 
     private var productDetails: List<ProductDetails> = emptyList()
+    private var reconnectAttempts = 0
+    private var destroyed = false
 
     fun start() {
-        client.startConnection(object : BillingClientStateListener {
-            override fun onBillingSetupFinished(billingResult: BillingResult) {
-                if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                    scope.launch(Dispatchers.IO) {
-                        queryProducts()
-                        refreshPurchases()
-                    }
-                } else {
-                    listener?.onBillingMessage(billingResult.debugMessage)
-                }
-            }
-
-            override fun onBillingServiceDisconnected() {
-                Log.w(TAG, "Billing disconnected")
-            }
-        })
+        destroyed = false
+        connectBilling()
     }
 
     fun destroy() {
+        destroyed = true
+        mainHandler.removeCallbacksAndMessages(null)
         runCatching { client.endConnection() }
     }
 
@@ -87,6 +86,11 @@ class AletheiaBillingManager(
             listener?.onBillingMessage("Product not available yet in Play Console: $productId")
             return
         }
+        if (!client.isReady) {
+            listener?.onBillingMessage("Billing not ready — reconnecting…")
+            connectBilling()
+            return
+        }
         val productParams = BillingFlowParams.ProductDetailsParams.newBuilder()
             .setProductDetails(details)
             .apply {
@@ -96,13 +100,52 @@ class AletheiaBillingManager(
         val flow = BillingFlowParams.newBuilder()
             .setProductDetailsParamsList(listOf(productParams))
             .build()
-        client.launchBillingFlow(activity, flow)
+        val launchResult = client.launchBillingFlow(activity, flow)
+        if (launchResult.responseCode != BillingClient.BillingResponseCode.OK) {
+            listener?.onBillingMessage(
+                launchResult.debugMessage.ifBlank { "Unable to start purchase (${launchResult.responseCode})" }
+            )
+        }
     }
 
     suspend fun refreshPurchases() {
         val subs = queryPurchases(BillingClient.ProductType.SUBS)
         val inapp = queryPurchases(BillingClient.ProductType.INAPP)
-        handlePurchases(subs + inapp)
+        handlePurchases(subs + inapp, fromUserPurchase = false)
+    }
+
+    private fun connectBilling() {
+        if (destroyed) return
+        client.startConnection(object : BillingClientStateListener {
+            override fun onBillingSetupFinished(billingResult: BillingResult) {
+                if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                    reconnectAttempts = 0
+                    scope.launch(Dispatchers.IO) {
+                        queryProducts()
+                        refreshPurchases()
+                    }
+                } else {
+                    listener?.onBillingMessage(billingResult.debugMessage)
+                    scheduleReconnect()
+                }
+            }
+
+            override fun onBillingServiceDisconnected() {
+                Log.w(TAG, "Billing disconnected")
+                scheduleReconnect()
+            }
+        })
+    }
+
+    private fun scheduleReconnect() {
+        if (destroyed) return
+        if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+            listener?.onBillingMessage("Billing disconnected. Close and reopen plans to retry.")
+            return
+        }
+        val delayMs = min(1_000L * (1L shl reconnectAttempts), 8_000L)
+        reconnectAttempts++
+        mainHandler.postDelayed({ connectBilling() }, delayMs)
     }
 
     private suspend fun queryProducts() {
@@ -147,30 +190,69 @@ class AletheiaBillingManager(
         }
     }
 
-    private fun handlePurchases(purchases: List<Purchase>) {
-        var plan: String? = prefs.activePlanId
+    private suspend fun handlePurchases(purchases: List<Purchase>, fromUserPurchase: Boolean) {
+        var plan: String? = null
         var credits = prefs.cachedCreditsRemaining
+        var grantedSomething = false
+
         for (purchase in purchases) {
             if (purchase.purchaseState != Purchase.PurchaseState.PURCHASED) continue
+            val token = purchase.purchaseToken
             for (pid in purchase.products) {
+                val alreadyGranted = prefs.isPurchaseTokenGranted(token)
+                if (alreadyGranted) {
+                    if (AletheiaProducts.isSubscription(pid)) {
+                        plan = pid
+                        acknowledge(purchase)
+                    } else {
+                        // Ensure consumables are released so the pack can be bought again.
+                        consume(purchase)
+                    }
+                    continue
+                }
+
+                val verified = try {
+                    api.verifyPlayPurchase(pid, token)
+                } catch (e: Exception) {
+                    Log.w(TAG, "verify failed for $pid: ${e.message}")
+                    false
+                }
+                if (!verified) {
+                    listener?.onBillingMessage(
+                        "Purchase pending server verification (aletheiaVerifyPlayPurchase). Entitlement not granted yet."
+                    )
+                    continue
+                }
+
+                prefs.markPurchaseTokenGranted(token)
+                grantedSomething = true
                 if (AletheiaProducts.isSubscription(pid)) {
                     plan = pid
+                    acknowledge(purchase)
                 } else {
                     credits += AletheiaProducts.creditsForPack(pid)
-                }
-                acknowledge(purchase)
-                scope.launch(Dispatchers.IO) {
-                    runCatching {
-                        api.verifyPlayPurchase(pid, purchase.purchaseToken)
-                    }.onFailure {
-                        Log.i(TAG, "Play verify deferred (function may be missing): ${it.message}")
-                    }
+                    consume(purchase)
                 }
             }
         }
+
+        // Derive plan only from current Play results (clear expired/canceled).
+        // If we saw no active sub in this batch, clear cached plan.
+        val hasActiveSubInBatch = purchases.any { purchase ->
+            purchase.purchaseState == Purchase.PurchaseState.PURCHASED &&
+                purchase.products.any { AletheiaProducts.isSubscription(it) }
+        }
+        if (!hasActiveSubInBatch) {
+            plan = null
+        }
         prefs.activePlanId = plan
         prefs.cachedCreditsRemaining = credits
-        listener?.onPurchasesUpdated(plan, credits)
+
+        if (fromUserPurchase && grantedSomething) {
+            listener?.onPurchaseCompleted(plan, credits)
+        } else {
+            listener?.onPurchasesRestored(plan, credits)
+        }
     }
 
     private fun acknowledge(purchase: Purchase) {
@@ -185,7 +267,19 @@ class AletheiaBillingManager(
         }
     }
 
+    private fun consume(purchase: Purchase) {
+        val params = ConsumeParams.newBuilder()
+            .setPurchaseToken(purchase.purchaseToken)
+            .build()
+        client.consumeAsync(params) { result, _ ->
+            if (result.responseCode != BillingClient.BillingResponseCode.OK) {
+                Log.w(TAG, "consume failed: ${result.debugMessage}")
+            }
+        }
+    }
+
     companion object {
         private const val TAG = "AletheiaBilling"
+        private const val MAX_RECONNECT_ATTEMPTS = 5
     }
 }

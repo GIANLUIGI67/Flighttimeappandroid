@@ -3,6 +3,10 @@ package it.grg.flighttimeapp.aletheia
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -41,6 +45,7 @@ class AletheiaChatActivity : AppCompatActivity() {
     private var thinkingAnimator: ObjectAnimator? = null
     private val mainHandler = Handler(Looper.getMainLooper())
     private var thinkingDelayRunnable: Runnable? = null
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -78,6 +83,7 @@ class AletheiaChatActivity : AppCompatActivity() {
         setOnlineMode(repo.prefs.preferredModeOnline)
         updateSubtitle()
         maybeAskConsent()
+        registerConnectivityFlush()
 
         lifecycleScope.launch {
             runCatching { repo.flushOutbox() }
@@ -87,6 +93,9 @@ class AletheiaChatActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         updateSubtitle()
+        lifecycleScope.launch {
+            runCatching { repo.flushOutbox() }
+        }
     }
 
     private fun setOnlineMode(online: Boolean) {
@@ -196,14 +205,34 @@ class AletheiaChatActivity : AppCompatActivity() {
                 maybeAskConsent()
             } catch (e: Exception) {
                 val msg = e.message.orEmpty()
-                if (msg.contains("limit", ignoreCase = true) || msg.contains("quota", ignoreCase = true)) {
-                    startActivity(Intent(this@AletheiaChatActivity, AletheiaPaywallActivity::class.java))
-                } else {
-                    Toast.makeText(
-                        this@AletheiaChatActivity,
-                        msg.ifBlank { getString(R.string.aletheia_error_generic) },
-                        Toast.LENGTH_LONG
-                    ).show()
+                when {
+                    msg.contains("limit", ignoreCase = true) || msg.contains("quota", ignoreCase = true) -> {
+                        startActivity(Intent(this@AletheiaChatActivity, AletheiaPaywallActivity::class.java))
+                    }
+                    msg.contains("Consent", ignoreCase = true) -> {
+                        Toast.makeText(
+                            this@AletheiaChatActivity,
+                            R.string.aletheia_consent_sync_retry,
+                            Toast.LENGTH_LONG
+                        ).show()
+                        lifecycleScope.launch {
+                            runCatching { repo.ensureConsentSyncedIfNeeded() }
+                                .onFailure {
+                                    Toast.makeText(
+                                        this@AletheiaChatActivity,
+                                        it.message ?: getString(R.string.aletheia_error_generic),
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                        }
+                    }
+                    else -> {
+                        Toast.makeText(
+                            this@AletheiaChatActivity,
+                            msg.ifBlank { getString(R.string.aletheia_error_generic) },
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
                 }
             } finally {
                 hideThinking()
@@ -292,8 +321,37 @@ class AletheiaChatActivity : AppCompatActivity() {
         }
     }
 
+    private fun registerConnectivityFlush() {
+        val cm = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                lifecycleScope.launch {
+                    runCatching { repo.flushOutbox() }
+                }
+            }
+
+            override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) {
+                if (caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) {
+                    lifecycleScope.launch {
+                        runCatching { repo.flushOutbox() }
+                    }
+                }
+            }
+        }
+        networkCallback = callback
+        val request = NetworkRequest.Builder()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .build()
+        runCatching { cm.registerNetworkCallback(request, callback) }
+    }
+
     override fun onDestroy() {
         hideThinking()
+        networkCallback?.let { callback ->
+            val cm = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
+            runCatching { cm.unregisterNetworkCallback(callback) }
+        }
+        networkCallback = null
         super.onDestroy()
     }
 }

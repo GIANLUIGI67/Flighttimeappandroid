@@ -10,6 +10,8 @@ import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Thin client for existing Firebase Functions on project flighttimeapp-6f816
@@ -34,6 +36,8 @@ class AletheiaApi(
     suspend fun setConsent(granted: Boolean): Boolean {
         ensureAuth()
         val result = call("aletheiaSetConsent", mapOf("granted" to granted))
+        val ok = result["ok"] as? Boolean ?: true
+        if (!ok) throw AletheiaError.Backend("Consent update rejected")
         return result["trainingConsent"] as? Boolean ?: granted
     }
 
@@ -77,7 +81,9 @@ class AletheiaApi(
             payload["note"] = note.trim()
         }
         val result = call("aletheiaSubmitFeedback", payload)
-        return result["ok"] as? Boolean ?: true
+        val ok = result["ok"] as? Boolean ?: false
+        if (!ok) throw AletheiaError.Backend("Feedback rejected")
+        return true
     }
 
     /** Security log / offline outbox flush — always allowed; RL eligibility follows server consent. */
@@ -104,8 +110,8 @@ class AletheiaApi(
     }
 
     /**
-     * Optional Play purchase verification. Backend may not exist yet; returns false if missing.
-     * When deployed, expected name: aletheiaVerifyPlayPurchase.
+     * Play purchase verification. Returns false when the function is missing or rejects.
+     * Callers must not grant entitlements until this returns true.
      */
     suspend fun verifyPlayPurchase(
         productId: String,
@@ -123,7 +129,7 @@ class AletheiaApi(
                     "platform" to "android"
                 )
             )
-            result["ok"] as? Boolean ?: true
+            result["ok"] as? Boolean ?: false
         } catch (e: AletheiaError.Backend) {
             if (e.message?.contains("NOT_FOUND", ignoreCase = true) == true ||
                 e.message?.contains("404", ignoreCase = true) == true
@@ -136,17 +142,19 @@ class AletheiaApi(
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun call(name: String, data: Map<String, Any>): Map<String, Any> {
-        return try {
-            val task = functions.getHttpsCallable(name).call(data)
-            val snapshot = Tasks.await(task, 120, TimeUnit.SECONDS)
-            val raw = snapshot.data
-            when (raw) {
-                is Map<*, *> -> raw as Map<String, Any>
-                else -> emptyMap()
+    private suspend fun call(name: String, data: Map<String, Any>): Map<String, Any> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val task = functions.getHttpsCallable(name).call(data)
+                val snapshot = Tasks.await(task, 120, TimeUnit.SECONDS)
+                val raw = snapshot.data
+                when (raw) {
+                    is Map<*, *> -> raw as Map<String, Any>
+                    else -> emptyMap()
+                }
+            } catch (e: Exception) {
+                throw mapException(e)
             }
-        } catch (e: Exception) {
-            throw mapException(e)
         }
     }
 

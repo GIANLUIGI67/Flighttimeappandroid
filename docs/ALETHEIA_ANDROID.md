@@ -9,13 +9,18 @@ This port talks to the existing Firebase project **flighttimeapp-6f816** (same b
 ## Build in Android Studio
 
 1. Clone `GIANLUIGI67/Flighttimeappandroid` and open the project root in Android Studio (Ladybug+ / AGP 9).
-2. Place `app/google-services.json` for `it.grg.flighttimeapp` / project `flighttimeapp-6f816` (gitignored). Download from Firebase Console → Project settings → your Android app.
+2. Place `app/google-services.json` for `it.grg.flighttimeapp` / project `flighttimeapp-6f816` (**gitignored**, not tracked). Download from Firebase Console → Project settings → your Android app.
 3. Sync Gradle. Min SDK 24, compile/target 36.
 4. Run configuration: module `app`, debug build.
 5. Sideload: `./gradlew :app:assembleDebug` then  
    `adb install -r app/build/outputs/apk/debug/app-debug.apk`
 6. Debug App Check: debug builds use the Firebase App Check debug provider (see `FlightTimeApplication`). Register the debug token in Firebase Console if callables reject App Check.
-7. Rollback: set `ALETHEIA_ENABLED` to `false` in `app/build.gradle.kts` `defaultConfig` / buildTypes — Crew Tools falls back to coming-soon.
+7. Rollback: product ships with `ALETHEIA_ENABLED=true` in **release**. Changing only `defaultConfig` does not disable release — set `false` in **defaultConfig and every buildType** (`debug`/`release`). Home Crew Tools badge follows the flag (Aletheia vs Coming soon).
+
+### google-services.json / Google API key
+
+- File is listed in `.gitignore` (`google-services.json`, `app/google-services.json`) and is **not** in the current tree as a tracked file (removed historically in the security commit).
+- Client API keys inside `google-services.json` are expected for mobile apps but **must** be restricted in Google Cloud Console: Android apps restriction (package `it.grg.flighttimeapp` + SHA-1/256 certs) and API restriction to only needed Firebase/Google APIs. Do not commit unrestricted keys; do not rotate keys from agents (console-only).
 
 ## Firebase Functions used (us-central1)
 
@@ -28,7 +33,7 @@ This port talks to the existing Firebase project **flighttimeapp-6f816** (same b
 
 Auth: anonymous Firebase Auth (same pattern as Crew). Online stack: Groq free + Haiku for Pro (server-side).
 
-**Missing on backend (gap):** `aletheiaVerifyPlayPurchase` — Android Billing acknowledges locally and will call this when deployed. Until then server entitlements (Haiku/credits) may not unlock from Play purchases.
+**Missing on backend (gap):** `aletheiaVerifyPlayPurchase` — client calls this before granting entitlements or acknowledging/consuming. Until deployed, Play purchases stay pending (no local grant). Deploy the function, then owned tokens can verify and unlock.
 
 ## Play Console products to create
 

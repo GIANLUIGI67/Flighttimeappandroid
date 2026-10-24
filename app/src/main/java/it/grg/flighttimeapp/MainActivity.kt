@@ -53,6 +53,14 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.cardCrewJobs).setOnClickListener {
             showComingSoon()
         }
+        val crewToolsBadge = findViewById<android.widget.TextView>(R.id.crewToolsBadge)
+        if (AletheiaFeature.isEnabled) {
+            crewToolsBadge.setText(R.string.aletheia_brand)
+            crewToolsBadge.visibility = View.VISIBLE
+        } else {
+            crewToolsBadge.setText(R.string.coming_soon)
+            crewToolsBadge.visibility = View.VISIBLE
+        }
         findViewById<View>(R.id.cardCrewTools).setOnClickListener {
             if (AletheiaFeature.isEnabled) {
                 startActivity(Intent(this, AletheiaHubActivity::class.java))

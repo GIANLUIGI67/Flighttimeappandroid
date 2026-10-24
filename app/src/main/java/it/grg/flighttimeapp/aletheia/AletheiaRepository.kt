@@ -4,6 +4,8 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import java.util.UUID
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class AletheiaRepository(context: Context) {
     private val app = context.applicationContext
@@ -11,6 +13,10 @@ class AletheiaRepository(context: Context) {
     val api = AletheiaApi(app)
     val outbox = AletheiaOutbox(app)
     val offline = AletheiaOfflineEngine(app)
+
+    private val consentMutex = Mutex()
+    private val onlineMutex = Mutex()
+    @Volatile private var consentEpoch = 0
 
     fun hasNetwork(): Boolean {
         val cm = app.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -20,29 +26,49 @@ class AletheiaRepository(context: Context) {
             caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
     }
 
+    /**
+     * Syncs local consent to Firebase when online. Throws on failure so Online chat
+     * can surface a retry; Offline callers should skip this when offline.
+     */
     suspend fun ensureConsentSyncedIfNeeded() {
         if (!prefs.consentAnswered) return
-        runCatching { api.setConsent(prefs.trainingConsentGranted) }
+        if (!hasNetwork()) return
+        api.setConsent(prefs.trainingConsentGranted)
     }
 
-    suspend fun setConsent(granted: Boolean) {
-        api.setConsent(granted)
+    /**
+     * Persist locally first so Offline works without network, then sync when possible.
+     * Serialized so out-of-order completions cannot reverse the latest user choice.
+     */
+    suspend fun setConsent(granted: Boolean) = consentMutex.withLock {
+        val epoch = ++consentEpoch
         prefs.consentAnswered = true
         prefs.trainingConsentGranted = granted
+        if (!hasNetwork()) return@withLock
+        try {
+            api.setConsent(granted)
+            // If a newer toggle happened while we were in flight, re-sync latest.
+            if (epoch != consentEpoch) {
+                api.setConsent(prefs.trainingConsentGranted)
+            }
+        } catch (e: Exception) {
+            // Local choice kept; Online will retry via ensureConsentSyncedIfNeeded.
+            if (epoch == consentEpoch && hasNetwork()) throw e
+        }
     }
 
-    suspend fun sendOnline(prompt: String): AletheiaChatResult {
+    suspend fun sendOnline(prompt: String): AletheiaChatResult = onlineMutex.withLock {
         if (!prefs.consentAnswered) throw AletheiaError.ConsentRequired()
         ensureConsentSyncedIfNeeded()
-        val messageId = UUID.randomUUID().toString()
+        val messageId = messageIdForOnlineRetry(prompt)
         val result = api.chat(prompt, messageId)
-        prefs.cachedDailyRemaining = result.remainingDaily
-        prefs.cachedCreditsRemaining = result.creditsRemaining
-        prefs.cachedHaikuRemaining = result.remainingHaiku
-        return result
+        prefs.clearPendingOnline()
+        applyQuotaIfNewer(result)
+        result
     }
 
     suspend fun sendOffline(prompt: String): AletheiaChatResult {
+        if (!prefs.consentAnswered) throw AletheiaError.ConsentRequired()
         val messageId = UUID.randomUUID().toString()
         val (answer, source) = offline.answer(prompt)
         outbox.enqueue(
@@ -54,8 +80,11 @@ class AletheiaRepository(context: Context) {
                 createdAtMs = System.currentTimeMillis()
             )
         )
-        if (hasNetwork() && prefs.consentAnswered) {
-            runCatching { outbox.flush(api) }
+        if (hasNetwork()) {
+            runCatching {
+                ensureConsentSyncedIfNeeded()
+                outbox.flush(api)
+            }
         }
         return AletheiaChatResult(
             messageId = messageId,
@@ -66,7 +95,7 @@ class AletheiaRepository(context: Context) {
             remainingDaily = prefs.cachedDailyRemaining,
             remainingHaiku = prefs.cachedHaikuRemaining,
             creditsRemaining = prefs.cachedCreditsRemaining,
-            dailyUsed = 0,
+            dailyUsed = prefs.lastDailyUsed,
             dailyLimit = AletheiaPrefs.FREE_DAILY_LIMIT,
             trainingConsent = prefs.trainingConsentGranted
         )
@@ -87,9 +116,29 @@ class AletheiaRepository(context: Context) {
         if (prefs.trainingConsentGranted && note.isNullOrBlank() &&
             (rating == AletheiaFeedbackRating.BAD || rating == AletheiaFeedbackRating.PARTIAL)
         ) {
-            // Compulsory note only when RL consent is Yes (product rule).
             throw AletheiaError.Backend("NOTE_REQUIRED")
         }
         api.submitFeedback(messageId, rating, note)
+    }
+
+    private fun messageIdForOnlineRetry(prompt: String): String {
+        val existingId = prefs.pendingOnlineMessageId
+        val existingPrompt = prefs.pendingOnlinePrompt
+        if (!existingId.isNullOrBlank() && existingPrompt == prompt) {
+            return existingId
+        }
+        val id = UUID.randomUUID().toString()
+        prefs.pendingOnlinePrompt = prompt
+        prefs.pendingOnlineMessageId = id
+        return id
+    }
+
+    private fun applyQuotaIfNewer(result: AletheiaChatResult) {
+        if (result.dailyUsed >= prefs.lastDailyUsed) {
+            prefs.lastDailyUsed = result.dailyUsed
+            prefs.cachedDailyRemaining = result.remainingDaily
+            prefs.cachedCreditsRemaining = result.creditsRemaining
+            prefs.cachedHaikuRemaining = result.remainingHaiku
+        }
     }
 }

@@ -36,9 +36,42 @@ class AletheiaPrefs(context: Context) {
         get() = prefs.getInt(KEY_HAIKU_REMAINING, 0)
         set(value) = prefs.edit().putInt(KEY_HAIKU_REMAINING, value).apply()
 
+    var lastDailyUsed: Int
+        get() = prefs.getInt(KEY_LAST_DAILY_USED, 0)
+        set(value) = prefs.edit().putInt(KEY_LAST_DAILY_USED, value).apply()
+
     var activePlanId: String?
         get() = prefs.getString(KEY_ACTIVE_PLAN, null)
         set(value) = prefs.edit().putString(KEY_ACTIVE_PLAN, value).apply()
+
+    var pendingOnlinePrompt: String?
+        get() = prefs.getString(KEY_PENDING_PROMPT, null)
+        set(value) = prefs.edit().putString(KEY_PENDING_PROMPT, value).apply()
+
+    var pendingOnlineMessageId: String?
+        get() = prefs.getString(KEY_PENDING_MESSAGE_ID, null)
+        set(value) = prefs.edit().putString(KEY_PENDING_MESSAGE_ID, value).apply()
+
+    fun clearPendingOnline() {
+        prefs.edit()
+            .remove(KEY_PENDING_PROMPT)
+            .remove(KEY_PENDING_MESSAGE_ID)
+            .apply()
+    }
+
+    fun isPurchaseTokenGranted(token: String): Boolean {
+        return grantedTokens().contains(token)
+    }
+
+    fun markPurchaseTokenGranted(token: String) {
+        val set = grantedTokens().toMutableSet()
+        set.add(token)
+        prefs.edit().putStringSet(KEY_GRANTED_TOKENS, set).apply()
+    }
+
+    private fun grantedTokens(): Set<String> {
+        return prefs.getStringSet(KEY_GRANTED_TOKENS, emptySet()).orEmpty()
+    }
 
     fun clearConsent() {
         prefs.edit()
@@ -57,6 +90,10 @@ class AletheiaPrefs(context: Context) {
         private const val KEY_DAILY_REMAINING = "daily_remaining"
         private const val KEY_CREDITS_REMAINING = "credits_remaining"
         private const val KEY_HAIKU_REMAINING = "haiku_remaining"
+        private const val KEY_LAST_DAILY_USED = "last_daily_used"
         private const val KEY_ACTIVE_PLAN = "active_plan"
+        private const val KEY_PENDING_PROMPT = "pending_online_prompt"
+        private const val KEY_PENDING_MESSAGE_ID = "pending_online_message_id"
+        private const val KEY_GRANTED_TOKENS = "granted_purchase_tokens"
     }
 }

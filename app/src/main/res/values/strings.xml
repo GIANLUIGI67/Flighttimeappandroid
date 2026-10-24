@@ -416,4 +416,5 @@
     <string name="aletheia_model_installed">Offline GGUF present: %1$s</string>
     <string name="aletheia_model_missing">Offline GGUF not installed. Place aviation-domain weights at filesDir/aletheia/offline.gguf (see docs). Manuals + domain heuristic still work offline.</string>
     <string name="aletheia_error_generic">Something went wrong. Try again.</string>
+    <string name="aletheia_consent_sync_retry">Consent is saved on device but not synced yet. Retrying with the server…</string>
 </resources>

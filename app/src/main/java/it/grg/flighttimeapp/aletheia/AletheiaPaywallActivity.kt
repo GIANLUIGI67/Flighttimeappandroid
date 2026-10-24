@@ -64,7 +64,17 @@ class AletheiaPaywallActivity : AppCompatActivity(), AletheiaBillingManager.List
         }
     }
 
-    override fun onPurchasesUpdated(activePlanId: String?, creditsHint: Int) {
+    override fun onPurchasesRestored(activePlanId: String?, creditsHint: Int) {
+        runOnUiThread {
+            status.text = getString(
+                R.string.aletheia_paywall_status_format,
+                activePlanId ?: getString(R.string.aletheia_plan_free),
+                creditsHint
+            )
+        }
+    }
+
+    override fun onPurchaseCompleted(activePlanId: String?, creditsHint: Int) {
         runOnUiThread {
             Toast.makeText(this, R.string.aletheia_purchase_continue, Toast.LENGTH_LONG).show()
             status.text = getString(
@@ -72,7 +82,6 @@ class AletheiaPaywallActivity : AppCompatActivity(), AletheiaBillingManager.List
                 activePlanId ?: getString(R.string.aletheia_plan_free),
                 creditsHint
             )
-            // After purchase, continue until the next limit (product rule).
             setResult(RESULT_OK)
             finish()
         }

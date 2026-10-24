@@ -13,10 +13,11 @@ object AletheiaManuals {
             keywords = listOf("v1", "decision speed"),
             title = "V1 — Decision speed",
             body = """
-                1. V1 is the take-off decision speed.
-                2. Below V1 an abort (rejected take-off) remains the primary option if a critical failure occurs.
-                3. At or above V1 the take-off is continued and treated as a continued take-off with engine failure procedures as applicable.
-                4. Always use the AFM / FCOM performance data for the runway, weight and conditions of the day.
+                Study aid only — not operational guidance for any aircraft or runway.
+                1. In certification and performance literature, V1 is the take-off decision speed used when building take-off data.
+                2. Exact reject / continue criteria, speeds, and procedures are aircraft-specific and condition-specific.
+                3. Before any real-world decision, use the current AFM / FCOM performance data and your operator SOPs for that aircraft, runway, weight, and conditions.
+                4. Do not treat this summary as a substitute for those manuals.
             """.trimIndent()
         ),
         Entry(

@@ -9,27 +9,34 @@ import kotlinx.coroutines.withContext
 
 /**
  * Offline → Firebase outbox. Entries sync via [AletheiaApi.logTurn] when network returns.
+ * Prefs name [PREFS] is excluded from Android backup / device transfer.
  */
 class AletheiaOutbox(context: Context) {
     private val prefs = context.applicationContext
         .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
     private val gson = Gson()
+    private val lock = Any()
 
     fun enqueue(entry: AletheiaOutboxEntry) {
-        val list = load().toMutableList()
-        list.removeAll { it.messageId == entry.messageId }
-        list.add(entry)
-        save(list)
+        synchronized(lock) {
+            val list = loadUnlocked().toMutableList()
+            list.removeAll { it.messageId == entry.messageId }
+            list.add(entry)
+            saveUnlocked(list)
+        }
     }
 
-    fun pending(): List<AletheiaOutboxEntry> = load()
+    fun pending(): List<AletheiaOutboxEntry> = synchronized(lock) { loadUnlocked() }
 
+    /**
+     * Uploads a snapshot, then removes only successfully uploaded IDs from the
+     * latest queue so concurrent [enqueue] turns are not dropped.
+     */
     suspend fun flush(api: AletheiaApi): Int = withContext(Dispatchers.IO) {
-        val items = load()
-        if (items.isEmpty()) return@withContext 0
-        val remaining = mutableListOf<AletheiaOutboxEntry>()
-        var synced = 0
-        for (item in items) {
+        val snapshot = synchronized(lock) { loadUnlocked() }
+        if (snapshot.isEmpty()) return@withContext 0
+        val uploadedIds = linkedSetOf<String>()
+        for (item in snapshot) {
             try {
                 val ok = api.logTurn(
                     prompt = item.prompt,
@@ -37,17 +44,21 @@ class AletheiaOutbox(context: Context) {
                     messageId = item.messageId,
                     source = AletheiaSource.fromServer(item.source)
                 )
-                if (ok) synced++ else remaining.add(item)
+                if (ok) uploadedIds.add(item.messageId)
             } catch (e: Exception) {
                 Log.w(TAG, "Outbox sync failed for ${item.messageId}: ${e.message}")
-                remaining.add(item)
             }
         }
-        save(remaining)
-        synced
+        if (uploadedIds.isEmpty()) return@withContext 0
+        synchronized(lock) {
+            val latest = loadUnlocked().toMutableList()
+            latest.removeAll { it.messageId in uploadedIds }
+            saveUnlocked(latest)
+        }
+        uploadedIds.size
     }
 
-    private fun load(): List<AletheiaOutboxEntry> {
+    private fun loadUnlocked(): List<AletheiaOutboxEntry> {
         val raw = prefs.getString(KEY, null) ?: return emptyList()
         return try {
             val type = object : TypeToken<List<AletheiaOutboxEntry>>() {}.type
@@ -57,13 +68,13 @@ class AletheiaOutbox(context: Context) {
         }
     }
 
-    private fun save(list: List<AletheiaOutboxEntry>) {
+    private fun saveUnlocked(list: List<AletheiaOutboxEntry>) {
         prefs.edit().putString(KEY, gson.toJson(list)).apply()
     }
 
     companion object {
         private const val TAG = "AletheiaOutbox"
-        private const val PREFS = "aletheia_outbox"
+        const val PREFS = "aletheia_outbox"
         private const val KEY = "entries"
     }
 }
