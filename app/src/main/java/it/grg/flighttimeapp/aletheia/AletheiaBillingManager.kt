@@ -25,8 +25,9 @@ import kotlin.coroutines.resume
 import kotlin.math.min
 
 /**
- * Play Billing for Aletheia Plus / Pro / Max + credit packs.
- * Entitlements are granted only after [AletheiaApi.verifyPlayPurchase] succeeds.
+ * Play Billing for Aletheia Plus / Pro / Max + credit packs (`aletheia_*` product IDs).
+ * Entitlements are granted only after [AletheiaApi.verifyPlayPurchase] succeeds
+ * (callable `aletheiaVerifyPlayPurchase` on flighttimeapp-6f816 — see API KDoc).
  * Credit packs are consumed after a verified grant so they can be bought again.
  */
 class AletheiaBillingManager(

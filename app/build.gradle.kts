@@ -25,7 +25,39 @@ android {
         buildConfigField("String", "ALETHEIA_VERSION", "\"1.1\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Aletheia Offline: llama.cpp JNI (GGUF). Prefer arm64 devices; x86_64 for emulator.
+        ndk {
+            abiFilters += listOf("arm64-v8a", "x86_64")
+        }
+        externalNativeBuild {
+            cmake {
+                cppFlags += listOf("-O3", "-fvisibility=hidden", "-ffunction-sections", "-fdata-sections")
+                arguments += listOf(
+                    "-DANDROID_STL=c++_shared",
+                    "-DLLAMA_CURL=OFF",
+                    "-DLLAMA_BUILD_COMMON=ON",
+                    "-DLLAMA_BUILD_TESTS=OFF",
+                    "-DLLAMA_BUILD_EXAMPLES=OFF",
+                    "-DLLAMA_BUILD_SERVER=OFF",
+                    "-DGGML_OPENMP=OFF",
+                    "-DGGML_LLAMAFILE=OFF",
+                    "-DGGML_NATIVE=OFF",
+                    "-DBUILD_SHARED_LIBS=OFF",
+                    "-DCMAKE_BUILD_TYPE=Release"
+                )
+            }
+        }
     }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
+    }
+
+    ndkVersion = "27.0.12077973"
 
     buildTypes {
         debug {

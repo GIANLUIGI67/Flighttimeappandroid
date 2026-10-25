@@ -199,8 +199,13 @@
     <string name="aletheia_paywall_status_format">Plan: %1$s · Credits: %2$d</string>
     <string name="aletheia_paywall_products_loaded">Play products loaded: %1$d / %2$d (create missing IDs in Play Console)</string>
     <string name="aletheia_purchase_continue">Purchase recorded — continue until the next limit.</string>
-    <string name="aletheia_model_installed">Offline GGUF present: %1$s</string>
-    <string name="aletheia_model_missing">Offline GGUF not installed. Place aviation-domain weights at filesDir/aletheia/offline.gguf (see docs). Manuals + domain heuristic still work offline.</string>
+    <string name="aletheia_offline_model_title">Offline GGUF model</string>
+    <string name="aletheia_model_installed">Offline GGUF ready (native llama.cpp): %1$s</string>
+    <string name="aletheia_model_missing">Offline GGUF not installed. Download over Wi‑Fi (~2 GB AviationQA Q4_K_M) or place weights at filesDir/aletheia/offline.gguf. Manuals still answer keyword matches; native inference needs the GGUF.</string>
+    <string name="aletheia_download_offline_model">Download Offline model (Wi‑Fi)</string>
+    <string name="aletheia_download_started">Offline model download started. Keep Wi‑Fi on; status updates when you reopen Settings.</string>
+    <string name="aletheia_download_already">Offline model already installed.</string>
+    <string name="aletheia_download_failed">Could not start model download. Check network / storage.</string>
     <string name="aletheia_error_generic">Something went wrong. Try again.</string>
     <string name="aletheia_consent_sync_retry">Consent is saved on device but not synced yet. Retrying with the server…</string>
 </resources>

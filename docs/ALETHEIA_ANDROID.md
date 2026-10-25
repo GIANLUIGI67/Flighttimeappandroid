@@ -10,16 +10,17 @@ This port talks to the existing Firebase project **flighttimeapp-6f816** (same b
 
 1. Clone `GIANLUIGI67/Flighttimeappandroid` and open the project root in Android Studio (Ladybug+ / AGP 9).
 2. Place `app/google-services.json` for `it.grg.flighttimeapp` / project `flighttimeapp-6f816` (**gitignored**, not tracked). Download from Firebase Console → Project settings → your Android app.
-3. Sync Gradle. Min SDK 24, compile/target 36.
-4. Run configuration: module `app`, debug build.
-5. Sideload: `./gradlew :app:assembleDebug` then  
+3. Install **NDK 27.0.12077973** and **CMake 3.22.1** (SDK Manager). Native Offline GGUF needs them.
+4. Sync Gradle. Min SDK 24, compile/target 36. First native build compiles vendored llama.cpp (`app/src/main/cpp/third_party/llama.cpp`, tag `b5215`).
+5. Run configuration: module `app`, debug build.
+6. Sideload: `./gradlew :app:assembleDebug` then  
    `adb install -r app/build/outputs/apk/debug/app-debug.apk`
-6. Debug App Check: debug builds use the Firebase App Check debug provider (see `FlightTimeApplication`). Register the debug token in Firebase Console if callables reject App Check.
-7. Rollback: product ships with `ALETHEIA_ENABLED=true` in **release**. Changing only `defaultConfig` does not disable release — set `false` in **defaultConfig and every buildType** (`debug`/`release`). Home Crew Tools badge follows the flag (Aletheia vs Coming soon).
+7. Debug App Check: debug builds use the Firebase App Check debug provider (see `FlightTimeApplication`). Register the debug token in Firebase Console if callables reject App Check.
+8. Rollback: product ships with `ALETHEIA_ENABLED=true` in **release**. Changing only `defaultConfig` does not disable release — set `false` in **defaultConfig and every buildType** (`debug`/`release`). Home Crew Tools badge follows the flag (Aletheia vs Coming soon).
 
 ### google-services.json / Google API key
 
-- File is listed in `.gitignore` (`google-services.json`, `app/google-services.json`) and is **not** in the current tree as a tracked file (removed historically in the security commit).
+- File is listed in `.gitignore` (`google-services.json`, `app/google-services.json`) and is **not** in the current tree as a tracked file.
 - Client API keys inside `google-services.json` are expected for mobile apps but **must** be restricted in Google Cloud Console: Android apps restriction (package `it.grg.flighttimeapp` + SHA-1/256 certs) and API restriction to only needed Firebase/Google APIs. Do not commit unrestricted keys; do not rotate keys from agents (console-only).
 
 ## Firebase Functions used (us-central1)
@@ -30,10 +31,31 @@ This port talks to the existing Firebase project **flighttimeapp-6f816** (same b
 | `aletheiaChat` | `{ message, messageId?, platform, clientVersion }` → answer, source/route, daily quota, credits, haiku |
 | `aletheiaSubmitFeedback` | `{ messageId, rating: good\|partial\|bad, note? }` |
 | `aletheiaLogTurn` | Offline/security outbox `{ prompt, answer, messageId, source, … }` |
+| `aletheiaVerifyPlayPurchase` | **Not deployed yet** — see contract below |
 
 Auth: anonymous Firebase Auth (same pattern as Crew). Online stack: Groq free + Haiku for Pro (server-side).
 
-**Missing on backend (gap):** `aletheiaVerifyPlayPurchase` — client calls this before granting entitlements or acknowledging/consuming. Until deployed, Play purchases stay pending (no local grant). Deploy the function, then owned tokens can verify and unlock.
+### `aletheiaVerifyPlayPurchase` callable contract
+
+Must be deployed on **`flighttimeapp-6f816`** / **`us-central1`** (do **not** create a second Firebase project).
+
+**Request (HTTPS callable, Auth required):**
+
+```json
+{
+  "productId": "aletheia_plus_monthly",
+  "purchaseToken": "<Play purchase token>",
+  "packageName": "it.grg.flighttimeapp",
+  "platform": "android"
+}
+```
+
+**Success:** `{ "ok": true }` (optional `creditsGranted` number).  
+**Reject / missing function:** client keeps purchase **pending** and does **not** grant entitlements.
+
+**Server:** verify via Play Developer API (service account linked in Play Console) for subscriptions (`purchases.subscriptionsv2.get`) and one-time products (`purchases.products.get`); idempotent ledger on `uid` + `purchaseToken`.
+
+Android client hook is complete in `AletheiaApi.verifyPlayPurchase` + `AletheiaBillingManager` (verify-before-grant / ack subs / consume packs).
 
 ## Play Console products to create
 
@@ -70,26 +92,43 @@ Mirror iOS Plus/Pro/Max + S/M/L naming; if iOS StoreKit IDs differ, keep these P
 - Offline selection: Low Power / battery-saver warning (dismissible, not per-message)
 - EN + IT strings for UI including paywall/plans
 
-## Offline GGUF packaging
+## Offline GGUF (native llama.cpp)
 
-iOS can ship or download domain GGUF in the app sandbox. Android APK size limits make embedding large weights undesirable.
+Wired end-to-end:
 
-- Expected path: `context.filesDir/aletheia/offline.gguf`
-- Reuse the same aviation-domain GGUF as Aletheia Offline on iOS when available
-- This build: manuals-first index + domain heuristic; native llama.cpp / MediaPipe link is documented as follow-up when the iOS model artifact is shared
-- Offline turns enqueue to `AletheiaOutbox` and flush with `aletheiaLogTurn` when online
+| Layer | Location |
+|-------|----------|
+| JNI + CMake | `app/src/main/cpp/` → `libaletheia_llama.so` |
+| Vendored llama.cpp | `app/src/main/cpp/third_party/llama.cpp` (tag `b5215`) |
+| Kotlin runtime | `AletheiaLlamaRuntime` / `AletheiaLlamaNative` |
+| Engine | `AletheiaOfflineEngine` — manuals first, then GGUF |
+| Installer | Settings → Download Offline model (Wi‑Fi) → `filesDir/aletheia/offline.gguf` |
+
+**Default public weights (until official Aletheia Offline GGUF is shared):**  
+`ANSHG/merged_llama-3.2-3b-AviationQA-ansh-Q4_K_M-GGUF` (~2 GB Q4_K_M).  
+**Not embedded in the APK** (Play size). Human decision: keep on-demand download, Play Asset Delivery, or sideload.
+
+adb sideload example:
+
+```bash
+adb push merged_llama-3.2-3b-aviationqa-ansh-q4_k_m.gguf /sdcard/Download/offline.gguf
+# then copy into the app's filesDir/aletheia/offline.gguf (or use in-app download)
+```
+
+System prompt includes aviation / FTL study-aid guards (no invented minima; AFM/FCOM/SOP). Offline turns still enqueue to `AletheiaOutbox` → `aletheiaLogTurn`.
 
 ## Key source files
 
 - `app/src/main/java/it/grg/flighttimeapp/aletheia/` — feature module
+- `app/src/main/cpp/` — llama.cpp JNI
 - Layouts: `activity_aletheia_*.xml`, `item_aletheia_message.xml`
 - Strings: `values/strings.xml`, `values-en`, `values-it`
 - Flag: `BuildConfig.ALETHEIA_ENABLED` / `ALETHEIA_VERSION`
 
-## Gaps vs iOS (honest)
+## Gaps vs iOS / human Console work
 
-1. Private iOS repo `GIANLUIGI67/FlightTimeApp` PR #1 was not readable from this agent token — behaviour taken from product spec + live Functions probing (`aletheiaChat` etc.).
-2. Native on-device GGUF inference not linked; manuals + heuristic Offline until model AAR/JNI + weights are provided.
-3. Play purchase → server entitlement verification function not deployed yet.
-4. Exact iOS StoreKit product ID strings unknown; Play IDs listed above for the coordinator.
-5. Manuali badge uses Italian label by product request on both EN/IT (matches iOS “Manuali” branding).
+1. Private iOS / Aletheia Offline repos were not readable from this agent — behaviour from product spec + live Functions probing.
+2. **Deploy** `aletheiaVerifyPlayPurchase` on `flighttimeapp-6f816` + Play Developer API **service account**.
+3. **Create** the six Play product IDs above (do not publish this PR).
+4. **GGUF packaging:** ~2 GB weights stay out of APK; approve official URL / PAD / sideload policy.
+5. Manuali badge uses Italian label by product request on both EN/IT.

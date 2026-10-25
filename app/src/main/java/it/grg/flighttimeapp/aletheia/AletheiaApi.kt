@@ -110,8 +110,40 @@ class AletheiaApi(
     }
 
     /**
-     * Play purchase verification. Returns false when the function is missing or rejects.
-     * Callers must not grant entitlements until this returns true.
+     * Play purchase verification — **verify-before-grant** hook used by [AletheiaBillingManager].
+     *
+     * ## Callable contract (Firebase project `flighttimeapp-6f816`, region `us-central1`)
+     *
+     * **Name:** `aletheiaVerifyPlayPurchase` (HTTPS callable)
+     *
+     * **Auth:** Firebase Auth required (anonymous OK, same as other Aletheia callables).
+     *
+     * **Request data:**
+     * ```
+     * {
+     *   "productId": string,       // e.g. aletheia_plus_monthly | aletheia_credits_s
+     *   "purchaseToken": string,   // Play Billing purchase token
+     *   "packageName": string,     // must be it.grg.flighttimeapp
+     *   "platform": "android"
+     * }
+     * ```
+     *
+     * **Success response:** `{ "ok": true, "productId"?: string, "creditsGranted"?: number }`
+     * Client treats truthy `ok` as verified. Optional `creditsGranted` is ignored today
+     * (client uses [AletheiaProducts.creditsForPack] locally after verify).
+     *
+     * **Failure:** `{ "ok": false, "error"?: string }` or Functions error codes
+     * `INVALID_ARGUMENT` / `PERMISSION_DENIED` / `FAILED_PRECONDITION`.
+     *
+     * **Server duties (not in this Android repo):**
+     * 1. Call Google Play Developer API `purchases.subscriptionsv2.get` or
+     *    `purchases.products.get` with a Play Console service account.
+     * 2. Confirm packageName, productId, purchase state PURCHASED, and token uniqueness.
+     * 3. Persist entitlement / credit ledger keyed by uid + purchaseToken (idempotent).
+     *
+     * TODO(backend): Deploy `aletheiaVerifyPlayPurchase` on `flighttimeapp-6f816`.
+     * Until then this client returns false on NOT_FOUND and does **not** grant locally.
+     * Do **not** invent a second Firebase project.
      */
     suspend fun verifyPlayPurchase(
         productId: String,
@@ -120,6 +152,7 @@ class AletheiaApi(
     ): Boolean {
         ensureAuth()
         return try {
+            // Client hook ready — callable name and payload match the contract above.
             val result = call(
                 "aletheiaVerifyPlayPurchase",
                 mapOf(
@@ -134,6 +167,7 @@ class AletheiaApi(
             if (e.message?.contains("NOT_FOUND", ignoreCase = true) == true ||
                 e.message?.contains("404", ignoreCase = true) == true
             ) {
+                // Function not deployed yet on flighttimeapp-6f816 — keep purchase pending.
                 false
             } else {
                 throw e

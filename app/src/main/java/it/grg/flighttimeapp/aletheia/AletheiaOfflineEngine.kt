@@ -3,28 +3,31 @@ package it.grg.flighttimeapp.aletheia
 import android.content.Context
 import android.os.PowerManager
 import android.util.Log
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
 import java.io.File
-import java.util.UUID
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
- * On-device aviation assistant.
+ * On-device aviation assistant (Aletheia Offline parity with iOS).
  *
- * Packaging note vs iOS:
- * - iOS Aletheia Offline typically ships or downloads a domain GGUF inside the app sandbox.
- * - Android APK size limits make embedding a multi-hundred-MB GGUF undesirable; the same
- *   model file should be downloaded once into [modelFile] (filesDir/aletheia/offline.gguf).
- * - Native llama.cpp / MediaPipe wiring can replace [heuristicAnswer] when the JNI/AAR
- *   used by Aletheia Offline is linked; until then manuals-first + domain heuristic keep
- *   Offline unlimited and syncable via [AletheiaOutbox].
+ * Inference path:
+ * 1. Manuals-first index ([AletheiaManuals]) → Manuali badge
+ * 2. If `filesDir/aletheia/offline.gguf` is present → native llama.cpp GGUF via [AletheiaLlamaRuntime]
+ * 3. Otherwise a clear install hint (not a FAQ stub) — user downloads weights via [AletheiaModelInstaller]
+ *
+ * Packaging: multi-hundred-MB GGUF is **not** embedded in the APK (Play size). Download once.
  */
 class AletheiaOfflineEngine(private val context: Context) {
-    private val modelFile: File
-        get() = File(context.filesDir, "aletheia/offline.gguf")
+    private val installer = AletheiaModelInstaller(context)
+    private val runtime = AletheiaLlamaRuntime.get()
 
-    fun isModelInstalled(): Boolean = modelFile.exists() && modelFile.length() > MIN_MODEL_BYTES
+    private val modelFile: File
+        get() = installer.modelFile()
+
+    fun isModelInstalled(): Boolean {
+        installer.promoteIfDownloaded()
+        return installer.isInstalled()
+    }
 
     fun modelPath(): String = modelFile.absolutePath
 
@@ -35,41 +38,117 @@ class AletheiaOfflineEngine(private val context: Context) {
 
     suspend fun answer(prompt: String): Pair<String, AletheiaSource> = withContext(Dispatchers.Default) {
         val started = System.currentTimeMillis()
-        // Thinking delay parity (~1–4s feel when offline is selected / slow).
-        val thinkMs = if (isPowerSaveMode()) 3500L else 1200L
-        delay(thinkMs)
 
         AletheiaManuals.lookup(prompt)?.let { return@withContext it }
 
+        installer.promoteIfDownloaded()
+
         val text = if (isModelInstalled()) {
-            // Placeholder for native GGUF inference — keep aviation tone and clean prose.
-            heuristicAnswer(prompt) + "\n\n[" + AletheiaFeature.BRAND + " Offline model file detected at ${modelFile.name}. Native GGUF runtime not linked in this build; using domain heuristic. See docs/ALETHEIA_ANDROID.md.]"
+            runNativeInference(prompt.trim())
         } else {
-            heuristicAnswer(prompt)
+            modelMissingMessage()
         }
-        Log.d(TAG, "Offline answer in ${System.currentTimeMillis() - started}ms")
+        Log.d(TAG, "Offline answer in ${System.currentTimeMillis() - started}ms native=${isModelInstalled()}")
         text to AletheiaSource.OFFLINE
     }
 
-    private fun heuristicAnswer(prompt: String): String {
-        val mid = UUID.randomUUID().toString().take(8)
-        return buildString {
-            append(AletheiaFeature.BRAND)
-            append(" (Offline)\n\n")
-            append("1. I am running fully on-device. Unlimited Offline chats are available without using the daily Online quota.\n")
-            append("2. For aviation questions I prioritise manuals-style structure: numbered prose, no markdown tables.\n")
-            append("3. Your question: ")
-            append(prompt.trim().take(280))
-            append('\n')
-            append("4. Without a matched manual entry or linked GGUF weights, treat this as a study aid only and verify against the AFM / FCOM / operator SOP.\n")
-            append("5. When connectivity returns, this turn is queued to Firebase for security logging (RL use only if you consented Yes).\n")
-            append("\nRef: ")
-            append(mid)
+    private suspend fun runNativeInference(userPrompt: String): String {
+        val path = modelPath()
+        val nCtx = if (isPowerSaveMode()) 1024 else AletheiaLlamaRuntime.DEFAULT_N_CTX
+        val maxTok = if (isPowerSaveMode()) 128 else AletheiaLlamaRuntime.DEFAULT_MAX_TOKENS
+        val loaded = try {
+            runtime.ensureLoaded(path, nCtx)
+        } catch (t: Throwable) {
+            Log.e(TAG, "GGUF load failed", t)
+            false
         }
+        if (!loaded) {
+            return buildString {
+                append(AletheiaFeature.BRAND)
+                append(" (Offline)\n\n")
+                append("1. The GGUF file is present but the native llama.cpp runtime could not load it.\n")
+                append("2. Confirm the file at ")
+                append(path)
+                append(" is a valid aviation-domain GGUF (Q4_K_M or similar).\n")
+                append("3. Treat any prior answers as study aids only — verify against the AFM / FCOM / operator SOP.\n")
+            }
+        }
+        val chatPrompt = buildChatPrompt(userPrompt)
+        return try {
+            val raw = runtime.generate(chatPrompt, maxTok)
+            formatNativeAnswer(raw)
+        } catch (t: Throwable) {
+            Log.e(TAG, "GGUF generate failed", t)
+            buildString {
+                append(AletheiaFeature.BRAND)
+                append(" (Offline)\n\n")
+                append("1. On-device generation failed: ")
+                append(t.message ?: t.javaClass.simpleName)
+                append("\n2. Study aid only — verify against the AFM / FCOM / operator SOP.\n")
+            }
+        }
+    }
+
+    private fun buildChatPrompt(userPrompt: String): String {
+        // ChatML-style prompt works with Llama-3.x Instruct GGUFs and llama_chat_apply_template
+        // via formatChat=true tokenize special tokens. Keep FTL / study-aid guards explicit.
+        return """
+            <|begin_of_text|><|start_header_id|>system<|end_header_id|>
+
+            $SYSTEM_PROMPT<|eot_id|><|start_header_id|>user<|end_header_id|>
+
+            $userPrompt<|eot_id|><|start_header_id|>assistant<|end_header_id|>
+
+        """.trimIndent()
+    }
+
+    private fun formatNativeAnswer(raw: String): String {
+        val body = raw.trim()
+            .removePrefix("assistant")
+            .trim()
+        if (body.isBlank()) {
+            return buildString {
+                append(AletheiaFeature.BRAND)
+                append(" (Offline)\n\n")
+                append("1. The on-device model returned an empty answer.\n")
+                append("2. Rephrase the question or verify the GGUF weights.\n")
+                append("3. Study aid only — verify against the AFM / FCOM / operator SOP.\n")
+            }
+        }
+        return if (body.startsWith(AletheiaFeature.BRAND)) {
+            body
+        } else {
+            AletheiaFeature.BRAND + " (Offline)\n\n" + body
+        }
+    }
+
+    private fun modelMissingMessage(): String = buildString {
+        append(AletheiaFeature.BRAND)
+        append(" (Offline)\n\n")
+        append("1. Native GGUF runtime is linked, but the aviation model file is not installed yet.\n")
+        append("2. Expected path: ")
+        append(modelPath())
+        append("\n3. Open Aletheia Settings → Download Offline model (Wi‑Fi), or push a GGUF with adb:\n")
+        append("   adb push your-model.gguf /sdcard/Download/offline.gguf\n")
+        append("   then copy into the app filesDir (see docs/ALETHEIA_ANDROID.md).\n")
+        append("4. Until weights are installed, Offline cannot run on-device inference. This is not a FAQ stub — manuals matches still answer when keywords hit.\n")
+        append("5. Study aid only — verify against the AFM / FCOM / operator SOP.\n")
     }
 
     companion object {
         private const val TAG = "AletheiaOffline"
-        private const val MIN_MODEL_BYTES = 1_000_000L
+
+        /**
+         * Aviation domain / FTL-style guards aligned with iOS Aletheia Offline intent.
+         * Not operational authority; crew must use AFM/FCOM/SOP.
+         */
+        const val SYSTEM_PROMPT: String =
+            "You are Aletheia Beta Offline, an on-device aviation study aid for flight crew. " +
+                "Answer in clear numbered prose (1. 2. 3.) without markdown tables or emoji. " +
+                "Stay inside aviation / FTL / performance / procedures study topics. " +
+                "Never invent aircraft-specific speeds, minima, MEL items, or clearances. " +
+                "If data is aircraft- or operator-specific, say to use the current AFM / FCOM / QRH / SOP. " +
+                "This is a study aid only — not operational guidance. " +
+                "If the question is outside aviation, refuse briefly and steer back to flight-crew topics."
     }
 }

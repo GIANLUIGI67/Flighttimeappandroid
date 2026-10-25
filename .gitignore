@@ -6,6 +6,7 @@ local.properties
 /build
 /captures
 .externalNativeBuild/
+app/.cxx/
 /app/build
 
 # Firebase config (contains API keys — embedded in app bundle at build time, not needed in repo)

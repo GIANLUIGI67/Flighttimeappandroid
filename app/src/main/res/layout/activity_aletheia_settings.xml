@@ -102,10 +102,27 @@
         android:textSize="12sp" />
 
     <TextView
-        android:id="@+id/aletheiaOfflineModelStatus"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
+        android:text="@string/aletheia_offline_model_title"
+        android:textColor="@color/iosText"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/aletheiaOfflineModelStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
         android:textColor="@color/iosHint"
         android:textSize="13sp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/aletheiaDownloadModel"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="@string/aletheia_download_offline_model" />
 </LinearLayout>
