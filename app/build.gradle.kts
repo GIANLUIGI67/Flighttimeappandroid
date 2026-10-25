@@ -1,7 +1,32 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.google.services)
 }
+
+// Optional Play upload-key signing (never commit keystore / passwords).
+// Create keystore.properties at repo root (gitignored) OR pass:
+//   ALETHEIA_STORE_FILE / ALETHEIA_STORE_PASSWORD / ALETHEIA_KEY_ALIAS / ALETHEIA_KEY_PASSWORD
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.exists()) {
+        keystorePropertiesFile.inputStream().use { load(it) }
+    }
+}
+fun propOrEnv(propKey: String, envKey: String): String? =
+    keystoreProperties.getProperty(propKey)?.takeIf { it.isNotBlank() }
+        ?: System.getenv(envKey)?.takeIf { it.isNotBlank() }
+
+val uploadStoreFilePath = propOrEnv("storeFile", "ALETHEIA_STORE_FILE")
+val uploadStorePassword = propOrEnv("storePassword", "ALETHEIA_STORE_PASSWORD")
+val uploadKeyAlias = propOrEnv("keyAlias", "ALETHEIA_KEY_ALIAS")
+val uploadKeyPassword = propOrEnv("keyPassword", "ALETHEIA_KEY_PASSWORD")
+val hasUploadSigning = !uploadStoreFilePath.isNullOrBlank() &&
+    !uploadStorePassword.isNullOrBlank() &&
+    !uploadKeyAlias.isNullOrBlank() &&
+    !uploadKeyPassword.isNullOrBlank() &&
+    rootProject.file(uploadStoreFilePath!!).isFile
 
 android {
     namespace = "it.grg.flighttimeapp"
@@ -9,6 +34,17 @@ android {
 
     buildFeatures {
         buildConfig = true
+    }
+
+    signingConfigs {
+        if (hasUploadSigning) {
+            create("release") {
+                storeFile = rootProject.file(uploadStoreFilePath!!)
+                storePassword = uploadStorePassword
+                keyAlias = uploadKeyAlias
+                keyPassword = uploadKeyPassword
+            }
+        }
     }
 
     defaultConfig {
@@ -73,6 +109,13 @@ android {
             )
             // Product wants Aletheia on in release. Changing only defaultConfig does NOT disable this.
             buildConfigField("boolean", "ALETHEIA_ENABLED", "true")
+            // Sign with Play upload key when keystore.properties / env is present; otherwise
+            // leave unsigned so parent can jarsigner with the Console upload key (see docs).
+            if (hasUploadSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            } else {
+                signingConfig = null
+            }
         }
     }
 

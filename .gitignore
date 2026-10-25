@@ -17,3 +17,8 @@ app/google-services.json
 app/release/
 *.aab
 *.apk
+
+# Play upload signing (never commit)
+keystore.properties
+*.jks
+*.keystore

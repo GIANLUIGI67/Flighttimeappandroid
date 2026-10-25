@@ -6,6 +6,9 @@ Entry: Home → **Crew Tools** → Aletheia hub (feature flag `BuildConfig.ALETH
 
 This port talks to the existing Firebase project **flighttimeapp-6f816** (same backend as iOS). Do **not** publish to Play from this PR; create Play products only.
 
+**Play Internal testing AAB (unlock IAP product creation):** see [`docs/PLAY_INTERNAL_UPLOAD.md`](PLAY_INTERNAL_UPLOAD.md).  
+SDK for target-API mail: **`compileSdk` / `targetSdk` = 36**, `minSdk` = 24. Merged release manifest includes `com.android.vending.BILLING`.
+
 ## Build in Android Studio
 
 1. Clone `GIANLUIGI67/Flighttimeappandroid` and open the project root in Android Studio (Ladybug+ / AGP 9).
