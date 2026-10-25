@@ -52,8 +52,9 @@ android {
         minSdk = 24
         targetSdk = 36
 
-        versionCode = 26
-        versionName = "1.12.4"
+        // Must exceed Play Production (highest known: versionCode 35 / 1.12.13).
+        versionCode = 36
+        versionName = "1.12.14"
 
         // Aletheia Beta (Crew Tools). Product ships enabled.
         // Rollback: set this AND every buildType override below to false (buildType fields win).

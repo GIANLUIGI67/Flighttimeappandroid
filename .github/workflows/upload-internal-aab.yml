@@ -97,7 +97,7 @@ jobs:
       - name: Name + checksum AAB
         run: |
           SRC=app/build/outputs/bundle/release/app-release.aab
-          NAME=FlightTimeApp-it.grg.flighttimeapp-v1.12.4-vc26-release-unsigned.aab
+          NAME=FlightTimeApp-it.grg.flighttimeapp-v1.12.14-vc36-release-unsigned.aab
           mkdir -p out
           cp "$SRC" "out/$NAME"
           sha256sum "out/$NAME" | tee "out/$NAME.sha256"
