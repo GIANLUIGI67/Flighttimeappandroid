@@ -25,6 +25,9 @@ jobs:
     permissions:
       contents: read
       actions: write
+    env:
+      ANDROID_HOME: ${{ github.workspace }}/android-sdk
+      ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -35,15 +38,20 @@ jobs:
           distribution: temurin
           java-version: "21"
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Accept SDK licenses
-        run: yes | sdkmanager --licenses >/dev/null || true
-
-      - name: Install platform + build-tools
+      - name: Install Android command-line tools + platform 36
         run: |
-          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+          set -euo pipefail
+          mkdir -p "$ANDROID_HOME/cmdline-tools"
+          cd /tmp
+          curl -fsSL -o cmdtools.zip \
+            https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip -q cmdtools.zip
+          rm -rf "$ANDROID_HOME/cmdline-tools/latest"
+          mv cmdline-tools "$ANDROID_HOME/cmdline-tools/latest"
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_HOME" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_HOME" \
+            "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+          echo "sdk.dir=$ANDROID_HOME" > "$GITHUB_WORKSPACE/local.properties"
 
       - name: Stub google-services.json (packaging only — not a production secret)
         run: |
@@ -87,7 +95,6 @@ jobs:
         run: ./gradlew :app:bundleRelease --no-daemon -PaletheiaSkipNative=true
 
       - name: Name + checksum AAB
-        id: aab
         run: |
           SRC=app/build/outputs/bundle/release/app-release.aab
           NAME=FlightTimeApp-it.grg.flighttimeapp-v1.12.4-vc26-release-unsigned.aab
@@ -95,7 +102,7 @@ jobs:
           cp "$SRC" "out/$NAME"
           sha256sum "out/$NAME" | tee "out/$NAME.sha256"
           ls -lh "out/$NAME"
-          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          jarsigner -verify "out/$NAME" 2>&1 | tail -5 || true
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
