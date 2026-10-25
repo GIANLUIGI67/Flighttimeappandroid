@@ -15,6 +15,7 @@ app/google-services.json
 
 # Release artifacts
 app/release/
+/artifacts/
 *.aab
 *.apk
 

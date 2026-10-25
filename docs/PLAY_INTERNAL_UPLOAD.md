@@ -17,21 +17,41 @@ Play Console refuses to create in-app products until a billing-capable build is 
 | `minSdk` | **24** |
 | `versionCode` / `versionName` | **26** / **1.12.4** |
 
-## Artifact from this PR tip
+## Artifact download (parent Mac)
+
+**Cursor cloud artifact store cannot host >~100 MB binaries.** Only the `.sha256` + `AAB_LOCATION.txt` sync to the parent box — not the AAB itself. Prefer one of:
+
+### A) GitHub Actions artifact (recommended)
+
+Workflow: `.github/workflows/upload-internal-aab.yml` (`Upload Internal AAB`).
+
+1. Open the workflow run on this PR branch (Actions → **Upload Internal AAB**).
+2. Download artifact **`flighttime-internal-aab-unsigned`** (contains the `.aab` + `.sha256`).
+3. Sign with your Play upload key (below), then upload to Internal testing.
+
+CI builds with `-PaletheiaSkipNative=true` (no llama.cpp NDK) for speed; **`com.android.vending.BILLING` remains**. For a full native Offline AAB, build on the Mac without that flag.
+
+### B) Build signed AAB on the Mac (upload keystore present)
+
+```bash
+# keystore.properties at repo root (gitignored) — see signing section below
+./gradlew :app:bundleRelease
+# → app/build/outputs/bundle/release/app-release.aab
+```
+
+### Agent VM path (not synced to parent)
 
 | Item | Value |
 |------|--------|
-| **AAB (unsigned)** | `/workspace/artifacts/FlightTimeApp-it.grg.flighttimeapp-v1.12.4-vc26-release-unsigned.aab` |
+| VM AAB (unsigned, full native) | `/workspace/artifacts/FlightTimeApp-it.grg.flighttimeapp-v1.12.4-vc26-release-unsigned.aab` |
 | Gradle output | `app/build/outputs/bundle/release/app-release.aab` |
-| SHA256 sidecar | `/workspace/artifacts/FlightTimeApp-it.grg.flighttimeapp-v1.12.4-vc26-release-unsigned.aab.sha256` |
-| Size | ~154 MiB |
-| Signing | **Unsigned** (`jarsigner`: *jar is unsigned*) — no upload keystore in repo/CI |
-| BILLING in merged release manifest | **Yes** — `com.android.vending.BILLING` |
+| SHA256 | `919be7721afad600186b28805d173785c7b62da063ebf08764f4109cf1af3302` |
+| Signing | **Unsigned** when no upload keystore — do not upload as-is |
+| BILLING in merged release manifest | **Yes** |
 | Play Billing dep | `billing-ktx` 7.1.1 |
+| **cursor.com artifact URL for the .aab** | **None** — binary rejected by agent artifact FUSE (>100 MB) |
 
-Rebuild anytime: `./gradlew :app:bundleRelease` (optional `keystore.properties` / `ALETHEIA_*` env for upload-key signing).
-
-**Signing status:** Play App Signing requires your existing **upload key** before Console accepts the bundle. Do not upload the unsigned file as-is.
+**Signing status:** Play App Signing requires your existing **upload key** before Console accepts the bundle.
 
 ## Parent: sign with your Play upload key
 
