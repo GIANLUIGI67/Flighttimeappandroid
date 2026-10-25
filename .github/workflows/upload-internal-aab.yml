@@ -1,0 +1,108 @@
+# Builds an unsigned release AAB and uploads it as a downloadable Actions artifact.
+# Used to unblock Play Console IAP product creation (BILLING present). Parent signs with upload key.
+name: Upload Internal AAB
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "cursor/aletheia-beta-crewtools-4637"
+    paths:
+      - ".github/workflows/upload-internal-aab.yml"
+      - "app/build.gradle.kts"
+      - "app/src/main/AndroidManifest.xml"
+      - "gradle/**"
+      - "docs/PLAY_INTERNAL_UPLOAD.md"
+
+concurrency:
+  group: upload-internal-aab-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bundle-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Accept SDK licenses
+        run: yes | sdkmanager --licenses >/dev/null || true
+
+      - name: Install platform + build-tools
+        run: |
+          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Stub google-services.json (packaging only — not a production secret)
+        run: |
+          cat > app/google-services.json <<'EOF'
+          {
+            "project_info": {
+              "project_number": "0",
+              "project_id": "flighttimeapp-6f816",
+              "storage_bucket": "flighttimeapp-6f816.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:0:android:ci",
+                  "android_client_info": {
+                    "package_name": "it.grg.flighttimeapp"
+                  }
+                },
+                "oauth_client": [],
+                "api_key": [
+                  {
+                    "current_key": "AIzaSyC00000000000000000000000000000000"
+                  }
+                ],
+                "services": {
+                  "appinvite_service": {
+                    "other_platform_oauth_client": []
+                  }
+                }
+              }
+            ],
+            "configuration_version": "1"
+          }
+          EOF
+
+      - name: Grant Gradle
+        run: chmod +x gradlew
+
+      - name: Bundle unsigned release AAB (skip native llama for CI speed; BILLING retained)
+        # Skip NDK/llama.cpp so the job finishes without NDK; Play only needs BILLING to unlock products.
+        run: ./gradlew :app:bundleRelease --no-daemon -PaletheiaSkipNative=true
+
+      - name: Name + checksum AAB
+        id: aab
+        run: |
+          SRC=app/build/outputs/bundle/release/app-release.aab
+          NAME=FlightTimeApp-it.grg.flighttimeapp-v1.12.4-vc26-release-unsigned.aab
+          mkdir -p out
+          cp "$SRC" "out/$NAME"
+          sha256sum "out/$NAME" | tee "out/$NAME.sha256"
+          ls -lh "out/$NAME"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flighttime-internal-aab-unsigned
+          path: |
+            out/*.aab
+            out/*.sha256
+          if-no-files-found: error
+          retention-days: 14
