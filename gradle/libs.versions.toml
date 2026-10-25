@@ -18,7 +18,8 @@ desugar-jdk-libs = "2.1.4"
 viewpager2 = "1.1.0"
 exifinterface = "1.4.2"
 securityCrypto = "1.1.0"
-billing = "7.1.1"
+# Play Console requires Billing Library ≥ 8.0.0 (latest 8.x).
+billing = "8.3.0"
 recyclerview = "1.4.0"
 coroutines = "1.10.2"
 

@@ -166,9 +166,10 @@ class AletheiaBillingManager(
         }
         val params = QueryProductDetailsParams.newBuilder().setProductList(productList).build()
         return suspendCancellableCoroutine { cont ->
-            val listener = ProductDetailsResponseListener { result, details ->
+            // PBL 8+: listener receives QueryProductDetailsResult (not List<ProductDetails>).
+            val listener = ProductDetailsResponseListener { result, productDetailsResult ->
                 if (result.responseCode == BillingClient.BillingResponseCode.OK) {
-                    cont.resume(details.orEmpty())
+                    cont.resume(productDetailsResult.productDetailsList.orEmpty())
                 } else {
                     Log.w(TAG, "queryProductDetails ${result.debugMessage}")
                     cont.resume(emptyList())

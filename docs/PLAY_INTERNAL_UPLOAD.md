@@ -15,7 +15,7 @@ Play Console refuses to create in-app products until a billing-capable build is 
 | `compileSdk` | **36** |
 | `targetSdk` | **36** |
 | `minSdk` | **24** |
-| `versionCode` / `versionName` | **36** / **1.12.14** (must exceed Play Production vc35) |
+| `versionCode` / `versionName` | **37** / **1.12.15** (Billing Library **8.3.0**; must exceed Play Production vc35) |
 
 ## Artifact download (parent Mac)
 
@@ -43,9 +43,9 @@ CI builds with `-PaletheiaSkipNative=true` (no llama.cpp NDK) for speed; **`com.
 
 | Item | Value |
 |------|--------|
-| VM AAB (unsigned, full native) | `/workspace/artifacts/FlightTimeApp-it.grg.flighttimeapp-v1.12.14-vc36-release-unsigned.aab` |
+| VM AAB (unsigned, full native) | `/workspace/artifacts/FlightTimeApp-it.grg.flighttimeapp-v1.12.15-vc37-release-unsigned.aab` |
 | Gradle output | `app/build/outputs/bundle/release/app-release.aab` |
-| SHA256 | `919be7721afad600186b28805d173785c7b62da063ebf08764f4109cf1af3302` |
+| SHA256 | see latest Agent Store `README_JOIN.txt` / litterbox host (rebuild after version bumps) |
 | Signing | **Unsigned** when no upload keystore — do not upload as-is |
 | BILLING in merged release manifest | **Yes** |
 | Play Billing dep | `billing-ktx` 7.1.1 |
@@ -60,17 +60,17 @@ CI builds with `-PaletheiaSkipNative=true` (no llama.cpp NDK) for speed; **`com.
 
 ```bash
 # Optional: confirm unsigned (expects "jar is unsigned" or missing META-INF/*.RSA)
-jarsigner -verify -verbose FlightTimeApp-it.grg.flighttimeapp-v1.12.14-vc36-release-unsigned.aab | tail -5
+jarsigner -verify -verbose FlightTimeApp-it.grg.flighttimeapp-v1.12.15-vc37-release-unsigned.aab | tail -5
 
 # Sign (replace paths/alias/passwords) — e.g. flighttime_keystore.jks
 jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
   -keystore /path/to/flighttime_keystore.jks \
   -storepass '***' -keypass '***' \
-  FlightTimeApp-it.grg.flighttimeapp-v1.12.14-vc36-release-unsigned.aab \
+  FlightTimeApp-it.grg.flighttimeapp-v1.12.15-vc37-release-unsigned.aab \
   YOUR_UPLOAD_KEY_ALIAS
 
 jarsigner -verify -verbose -certs \
-  FlightTimeApp-it.grg.flighttimeapp-v1.12.14-vc36-release-unsigned.aab | tail -20
+  FlightTimeApp-it.grg.flighttimeapp-v1.12.15-vc37-release-unsigned.aab | tail -20
 ```
 
 3. Or rebuild already signed on your machine:
@@ -87,7 +87,7 @@ jarsigner -verify -verbose -certs \
 
 Env alternative: `ALETHEIA_STORE_FILE`, `ALETHEIA_STORE_PASSWORD`, `ALETHEIA_KEY_ALIAS`, `ALETHEIA_KEY_PASSWORD`.
 
-Play Production highest known: **versionCode 35** — this tip ships **36**. Bump again if Console rejects.
+Play Production highest known: **versionCode 35** — this tip ships **37** with Billing **8.3.0**. Bump again if Console rejects.
 
 ## Parent: upload to Internal testing
 

@@ -53,8 +53,9 @@ android {
         targetSdk = 36
 
         // Must exceed Play Production (highest known: versionCode 35 / 1.12.13).
-        versionCode = 36
-        versionName = "1.12.14"
+        // vc36 was rejected after Billing < 8; ship 37 with Billing 8.3.0.
+        versionCode = 37
+        versionName = "1.12.15"
 
         // Aletheia Beta (Crew Tools). Product ships enabled.
         // Rollback: set this AND every buildType override below to false (buildType fields win).
@@ -63,14 +64,14 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Aletheia Offline: llama.cpp JNI (GGUF). Prefer arm64 devices; x86_64 for emulator.
+        // Aletheia Offline: llama.cpp JNI (GGUF).
+        // Do NOT set ndk.abiFilters here — that would drop armeabi-v7a (~large % of Play devices).
+        // Compile llama only for 64-bit; 32-bit devices still install via AAR .so + no GGUF lib.
         // CI can pass -PaletheiaSkipNative=true for a faster billing-unlock AAB (still has BILLING).
         if (project.findProperty("aletheiaSkipNative") != "true") {
-            ndk {
-                abiFilters += listOf("arm64-v8a", "x86_64")
-            }
             externalNativeBuild {
                 cmake {
+                    abiFilters += listOf("arm64-v8a", "x86_64")
                     cppFlags += listOf("-O3", "-fvisibility=hidden", "-ffunction-sections", "-fdata-sections")
                     arguments += listOf(
                         "-DANDROID_STL=c++_shared",
