@@ -20,6 +20,8 @@ import com.android.billingclient.api.QueryPurchasesParams
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.math.min
@@ -47,13 +49,20 @@ class AletheiaBillingManager(
 
     private val appContext = context.applicationContext
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val purchasesMutex = Mutex()
     var listener: Listener? = null
 
     private val client: BillingClient = BillingClient.newBuilder(appContext)
         .setListener { result, purchases ->
             if (result.responseCode == BillingClient.BillingResponseCode.OK && purchases != null) {
                 scope.launch(Dispatchers.IO) {
-                    handlePurchases(purchases, fromUserPurchase = true)
+                    // Purchase-updated callbacks are often credit-only or single-SKU;
+                    // never clear an active subscription from a partial batch.
+                    handlePurchases(
+                        purchases = purchases,
+                        fromUserPurchase = true,
+                        allowPlanClear = false
+                    )
                 }
             } else if (result.responseCode != BillingClient.BillingResponseCode.USER_CANCELED) {
                 listener?.onBillingMessage(result.debugMessage.ifBlank { "Billing error ${result.responseCode}" })
@@ -112,7 +121,22 @@ class AletheiaBillingManager(
     suspend fun refreshPurchases() {
         val subs = queryPurchases(BillingClient.ProductType.SUBS)
         val inapp = queryPurchases(BillingClient.ProductType.INAPP)
-        handlePurchases(subs + inapp, fromUserPurchase = false)
+        val combined = buildList {
+            if (subs.ok) addAll(subs.purchases)
+            if (inapp.ok) addAll(inapp.purchases)
+        }
+        // Only clear expired/canceled plans when subscription inventory query succeeded.
+        // A failed SUBS query must not wipe a cached active plan.
+        handlePurchases(
+            purchases = combined,
+            fromUserPurchase = false,
+            allowPlanClear = subs.ok
+        )
+        if (!subs.ok) {
+            listener?.onBillingMessage(
+                "Subscription status temporarily unavailable. Existing plan kept until Play responds."
+            )
+        }
     }
 
     private fun connectBilling() {
@@ -179,21 +203,29 @@ class AletheiaBillingManager(
         }
     }
 
-    private suspend fun queryPurchases(type: String): List<Purchase> {
+    private data class PurchasesQuery(val ok: Boolean, val purchases: List<Purchase>)
+
+    private suspend fun queryPurchases(type: String): PurchasesQuery {
         return suspendCancellableCoroutine { cont ->
             val params = QueryPurchasesParams.newBuilder().setProductType(type).build()
             client.queryPurchasesAsync(params) { result, purchases ->
                 if (result.responseCode == BillingClient.BillingResponseCode.OK) {
-                    cont.resume(purchases)
+                    cont.resume(PurchasesQuery(ok = true, purchases = purchases))
                 } else {
-                    cont.resume(emptyList())
+                    Log.w(TAG, "queryPurchases($type) failed: ${result.debugMessage}")
+                    cont.resume(PurchasesQuery(ok = false, purchases = emptyList()))
                 }
             }
         }
     }
 
-    private suspend fun handlePurchases(purchases: List<Purchase>, fromUserPurchase: Boolean) {
+    private suspend fun handlePurchases(
+        purchases: List<Purchase>,
+        fromUserPurchase: Boolean,
+        allowPlanClear: Boolean
+    ) = purchasesMutex.withLock {
         var plan: String? = null
+        var sawSubscription = false
         var credits = prefs.cachedCreditsRemaining
         var grantedSomething = false
 
@@ -205,6 +237,7 @@ class AletheiaBillingManager(
                 if (alreadyGranted) {
                     if (AletheiaProducts.isSubscription(pid)) {
                         plan = pid
+                        sawSubscription = true
                         acknowledge(purchase)
                     } else {
                         // Ensure consumables are released so the pack can be bought again.
@@ -226,10 +259,19 @@ class AletheiaBillingManager(
                     continue
                 }
 
-                prefs.markPurchaseTokenGranted(token)
+                // Mutex + atomic mark: overlapping refresh/purchase callbacks must not double-grant.
+                if (!prefs.markPurchaseTokenGranted(token)) {
+                    if (AletheiaProducts.isSubscription(pid)) {
+                        plan = pid
+                        sawSubscription = true
+                    }
+                    continue
+                }
+
                 grantedSomething = true
                 if (AletheiaProducts.isSubscription(pid)) {
                     plan = pid
+                    sawSubscription = true
                     acknowledge(purchase)
                 } else {
                     credits += AletheiaProducts.creditsForPack(pid)
@@ -238,16 +280,16 @@ class AletheiaBillingManager(
             }
         }
 
-        // Derive plan only from current Play results (clear expired/canceled).
-        // If we saw no active sub in this batch, clear cached plan.
-        val hasActiveSubInBatch = purchases.any { purchase ->
-            purchase.purchaseState == Purchase.PurchaseState.PURCHASED &&
-                purchase.products.any { AletheiaProducts.isSubscription(it) }
-        }
-        if (!hasActiveSubInBatch) {
+        if (sawSubscription) {
+            prefs.activePlanId = plan
+        } else if (allowPlanClear) {
+            // Full successful SUBS inventory with no active subscription → expired/canceled.
             plan = null
+            prefs.activePlanId = null
+        } else {
+            // Partial purchase callback or failed SUBS query — keep cached plan.
+            plan = prefs.activePlanId
         }
-        prefs.activePlanId = plan
         prefs.cachedCreditsRemaining = credits
 
         if (fromUserPurchase && grantedSomething) {

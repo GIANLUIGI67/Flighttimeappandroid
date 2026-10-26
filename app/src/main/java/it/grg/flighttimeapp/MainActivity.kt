@@ -55,9 +55,11 @@ class MainActivity : AppCompatActivity() {
         }
         val crewToolsBadge = findViewById<android.widget.TextView>(R.id.crewToolsBadge)
         if (AletheiaFeature.isEnabled) {
+            // Feature flag on: advertise Aletheia Beta on the Crew Tools tile.
             crewToolsBadge.setText(R.string.aletheia_brand)
             crewToolsBadge.visibility = View.VISIBLE
         } else {
+            // Rollback: never show Aletheia branding — match other gated tiles.
             crewToolsBadge.setText(R.string.coming_soon)
             crewToolsBadge.visibility = View.VISIBLE
         }

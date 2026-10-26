@@ -17,6 +17,9 @@ class AletheiaRepository(context: Context) {
     private val consentMutex = Mutex()
     private val onlineMutex = Mutex()
     @Volatile private var consentEpoch = 0
+    /** Monotonic seq so an older in-flight Online response cannot overwrite newer quota. */
+    @Volatile private var quotaSeq = 0L
+    @Volatile private var lastAppliedQuotaSeq = 0L
 
     fun hasNetwork(): Boolean {
         val cm = app.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -61,9 +64,10 @@ class AletheiaRepository(context: Context) {
         if (!prefs.consentAnswered) throw AletheiaError.ConsentRequired()
         ensureConsentSyncedIfNeeded()
         val messageId = messageIdForOnlineRetry(prompt)
+        val seq = ++quotaSeq
         val result = api.chat(prompt, messageId)
         prefs.clearPendingOnline()
-        applyQuotaIfNewer(result)
+        applyQuotaIfNewer(result, seq)
         result
     }
 
@@ -133,12 +137,17 @@ class AletheiaRepository(context: Context) {
         return id
     }
 
-    private fun applyQuotaIfNewer(result: AletheiaChatResult) {
-        if (result.dailyUsed >= prefs.lastDailyUsed) {
-            prefs.lastDailyUsed = result.dailyUsed
-            prefs.cachedDailyRemaining = result.remainingDaily
-            prefs.cachedCreditsRemaining = result.creditsRemaining
-            prefs.cachedHaikuRemaining = result.remainingHaiku
-        }
+    /**
+     * Apply server quota when this response is the newest Online turn.
+     * Day reset is allowed (dailyUsed may drop); older overlapping responses are ignored.
+     */
+    private fun applyQuotaIfNewer(result: AletheiaChatResult, seq: Long) {
+        if (seq < lastAppliedQuotaSeq) return
+        lastAppliedQuotaSeq = seq
+        prefs.lastDailyUsed = result.dailyUsed
+        prefs.cachedDailyRemaining = result.remainingDaily
+        prefs.cachedCreditsRemaining = result.creditsRemaining
+        prefs.cachedHaikuRemaining = result.remainingHaiku
     }
 }
+

@@ -19,10 +19,8 @@ class AletheiaSettingsActivity : AppCompatActivity() {
     private lateinit var consentSwitch: SwitchMaterial
     private lateinit var modelStatus: TextView
     private var consentJob: Job? = null
-    private var updatingSwitchProgrammatically = false
 
     private val consentListener = CompoundButton.OnCheckedChangeListener { _, isChecked ->
-        if (updatingSwitchProgrammatically) return@OnCheckedChangeListener
         consentJob?.cancel()
         consentJob = lifecycleScope.launch {
             try {
@@ -33,10 +31,14 @@ class AletheiaSettingsActivity : AppCompatActivity() {
                     Toast.LENGTH_SHORT
                 ).show()
             } catch (e: Exception) {
+                // Detach before revert so the listener cannot re-enter on a failed sync.
                 restoreSwitch(repo.prefs.trainingConsentGranted && repo.prefs.consentAnswered)
                 Toast.makeText(
                     this@AletheiaSettingsActivity,
-                    e.message ?: getString(R.string.aletheia_error_generic),
+                    getString(
+                        R.string.aletheia_consent_sync_failed,
+                        e.message ?: getString(R.string.aletheia_error_generic)
+                    ),
                     Toast.LENGTH_LONG
                 ).show()
             }
@@ -99,8 +101,8 @@ class AletheiaSettingsActivity : AppCompatActivity() {
     }
 
     private fun restoreSwitch(checked: Boolean) {
-        updatingSwitchProgrammatically = true
+        consentSwitch.setOnCheckedChangeListener(null)
         consentSwitch.isChecked = checked
-        updatingSwitchProgrammatically = false
+        consentSwitch.setOnCheckedChangeListener(consentListener)
     }
 }

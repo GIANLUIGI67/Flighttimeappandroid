@@ -220,7 +220,10 @@ class AletheiaChatActivity : AppCompatActivity() {
                                 .onFailure {
                                     Toast.makeText(
                                         this@AletheiaChatActivity,
-                                        it.message ?: getString(R.string.aletheia_error_generic),
+                                        getString(
+                                            R.string.aletheia_consent_sync_failed,
+                                            it.message ?: getString(R.string.aletheia_error_generic)
+                                        ),
                                         Toast.LENGTH_LONG
                                     ).show()
                                 }

@@ -6,6 +6,7 @@ import android.content.SharedPreferences
 class AletheiaPrefs(context: Context) {
     private val prefs: SharedPreferences =
         context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    private val tokenLock = Any()
 
     var consentAnswered: Boolean
         get() = prefs.getBoolean(KEY_CONSENT_ANSWERED, false)
@@ -60,17 +61,28 @@ class AletheiaPrefs(context: Context) {
     }
 
     fun isPurchaseTokenGranted(token: String): Boolean {
-        return grantedTokens().contains(token)
+        synchronized(tokenLock) {
+            return grantedTokens().contains(token)
+        }
     }
 
-    fun markPurchaseTokenGranted(token: String) {
-        val set = grantedTokens().toMutableSet()
-        set.add(token)
-        prefs.edit().putStringSet(KEY_GRANTED_TOKENS, set).apply()
+    /**
+     * Atomically records a verified purchase token.
+     * @return true if this call newly recorded the token (caller should grant once).
+     */
+    fun markPurchaseTokenGranted(token: String): Boolean {
+        synchronized(tokenLock) {
+            val set = grantedTokens().toMutableSet()
+            if (!set.add(token)) return false
+            // commit() so overlapping verify handlers see the token immediately.
+            prefs.edit().putStringSet(KEY_GRANTED_TOKENS, HashSet(set)).commit()
+            return true
+        }
     }
 
     private fun grantedTokens(): Set<String> {
-        return prefs.getStringSet(KEY_GRANTED_TOKENS, emptySet()).orEmpty()
+        // Copy — SharedPreferences may return a live mutable StringSet.
+        return prefs.getStringSet(KEY_GRANTED_TOKENS, emptySet()).orEmpty().toSet()
     }
 
     fun clearConsent() {

@@ -31,7 +31,7 @@
         android:background="@drawable/bg_coming_soon_badge"
         android:paddingHorizontal="8dp"
         android:paddingVertical="3dp"
-        android:text="@string/aletheia_brand"
+        android:text="@string/coming_soon"
         android:textColor="@color/homeOrange"
         android:textSize="8sp"
         android:textStyle="bold" />

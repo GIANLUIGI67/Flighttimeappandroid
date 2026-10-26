@@ -422,4 +422,5 @@
     <string name="aletheia_download_failed">Could not start model download. Check network / storage.</string>
     <string name="aletheia_error_generic">Something went wrong. Try again.</string>
     <string name="aletheia_consent_sync_retry">Consent is saved on device but not synced yet. Retrying with the server…</string>
+    <string name="aletheia_consent_sync_failed">Consent kept on device; server sync failed: %1$s. Retry when online.</string>
 </resources>
