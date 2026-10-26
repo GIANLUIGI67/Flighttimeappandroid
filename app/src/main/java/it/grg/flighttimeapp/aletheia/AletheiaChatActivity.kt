@@ -70,6 +70,7 @@ class AletheiaChatActivity : AppCompatActivity() {
         recycler = findViewById(R.id.aletheiaRecycler)
 
         adapter = AletheiaMessageAdapter { msg, rating -> promptFeedback(msg, rating) }
+        adapter.feedbackRequired = repo.prefs.trainingConsentGranted
         recycler.layoutManager = LinearLayoutManager(this).apply { stackFromEnd = true }
         recycler.adapter = adapter
 
@@ -92,6 +93,7 @@ class AletheiaChatActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        adapter.feedbackRequired = repo.prefs.trainingConsentGranted
         updateSubtitle()
         lifecycleScope.launch {
             runCatching { repo.flushOutbox() }
@@ -128,6 +130,7 @@ class AletheiaChatActivity : AppCompatActivity() {
             .setPositiveButton(R.string.aletheia_yes) { _, _ ->
                 lifecycleScope.launch {
                     runCatching { repo.setConsent(true) }
+                        .onSuccess { adapter.feedbackRequired = true }
                         .onFailure {
                             Toast.makeText(this@AletheiaChatActivity, it.message, Toast.LENGTH_LONG).show()
                         }
@@ -136,6 +139,7 @@ class AletheiaChatActivity : AppCompatActivity() {
             .setNegativeButton(R.string.aletheia_no) { _, _ ->
                 lifecycleScope.launch {
                     runCatching { repo.setConsent(false) }
+                        .onSuccess { adapter.feedbackRequired = false }
                         .onFailure {
                             Toast.makeText(this@AletheiaChatActivity, it.message, Toast.LENGTH_LONG).show()
                         }
@@ -161,6 +165,15 @@ class AletheiaChatActivity : AppCompatActivity() {
         if (text.isEmpty() || sendJob?.isActive == true) return
         if (!repo.prefs.consentAnswered) {
             maybeAskConsent()
+            return
+        }
+        // RL consent Yes: block the next question until feedback on the last assistant turn.
+        if (repo.prefs.trainingConsentGranted && hasPendingRequiredFeedback()) {
+            Toast.makeText(
+                this,
+                R.string.aletheia_feedback_required_before_next,
+                Toast.LENGTH_LONG
+            ).show()
             return
         }
 
@@ -268,6 +281,14 @@ class AletheiaChatActivity : AppCompatActivity() {
         thinkingDelayRunnable?.let { mainHandler.removeCallbacks(it) }
         thinkingAnimator?.cancel()
         thinkingRow.visibility = View.GONE
+    }
+
+    /** True when RL consent Yes and an assistant answer still awaits a rating. */
+    private fun hasPendingRequiredFeedback(): Boolean {
+        if (!repo.prefs.trainingConsentGranted) return false
+        return messages.any {
+            it.role == AletheiaChatMessage.Role.ASSISTANT && !it.pending && !it.feedbackSent
+        }
     }
 
     private fun promptFeedback(msg: AletheiaChatMessage, rating: AletheiaFeedbackRating) {

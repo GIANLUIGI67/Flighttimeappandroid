@@ -15,6 +15,13 @@ class AletheiaMessageAdapter(
 ) : RecyclerView.Adapter<AletheiaMessageAdapter.VH>() {
 
     private val items = mutableListOf<AletheiaChatMessage>()
+    /** When true (RL consent Yes), show the continue-hint until a rating is chosen. */
+    var feedbackRequired: Boolean = false
+        set(value) {
+            if (field == value) return
+            field = value
+            notifyDataSetChanged()
+        }
 
     fun submit(list: List<AletheiaChatMessage>) {
         items.clear()
@@ -38,6 +45,7 @@ class AletheiaMessageAdapter(
         private val badge: TextView = itemView.findViewById(R.id.aletheiaSourceBadge)
         private val text: TextView = itemView.findViewById(R.id.aletheiaMessageText)
         private val feedbackRow: LinearLayout = itemView.findViewById(R.id.aletheiaFeedbackRow)
+        private val continueHint: TextView = itemView.findViewById(R.id.aletheiaFeedbackContinueHint)
         private val good: ImageButton = itemView.findViewById(R.id.aletheiaFbGood)
         private val partial: ImageButton = itemView.findViewById(R.id.aletheiaFbPartial)
         private val bad: ImageButton = itemView.findViewById(R.id.aletheiaFbBad)
@@ -62,6 +70,9 @@ class AletheiaMessageAdapter(
             val showFb = !isUser && !msg.pending && !msg.feedbackSent &&
                 msg.role == AletheiaChatMessage.Role.ASSISTANT
             feedbackRow.visibility = if (showFb) View.VISIBLE else View.GONE
+            // Instructional line only while RL consent Yes and rating still required.
+            continueHint.visibility =
+                if (showFb && feedbackRequired) View.VISIBLE else View.GONE
             good.setOnClickListener { onFeedback(msg, AletheiaFeedbackRating.GOOD) }
             partial.setOnClickListener { onFeedback(msg, AletheiaFeedbackRating.PARTIAL) }
             bad.setOnClickListener { onFeedback(msg, AletheiaFeedbackRating.BAD) }

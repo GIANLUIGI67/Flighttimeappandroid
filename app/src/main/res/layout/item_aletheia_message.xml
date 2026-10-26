@@ -61,4 +61,15 @@
             android:contentDescription="@string/aletheia_feedback_bad"
             android:src="@drawable/ic_aletheia_thumb_down" />
     </LinearLayout>
+
+    <TextView
+        android:id="@+id/aletheiaFeedbackContinueHint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:lineSpacingExtra="2dp"
+        android:text="@string/aletheia_feedback_continue_hint"
+        android:textColor="@color/iosHint"
+        android:textSize="12sp"
+        android:visibility="gone" />
 </LinearLayout>

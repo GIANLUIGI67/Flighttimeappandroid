@@ -315,6 +315,8 @@
     <string name="aletheia_feedback_note_hint">Cosa dovrebbe migliorare?</string>
     <string name="aletheia_feedback_note_required">Serve una nota per questo giudizio.</string>
     <string name="aletheia_feedback_thanks">Grazie per il feedback</string>
+    <string name="aletheia_feedback_continue_hint">Per proseguire con la prossima domanda seleziona il feedback sulla correttezza della risposta e se vuoi aggiungi una nota per permetterci di migliorare il modello per tutti.</string>
+    <string name="aletheia_feedback_required_before_next">Seleziona il feedback sull’ultima risposta prima di fare la prossima domanda.</string>
     <string name="aletheia_paywall_title">Limite giornaliero Online raggiunto</string>
     <string name="aletheia_paywall_body">Gli account free includono 20 chat Online al giorno e Offline illimitato. Passa a Plus, Pro o Max, compra pacchetti crediti, oppure attendi circa 24 ore. Dopo un acquisto puoi continuare fino al prossimo limite; il paywall ricompare ogni volta che un limite viene raggiunto.</string>
     <string name="aletheia_paywall_wait">Oppure attendi ~24 ore per il reset dell’allowance Online gratuita. Offline resta illimitato.</string>

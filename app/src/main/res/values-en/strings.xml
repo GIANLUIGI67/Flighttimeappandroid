@@ -184,6 +184,8 @@
     <string name="aletheia_feedback_note_hint">What should improve?</string>
     <string name="aletheia_feedback_note_required">A note is required for this rating.</string>
     <string name="aletheia_feedback_thanks">Thanks for the feedback</string>
+    <string name="aletheia_feedback_continue_hint">To continue with the next question, select feedback on how correct the answer was, and optionally add a note so we can improve the model for everyone.</string>
+    <string name="aletheia_feedback_required_before_next">Select feedback on the last answer before asking the next question.</string>
     <string name="aletheia_paywall_title">Online daily limit reached</string>
     <string name="aletheia_paywall_body">Free accounts include 20 Online chats per day and unlimited offline. Upgrade with Plus, Pro or Max, buy credit packs, or wait about 24 hours. After a purchase you can continue until the next limit; this paywall reappears whenever a limit is hit.</string>
     <string name="aletheia_paywall_wait">Or wait ~24 hours for the free Online allowance to reset. Offline remains unlimited.</string>
