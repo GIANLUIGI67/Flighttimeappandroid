@@ -246,7 +246,8 @@ class AletheiaChatActivity : AppCompatActivity() {
 
     private fun scheduleThinkingIndicator() {
         thinkingDelayRunnable?.let { mainHandler.removeCallbacks(it) }
-        val delayMs = if (repo.prefs.preferredModeOnline) 1500L else 900L
+        // Show only when a turn takes longer than ~3–4s (product rule).
+        val delayMs = 3_500L
         thinkingDelayRunnable = Runnable { showThinking() }
         mainHandler.postDelayed(thinkingDelayRunnable!!, delayMs)
     }

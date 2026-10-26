@@ -91,7 +91,10 @@ Mirror iOS Plus/Pro/Max + S/M/L naming; if iOS StoreKit IDs differ, keep these P
 - Chat logs via Functions (`aletheiaChat` / `aletheiaLogTurn`); RL gated by consent
 - Source badges: Online / Offline / Manuali
 - Paywall on limit; after purchase continue until next limit; reappear on each limit; upgrade or wait ~24h
-- Thinking indicator after ~1–4s wait
+- Thinking indicator after ~3–4s wait (hidden for faster turns)
+- Online + Offline: **manuals-first** client packages (AFM/FCOM/SOP study framing; no invented fuel/flap/IRS/FTL numbers)
+- Answers: no “I am / Sono Aletheia Beta” prefix; strip decorative markdown; Offline refuses off-domain without `C_LIMIT` / system-prompt leaks
+- Source badges follow real route (`Online` / `Offline` / `Manuali`)
 - Offline selection: Low Power / battery-saver warning (dismissible, not per-message)
 - EN + IT strings for UI including paywall/plans
 

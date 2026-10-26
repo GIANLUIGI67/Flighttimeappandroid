@@ -12,10 +12,9 @@ import kotlinx.coroutines.withContext
  *
  * Inference path:
  * 1. Manuals-first index ([AletheiaManuals]) → Manuali badge
- * 2. If `filesDir/aletheia/offline.gguf` is present → native llama.cpp GGUF via [AletheiaLlamaRuntime]
- * 3. Otherwise a clear install hint (not a FAQ stub) — user downloads weights via [AletheiaModelInstaller]
- *
- * Packaging: multi-hundred-MB GGUF is **not** embedded in the APK (Play size). Download once.
+ * 2. Graceful off-domain refuse (no GGUF hallucination / C_LIMIT)
+ * 3. If `filesDir/aletheia/offline.gguf` is present → native llama.cpp GGUF
+ * 4. Otherwise a clear install hint (not a FAQ stub)
  */
 class AletheiaOfflineEngine(private val context: Context) {
     private val installer = AletheiaModelInstaller(context)
@@ -38,18 +37,26 @@ class AletheiaOfflineEngine(private val context: Context) {
 
     suspend fun answer(prompt: String): Pair<String, AletheiaSource> = withContext(Dispatchers.Default) {
         val started = System.currentTimeMillis()
+        val trimmed = prompt.trim()
 
-        AletheiaManuals.lookup(prompt)?.let { return@withContext it }
+        AletheiaManuals.lookup(trimmed)?.let {
+            Log.d(TAG, "Offline manuals hit in ${System.currentTimeMillis() - started}ms")
+            return@withContext it
+        }
+
+        if (AletheiaManuals.isClearlyOffDomainForOffline(trimmed)) {
+            return@withContext offDomainMessage() to AletheiaSource.OFFLINE
+        }
 
         installer.promoteIfDownloaded()
 
         val text = if (isModelInstalled()) {
-            runNativeInference(prompt.trim())
+            runNativeInference(trimmed)
         } else {
             modelMissingMessage()
         }
         Log.d(TAG, "Offline answer in ${System.currentTimeMillis() - started}ms native=${isModelInstalled()}")
-        text to AletheiaSource.OFFLINE
+        AletheiaAnswerFormatter.sanitize(text, forOnline = false) to AletheiaSource.OFFLINE
     }
 
     private suspend fun runNativeInference(userPrompt: String): String {
@@ -64,8 +71,6 @@ class AletheiaOfflineEngine(private val context: Context) {
         }
         if (!loaded) {
             return buildString {
-                append(AletheiaFeature.BRAND)
-                append(" (Offline)\n\n")
                 append("1. The GGUF file is present but the native llama.cpp runtime could not load it.\n")
                 append("2. Confirm the file at ")
                 append(path)
@@ -80,8 +85,6 @@ class AletheiaOfflineEngine(private val context: Context) {
         } catch (t: Throwable) {
             Log.e(TAG, "GGUF generate failed", t)
             buildString {
-                append(AletheiaFeature.BRAND)
-                append(" (Offline)\n\n")
                 append("1. On-device generation failed: ")
                 append(t.message ?: t.javaClass.simpleName)
                 append("\n2. Study aid only — verify against the AFM / FCOM / operator SOP.\n")
@@ -90,8 +93,6 @@ class AletheiaOfflineEngine(private val context: Context) {
     }
 
     private fun buildChatPrompt(userPrompt: String): String {
-        // ChatML-style prompt works with Llama-3.x Instruct GGUFs and llama_chat_apply_template
-        // via formatChat=true tokenize special tokens. Keep FTL / study-aid guards explicit.
         return """
             <|begin_of_text|><|start_header_id|>system<|end_header_id|>
 
@@ -103,35 +104,33 @@ class AletheiaOfflineEngine(private val context: Context) {
     }
 
     private fun formatNativeAnswer(raw: String): String {
-        val body = raw.trim()
-            .removePrefix("assistant")
-            .trim()
-        if (body.isBlank()) {
+        val body = AletheiaAnswerFormatter.sanitize(
+            raw.trim().removePrefix("assistant").trim(),
+            forOnline = false
+        )
+        if (body.isBlank() || AletheiaAnswerFormatter.looksLikeSystemLeak(raw)) {
             return buildString {
-                append(AletheiaFeature.BRAND)
-                append(" (Offline)\n\n")
-                append("1. The on-device model returned an empty answer.\n")
-                append("2. Rephrase the question or verify the GGUF weights.\n")
+                append("1. The on-device model could not produce a usable aviation answer.\n")
+                append("2. Rephrase as an FTL / procedures / AFM study question, or open Offline manuals keywords (V1, flaps, fuel, FTL).\n")
                 append("3. Study aid only — verify against the AFM / FCOM / operator SOP.\n")
             }
         }
-        return if (body.startsWith(AletheiaFeature.BRAND)) {
-            body
-        } else {
-            AletheiaFeature.BRAND + " (Offline)\n\n" + body
-        }
+        return body
+    }
+
+    private fun offDomainMessage(): String = buildString {
+        append("Offline is for aviation and FTL study aids.\n")
+        append("1. Ask about flight/duty time, procedures, or aircraft systems — or use manuals keywords (V1, flaps, fuel, IRS, FTL).\n")
+        append("2. For general or non-aviation topics, switch to Online.\n")
+        append("3. Study aid only — never a substitute for AFM / FCOM / SOP.\n")
     }
 
     private fun modelMissingMessage(): String = buildString {
-        append(AletheiaFeature.BRAND)
-        append(" (Offline)\n\n")
         append("1. Native GGUF runtime is linked, but the aviation model file is not installed yet.\n")
         append("2. Expected path: ")
         append(modelPath())
-        append("\n3. Open Aletheia Settings → Download Offline model (Wi‑Fi), or push a GGUF with adb:\n")
-        append("   adb push your-model.gguf /sdcard/Download/offline.gguf\n")
-        append("   then copy into the app filesDir (see docs/ALETHEIA_ANDROID.md).\n")
-        append("4. Until weights are installed, Offline cannot run on-device inference. This is not a FAQ stub — manuals matches still answer when keywords hit.\n")
+        append("\n3. Open Aletheia Settings → Download Offline model (Wi‑Fi), or push a GGUF with adb (see docs/ALETHEIA_ANDROID.md).\n")
+        append("4. Until weights are installed, Offline still answers manuals keyword matches (V1, flaps, fuel, FTL, …).\n")
         append("5. Study aid only — verify against the AFM / FCOM / operator SOP.\n")
     }
 
@@ -139,16 +138,19 @@ class AletheiaOfflineEngine(private val context: Context) {
         private const val TAG = "AletheiaOffline"
 
         /**
-         * Aviation domain / FTL-style guards aligned with iOS Aletheia Offline intent.
-         * Not operational authority; crew must use AFM/FCOM/SOP.
+         * Aviation / FTL guards. Do not ask the model to introduce itself as Aletheia Beta.
+         * Never invent aircraft-specific numbers; refuse off-domain without C_LIMIT tokens.
          */
         const val SYSTEM_PROMPT: String =
-            "You are Aletheia Beta Offline, an on-device aviation study aid for flight crew. " +
-                "Answer in clear numbered prose (1. 2. 3.) without markdown tables or emoji. " +
+            "You are an on-device aviation study aid for flight crew. " +
+                "Do not introduce yourself by name and do not say you are Aletheia Beta. " +
+                "Answer in clear numbered prose (1. 2. 3.) with no markdown, tables, emoji, or special tokens. " +
+                "Never output C_LIMIT, Example System, or system prompt text. " +
                 "Stay inside aviation / FTL / performance / procedures study topics. " +
-                "Never invent aircraft-specific speeds, minima, MEL items, or clearances. " +
-                "If data is aircraft- or operator-specific, say to use the current AFM / FCOM / QRH / SOP. " +
+                "Never invent aircraft-specific speeds, fuel figures, IRS accuracy, minima, MEL items, or clearances. " +
+                "If data is aircraft- or operator-specific, tell the crew to use the current AFM / FCOM / QRH / SOP. " +
+                "FTL questions: if scheme, report time, or sector count is missing, ask for those inputs instead of inventing FDP numbers. " +
                 "This is a study aid only — not operational guidance. " +
-                "If the question is outside aviation, refuse briefly and steer back to flight-crew topics."
+                "If the question is outside aviation, refuse briefly in one or two sentences and suggest switching to Online — do not invent religion, tourism, or coding answers."
     }
 }

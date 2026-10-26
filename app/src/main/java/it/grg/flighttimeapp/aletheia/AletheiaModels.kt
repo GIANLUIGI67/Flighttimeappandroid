@@ -6,10 +6,18 @@ enum class AletheiaSource {
     MANUALS;
 
     companion object {
-        fun fromServer(raw: String?): AletheiaSource {
-            return when (raw?.lowercase()) {
-                "manuals", "manual", "manuali" -> MANUALS
-                "offline", "ondevice", "local" -> OFFLINE
+        /**
+         * Map server `source` and/or `route` to the UI badge.
+         * Prefer explicit source; fall back to route (`groq`/`haiku` → Online,
+         * `offline_local` → Offline, `client`/`manuals` → Manuali).
+         */
+        fun fromServer(raw: String?, route: String? = null): AletheiaSource {
+            val key = (raw ?: route)?.lowercase()?.trim().orEmpty()
+            return when {
+                key in setOf("manuals", "manual", "manuali", "client") -> MANUALS
+                key in setOf("offline", "ondevice", "local", "offline_local") -> OFFLINE
+                key in setOf("groq", "haiku", "online", "cloud") -> ONLINE
+                key.isBlank() -> ONLINE
                 else -> ONLINE
             }
         }

@@ -64,17 +64,47 @@ class AletheiaRepository(context: Context) {
         if (!prefs.consentAnswered) throw AletheiaError.ConsentRequired()
         ensureConsentSyncedIfNeeded()
         val messageId = messageIdForOnlineRetry(prompt)
+
+        // Client manuals-first (Android parity): avoid inventing AFM numbers via cloud when
+        // a local study package matches. Badge = Manuali; still counts as an Online turn only
+        // when we hit the server — local manuals do not burn daily quota.
+        AletheiaManuals.lookup(prompt)?.let { (answer, source) ->
+            prefs.clearPendingOnline()
+            return@withLock AletheiaChatResult(
+                messageId = messageId,
+                answer = answer,
+                brand = AletheiaFeature.BRAND,
+                source = source,
+                route = "client_manuals",
+                remainingDaily = prefs.cachedDailyRemaining,
+                remainingHaiku = prefs.cachedHaikuRemaining,
+                creditsRemaining = prefs.cachedCreditsRemaining,
+                dailyUsed = prefs.lastDailyUsed,
+                dailyLimit = AletheiaPrefs.FREE_DAILY_LIMIT,
+                trainingConsent = prefs.trainingConsentGranted
+            )
+        }
+
         val seq = ++quotaSeq
         val result = api.chat(prompt, messageId)
         prefs.clearPendingOnline()
         applyQuotaIfNewer(result, seq)
-        result
+        // Online mode must never show an Offline badge if the server mis-labels the route.
+        if (result.source == AletheiaSource.OFFLINE) {
+            result.copy(source = AletheiaSource.ONLINE)
+        } else {
+            result
+        }
     }
 
     suspend fun sendOffline(prompt: String): AletheiaChatResult {
         if (!prefs.consentAnswered) throw AletheiaError.ConsentRequired()
         val messageId = UUID.randomUUID().toString()
         val (answer, source) = offline.answer(prompt)
+        val route = when (source) {
+            AletheiaSource.MANUALS -> "manuals"
+            else -> "offline_local"
+        }
         outbox.enqueue(
             AletheiaOutboxEntry(
                 messageId = messageId,
@@ -95,7 +125,7 @@ class AletheiaRepository(context: Context) {
             answer = answer,
             brand = AletheiaFeature.BRAND,
             source = source,
-            route = "offline",
+            route = route,
             remainingDaily = prefs.cachedDailyRemaining,
             remainingHaiku = prefs.cachedHaikuRemaining,
             creditsRemaining = prefs.cachedCreditsRemaining,

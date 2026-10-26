@@ -49,15 +49,20 @@ class AletheiaApi(
                 "message" to message,
                 "messageId" to messageId,
                 "platform" to "android",
-                "clientVersion" to AletheiaFeature.versionName
+                "clientVersion" to AletheiaFeature.versionName,
+                // Hint for server (sibling Functions repo): manuals-first, no invented numbers.
+                "preferManuals" to true,
+                "clientRouting" to "manuals_first"
             )
         )
+        val route = result["route"] as? String
+        val rawAnswer = (result["answer"] as? String).orEmpty()
         return AletheiaChatResult(
             messageId = messageId,
-            answer = (result["answer"] as? String).orEmpty(),
+            answer = AletheiaAnswerFormatter.sanitize(rawAnswer, forOnline = true),
             brand = (result["brand"] as? String) ?: AletheiaFeature.BRAND,
-            source = AletheiaSource.fromServer(result["source"] as? String),
-            route = result["route"] as? String,
+            source = AletheiaSource.fromServer(result["source"] as? String, route),
+            route = route,
             remainingDaily = (result["remainingDaily"] as? Number)?.toInt() ?: 0,
             remainingHaiku = (result["remainingHaiku"] as? Number)?.toInt() ?: 0,
             creditsRemaining = (result["creditsRemaining"] as? Number)?.toInt() ?: 0,
