@@ -6,6 +6,7 @@ local.properties
 /build
 /captures
 .externalNativeBuild/
+app/.cxx/
 /app/build
 
 # Firebase config (contains API keys — embedded in app bundle at build time, not needed in repo)
@@ -14,5 +15,11 @@ app/google-services.json
 
 # Release artifacts
 app/release/
+/artifacts/
 *.aab
 *.apk
+
+# Play upload signing (never commit)
+keystore.properties
+*.jks
+*.keystore

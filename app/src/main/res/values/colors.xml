@@ -37,6 +37,7 @@
     <color name="homeGold">#FFB21A</color>
     <color name="homeSoftBg">#F8FAFD</color>
     <color name="homeCardStroke">#E3E7EE</color>
+    <color name="aletheiaBadgeBg">#E8EEF7</color>
 
     <color name="qbOptionNormalBg">@color/iosBackground</color>
     <color name="qbOptionNormalStroke">@color/iosCardStroke</color>

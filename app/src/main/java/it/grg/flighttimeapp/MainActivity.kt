@@ -11,6 +11,8 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
+import it.grg.flighttimeapp.aletheia.AletheiaFeature
+import it.grg.flighttimeapp.aletheia.AletheiaHubActivity
 import it.grg.flighttimeapp.crewl.CrewForumActivity
 import it.grg.flighttimeapp.crewl.CrewLayoverChatStore
 import it.grg.flighttimeapp.crewl.CrewSettingsActivity
@@ -51,8 +53,22 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.cardCrewJobs).setOnClickListener {
             showComingSoon()
         }
+        val crewToolsBadge = findViewById<android.widget.TextView>(R.id.crewToolsBadge)
+        if (AletheiaFeature.isEnabled) {
+            // Feature flag on: advertise Aletheia Beta on the Crew Tools tile.
+            crewToolsBadge.setText(R.string.aletheia_brand)
+            crewToolsBadge.visibility = View.VISIBLE
+        } else {
+            // Rollback: never show Aletheia branding — match other gated tiles.
+            crewToolsBadge.setText(R.string.coming_soon)
+            crewToolsBadge.visibility = View.VISIBLE
+        }
         findViewById<View>(R.id.cardCrewTools).setOnClickListener {
-            showComingSoon()
+            if (AletheiaFeature.isEnabled) {
+                startActivity(Intent(this, AletheiaHubActivity::class.java))
+            } else {
+                showComingSoon()
+            }
         }
         findViewById<View>(R.id.cardCrewForum).setOnClickListener {
             startActivity(Intent(this, CrewForumActivity::class.java))
