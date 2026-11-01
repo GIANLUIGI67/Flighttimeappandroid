@@ -19,7 +19,7 @@ SDK for target-API mail: **`compileSdk` / `targetSdk` = 36**, `minSdk` = 24. Mer
 6. Sideload: `./gradlew :app:assembleDebug` then  
    `adb install -r app/build/outputs/apk/debug/app-debug.apk`
 7. Debug App Check: debug builds use the Firebase App Check debug provider (see `FlightTimeApplication`). Register the debug token in Firebase Console if callables reject App Check.
-8. Rollback: product ships with `ALETHEIA_ENABLED=true` in **release**. Changing only `defaultConfig` does not disable release — set `false` in **defaultConfig and every buildType** (`debug`/`release`). Home Crew Tools badge follows the flag (Aletheia vs Coming soon).
+8. Legacy pre-audit configuration (superseded by the billing safety patch): product shipped with `ALETHEIA_ENABLED=true` in **release**. Changing only `defaultConfig` does not disable release — set `false` in **defaultConfig and every buildType** (`debug`/`release`). Home Crew Tools badge follows the flag (Aletheia vs Coming soon).
 
 ### google-services.json / Google API key
 
@@ -53,12 +53,12 @@ Must be deployed on **`flighttimeapp-6f816`** / **`us-central1`** (do **not** cr
 }
 ```
 
-**Success:** `{ "ok": true }` (optional `creditsGranted` number).  
+**Success (billing safety patch):** `{ "ok": true, "productId": "<requested product>", "grantCommitted": true, "creditsRemaining": 50 }`. The balance is an absolute non-negative integer. Legacy `{ok:true}` is rejected.
 **Reject / missing function:** client keeps purchase **pending** and does **not** grant entitlements.
 
-**Server:** verify via Play Developer API (service account linked in Play Console) for subscriptions (`purchases.subscriptionsv2.get`) and one-time products (`purchases.products.get`); idempotent ledger on `uid` + `purchaseToken`.
+**Server:** verify via Play Developer API (service account linked in Play Console) for subscriptions (`purchases.subscriptionsv2.get`) and one-time products (`purchases.products.get`); global token ledger bound to exactly one authenticated uid; ledger and credit balance updated in one transaction.
 
-Android client hook is complete in `AletheiaApi.verifyPlayPurchase` + `AletheiaBillingManager` (verify-before-grant / ack subs / consume packs).
+Android client hook is present in `AletheiaApi.verifyPlayPurchase` + `AletheiaBillingManager` (verify-before-grant / ack subs / consume packs).
 
 ## Play Console products to create
 
@@ -138,3 +138,8 @@ System prompt includes aviation / FTL study-aid guards (no invented minima; AFM/
 3. **Create** the six Play product IDs above (do not publish this PR).
 4. **GGUF packaging:** ~2 GB weights stay out of APK; approve official URL / PAD / sideload policy.
 5. Manuali badge uses Italian label by product request on both EN/IT.
+
+
+## Billing safety review — 2026-11-01
+
+Release is now explicitly disabled (`ALETHEIA_ENABLED=false` in defaultConfig and release; debug remains enabled). No backend deployment is established by this source tree. See [billing audit and activation tests](ALETHEIA_BILLING_AUDIT.md). Every token is reverified; raw token preferences and local credit increments have been removed.

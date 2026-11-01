@@ -5,6 +5,7 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import it.grg.flighttimeapp.BuildConfig
 import com.android.billingclient.api.AcknowledgePurchaseParams
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
@@ -28,7 +29,7 @@ import kotlin.math.min
 
 /**
  * Play Billing for Aletheia Plus / Pro / Max + credit packs (`aletheia_*` product IDs).
- * Entitlements are granted only after [AletheiaApi.verifyPlayPurchase] succeeds
+ * Local UI is refreshed only after [AletheiaApi.verifyPlayPurchase] succeeds
  * (callable `aletheiaVerifyPlayPurchase` on flighttimeapp-6f816 — see API KDoc).
  * Credit packs are consumed after a verified grant so they can be bought again.
  */
@@ -78,6 +79,7 @@ class AletheiaBillingManager(
     private var destroyed = false
 
     fun start() {
+        if (!BuildConfig.ALETHEIA_ENABLED) return
         destroyed = false
         connectBilling()
     }
@@ -91,6 +93,7 @@ class AletheiaBillingManager(
     fun products(): List<ProductDetails> = productDetails
 
     fun launchPurchase(activity: Activity, productId: String) {
+        if (!BuildConfig.ALETHEIA_ENABLED) return
         val details = productDetails.firstOrNull { it.productId == productId }
         if (details == null) {
             listener?.onBillingMessage("Product not available yet in Play Console: $productId")
@@ -232,49 +235,32 @@ class AletheiaBillingManager(
         for (purchase in purchases) {
             if (purchase.purchaseState != Purchase.PurchaseState.PURCHASED) continue
             val token = purchase.purchaseToken
+            if (token.isBlank()) continue
             for (pid in purchase.products) {
-                val alreadyGranted = prefs.isPurchaseTokenGranted(token)
-                if (alreadyGranted) {
-                    if (AletheiaProducts.isSubscription(pid)) {
-                        plan = pid
-                        sawSubscription = true
-                        acknowledge(purchase)
-                    } else {
-                        // Ensure consumables are released so the pack can be bought again.
-                        consume(purchase)
-                    }
-                    continue
-                }
-
-                val verified = try {
+                if (pid !in AletheiaProducts.ALL_PRODUCT_IDS) continue
+                val verifiedBalance = try {
                     api.verifyPlayPurchase(pid, token)
                 } catch (e: Exception) {
-                    Log.w(TAG, "verify failed for $pid: ${e.message}")
-                    false
+                    // Do not log backend error text: it can contain purchase tokens.
+                    Log.w(TAG, "Purchase verification unavailable")
+                    null
                 }
-                if (!verified) {
+                if (verifiedBalance == null) {
                     listener?.onBillingMessage(
                         "Purchase pending server verification (aletheiaVerifyPlayPurchase). Entitlement not granted yet."
                     )
                     continue
                 }
 
-                // Mutex + atomic mark: overlapping refresh/purchase callbacks must not double-grant.
-                if (!prefs.markPurchaseTokenGranted(token)) {
-                    if (AletheiaProducts.isSubscription(pid)) {
-                        plan = pid
-                        sawSubscription = true
-                    }
-                    continue
-                }
-
+                // Reverify even previously seen tokens. Only the server ledger grants.
+                // An absolute balance makes replay/reinstall retry safe on this client.
+                credits = verifiedBalance
                 grantedSomething = true
                 if (AletheiaProducts.isSubscription(pid)) {
                     plan = pid
                     sawSubscription = true
                     acknowledge(purchase)
                 } else {
-                    credits += AletheiaProducts.creditsForPack(pid)
                     consume(purchase)
                 }
             }
@@ -327,3 +313,4 @@ class AletheiaBillingManager(
         private const val MAX_RECONNECT_ATTEMPTS = 5
     }
 }
+

@@ -133,28 +133,24 @@ class AletheiaApi(
      * }
      * ```
      *
-     * **Success response:** `{ "ok": true, "productId"?: string, "creditsGranted"?: number }`
-     * Client treats truthy `ok` as verified. Optional `creditsGranted` is ignored today
-     * (client uses [AletheiaProducts.creditsForPack] locally after verify).
+     * **Success:** `{ "ok": true, "productId": string, "grantCommitted": true,
+     * "creditsRemaining": non-negative integer }`.
+     * Returns the absolute server balance, never a locally calculated increment.
+     * Old `{ok:true}` responses deliberately fail closed.
      *
-     * **Failure:** `{ "ok": false, "error"?: string }` or Functions error codes
-     * `INVALID_ARGUMENT` / `PERMISSION_DENIED` / `FAILED_PRECONDITION`.
-     *
-     * **Server duties (not in this Android repo):**
-     * 1. Call Google Play Developer API `purchases.subscriptionsv2.get` or
-     *    `purchases.products.get` with a Play Console service account.
-     * 2. Confirm packageName, productId, purchase state PURCHASED, and token uniqueness.
-     * 3. Persist entitlement / credit ledger keyed by uid + purchaseToken (idempotent).
-     *
-     * TODO(backend): Deploy `aletheiaVerifyPlayPurchase` on `flighttimeapp-6f816`.
-     * Until then this client returns false on NOT_FOUND and does **not** grant locally.
-     * Do **not** invent a second Firebase project.
+     * Server must authenticate uid, verify package/product/state/expiry with Play,
+     * and atomically bind a globally unique token to one uid and grant once.
+     * A uid+token key alone does not prevent replay by a different uid.
+     * Retry for the same owner returns the current balance without another grant.
+     * See docs/ALETHEIA_BILLING_AUDIT.md for deployment and lifecycle requirements.
      */
     suspend fun verifyPlayPurchase(
         productId: String,
         purchaseToken: String,
         packageName: String = "it.grg.flighttimeapp"
-    ): Boolean {
+    ): Int? {
+        if (productId !in AletheiaProducts.ALL_PRODUCT_IDS || purchaseToken.isBlank() ||
+            packageName != "it.grg.flighttimeapp") return null
         ensureAuth()
         return try {
             // Client hook ready — callable name and payload match the contract above.
@@ -167,13 +163,13 @@ class AletheiaApi(
                     "platform" to "android"
                 )
             )
-            result["ok"] as? Boolean ?: false
+            AletheiaPurchaseVerification.balance(result, productId)
         } catch (e: AletheiaError.Backend) {
             if (e.message?.contains("NOT_FOUND", ignoreCase = true) == true ||
                 e.message?.contains("404", ignoreCase = true) == true
             ) {
-                // Function not deployed yet on flighttimeapp-6f816 — keep purchase pending.
-                false
+                // Missing function: do not grant, acknowledge, or consume.
+                null
             } else {
                 throw e
             }
@@ -219,3 +215,4 @@ class AletheiaApi(
         return if (e is AletheiaError) e else AletheiaError.Network(e.message ?: e.toString())
     }
 }
+

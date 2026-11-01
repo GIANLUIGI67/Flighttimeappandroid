@@ -57,9 +57,8 @@ android {
         versionCode = 37
         versionName = "1.12.15"
 
-        // Aletheia Beta (Crew Tools). Product ships enabled.
-        // Rollback: set this AND every buildType override below to false (buildType fields win).
-        buildConfigField("boolean", "ALETHEIA_ENABLED", "true")
+        // Fail closed until the deployed billing backend passes the activation checklist.
+        buildConfigField("boolean", "ALETHEIA_ENABLED", "false")
         buildConfigField("String", "ALETHEIA_VERSION", "\"1.1\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -103,7 +102,7 @@ android {
 
     buildTypes {
         debug {
-            // Intentionally enabled for product; override to false together with defaultConfig to roll back.
+            // Development only; release remains disabled.
             buildConfigField("boolean", "ALETHEIA_ENABLED", "true")
         }
         release {
@@ -113,8 +112,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Product wants Aletheia on in release. Changing only defaultConfig does NOT disable this.
-            buildConfigField("boolean", "ALETHEIA_ENABLED", "true")
+            // Explicit release gate: enable only after backend/device verification.
+            buildConfigField("boolean", "ALETHEIA_ENABLED", "false")
             // Sign with Play upload key when keystore.properties / env is present; otherwise
             // leave unsigned so parent can jarsigner with the Console upload key (see docs).
             if (hasUploadSigning) {
@@ -176,3 +175,4 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 }
+

@@ -6,7 +6,10 @@ import android.content.SharedPreferences
 class AletheiaPrefs(context: Context) {
     private val prefs: SharedPreferences =
         context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-    private val tokenLock = Any()
+    init {
+        // Legacy tokens are neither an entitlement authority nor safe account-scoped state.
+        prefs.edit().remove("granted_purchase_tokens").apply()
+    }
 
     var consentAnswered: Boolean
         get() = prefs.getBoolean(KEY_CONSENT_ANSWERED, false)
@@ -60,31 +63,6 @@ class AletheiaPrefs(context: Context) {
             .apply()
     }
 
-    fun isPurchaseTokenGranted(token: String): Boolean {
-        synchronized(tokenLock) {
-            return grantedTokens().contains(token)
-        }
-    }
-
-    /**
-     * Atomically records a verified purchase token.
-     * @return true if this call newly recorded the token (caller should grant once).
-     */
-    fun markPurchaseTokenGranted(token: String): Boolean {
-        synchronized(tokenLock) {
-            val set = grantedTokens().toMutableSet()
-            if (!set.add(token)) return false
-            // commit() so overlapping verify handlers see the token immediately.
-            prefs.edit().putStringSet(KEY_GRANTED_TOKENS, HashSet(set)).commit()
-            return true
-        }
-    }
-
-    private fun grantedTokens(): Set<String> {
-        // Copy — SharedPreferences may return a live mutable StringSet.
-        return prefs.getStringSet(KEY_GRANTED_TOKENS, emptySet()).orEmpty().toSet()
-    }
-
     fun clearConsent() {
         prefs.edit()
             .remove(KEY_CONSENT_ANSWERED)
@@ -106,6 +84,6 @@ class AletheiaPrefs(context: Context) {
         private const val KEY_ACTIVE_PLAN = "active_plan"
         private const val KEY_PENDING_PROMPT = "pending_online_prompt"
         private const val KEY_PENDING_MESSAGE_ID = "pending_online_message_id"
-        private const val KEY_GRANTED_TOKENS = "granted_purchase_tokens"
     }
 }
+
