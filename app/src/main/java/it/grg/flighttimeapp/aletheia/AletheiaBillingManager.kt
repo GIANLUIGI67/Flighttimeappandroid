@@ -219,6 +219,12 @@ class AletheiaBillingManager(
         }
     }
 
+    /**
+     * Full purchase processing is serialized on [purchasesMutex] so a Play purchase
+     * callback and [refreshPurchases] cannot both grant the same token. Credit packs
+     * use a single prefs transaction ([AletheiaPrefs.grantCreditPackOnce]) so the
+     * token mark and balance increment cannot race.
+     */
     private suspend fun handlePurchases(
         purchases: List<Purchase>,
         fromUserPurchase: Boolean,
@@ -233,8 +239,7 @@ class AletheiaBillingManager(
             if (purchase.purchaseState != Purchase.PurchaseState.PURCHASED) continue
             val token = purchase.purchaseToken
             for (pid in purchase.products) {
-                val alreadyGranted = prefs.isPurchaseTokenGranted(token)
-                if (alreadyGranted) {
+                if (prefs.isPurchaseTokenGranted(token)) {
                     if (AletheiaProducts.isSubscription(pid)) {
                         plan = pid
                         sawSubscription = true
@@ -259,22 +264,37 @@ class AletheiaBillingManager(
                     continue
                 }
 
-                // Mutex + atomic mark: overlapping refresh/purchase callbacks must not double-grant.
-                if (!prefs.markPurchaseTokenGranted(token)) {
+                // Re-check under the same mutex after the suspend verify: another waiter
+                // cannot interleave, but a prior grant of this token must still be skipped.
+                if (prefs.isPurchaseTokenGranted(token)) {
                     if (AletheiaProducts.isSubscription(pid)) {
                         plan = pid
                         sawSubscription = true
+                    } else {
+                        credits = prefs.cachedCreditsRemaining
                     }
                     continue
                 }
 
-                grantedSomething = true
                 if (AletheiaProducts.isSubscription(pid)) {
+                    if (!prefs.markPurchaseTokenGranted(token)) {
+                        plan = pid
+                        sawSubscription = true
+                        continue
+                    }
+                    grantedSomething = true
                     plan = pid
                     sawSubscription = true
                     acknowledge(purchase)
                 } else {
-                    credits += AletheiaProducts.creditsForPack(pid)
+                    val packCredits = AletheiaProducts.creditsForPack(pid)
+                    val newBalance = prefs.grantCreditPackOnce(token, packCredits)
+                    if (newBalance == null) {
+                        credits = prefs.cachedCreditsRemaining
+                        continue
+                    }
+                    credits = newBalance
+                    grantedSomething = true
                     consume(purchase)
                 }
             }
@@ -290,6 +310,7 @@ class AletheiaBillingManager(
             // Partial purchase callback or failed SUBS query — keep cached plan.
             plan = prefs.activePlanId
         }
+        // Keep cachedCreditsRemaining aligned (credit packs already wrote via grantCreditPackOnce).
         prefs.cachedCreditsRemaining = credits
 
         if (fromUserPurchase && grantedSomething) {

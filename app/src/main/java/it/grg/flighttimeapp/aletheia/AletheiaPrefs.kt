@@ -80,6 +80,23 @@ class AletheiaPrefs(context: Context) {
         }
     }
 
+    /**
+     * Single preference transaction: mark [token] granted and add [packCredits].
+     * @return new credit balance, or null if this token was already granted (no double-count).
+     */
+    fun grantCreditPackOnce(token: String, packCredits: Int): Int? {
+        synchronized(tokenLock) {
+            val set = grantedTokens().toMutableSet()
+            if (!set.add(token)) return null
+            val balance = prefs.getInt(KEY_CREDITS_REMAINING, 0) + packCredits.coerceAtLeast(0)
+            prefs.edit()
+                .putStringSet(KEY_GRANTED_TOKENS, HashSet(set))
+                .putInt(KEY_CREDITS_REMAINING, balance)
+                .commit()
+            return balance
+        }
+    }
+
     private fun grantedTokens(): Set<String> {
         // Copy — SharedPreferences may return a live mutable StringSet.
         return prefs.getStringSet(KEY_GRANTED_TOKENS, emptySet()).orEmpty().toSet()
