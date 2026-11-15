@@ -156,7 +156,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:text="@string/salary_settings_delete_allowance"
-            android:textColor="@android:color/holo_red_dark"
+            android:textColor="@color/iosRed"
             android:textSize="15sp"
             android:visibility="gone"
             app:layout_constraintTop_toBottomOf="@id/allowanceFormCard"

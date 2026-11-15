@@ -32,12 +32,12 @@
         <item name="android:textAllCaps">false</item>
     </style>
 
-    <style name="CrewDatePickerDialog" parent="Theme.MaterialComponents.Light.Dialog">
+    <style name="CrewDatePickerDialog" parent="Theme.MaterialComponents.DayNight.Dialog">
         <item name="colorAccent">@color/iosBlue</item>
         <item name="android:datePickerMode">calendar</item>
     </style>
 
-    <style name="CrewTimePickerDialog" parent="Theme.MaterialComponents.Light.Dialog">
+    <style name="CrewTimePickerDialog" parent="Theme.MaterialComponents.DayNight.Dialog">
         <item name="colorAccent">@color/iosBlue</item>
         <item name="android:timePickerMode">spinner</item>
     </style>
