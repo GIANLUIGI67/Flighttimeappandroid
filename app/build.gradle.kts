@@ -74,9 +74,9 @@ android {
         // Aletheia Beta (Crew Tools). Product ships enabled.
         // Rollback: set this AND every buildType override below to false (buildType fields win).
         buildConfigField("boolean", "ALETHEIA_ENABLED", "true")
-        // 1.2 = Crew Tools aligned with iOS (Aletheia 1.5B import only, server status,
-        // delete my data, provenance fields). Bump only when Aletheia itself changes.
-        buildConfigField("String", "ALETHEIA_VERSION", "\"1.2\"")
+        // 1.7 = same Aletheia feature version as iOS (AletheiaBrand.betaVersion): Crew Tools aligned
+        // (Aletheia 1.5B import, server status, delete my data, provenance). Bump both apps together.
+        buildConfigField("String", "ALETHEIA_VERSION", "\"1.7\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
