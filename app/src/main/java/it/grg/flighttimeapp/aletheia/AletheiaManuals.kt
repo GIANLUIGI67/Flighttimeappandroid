@@ -171,7 +171,7 @@ object AletheiaManuals {
     fun lookup(question: String): Pair<String, AletheiaSource>? {
         val q = question.lowercase()
         val hit = entries
-            .filter { entry -> entry.keywords.any { kw -> q.contains(kw) } }
+            .filter { entry -> entry.keywords.any { kw -> containsKeyword(q, kw) } }
             .maxByOrNull { it.priority }
             ?: return null
         val answer = buildString {
@@ -182,6 +182,26 @@ object AletheiaManuals {
             append("Source: AFM / FCOM / operator SOP concepts. Confirm with your current aircraft and company documentation.")
         }
         return answer to AletheiaSource.MANUALS
+    }
+
+    /**
+     * Keyword match that respects word starts: "riyadh" must not hit "dh", "first" must not hit "irs",
+     * "v2500" must not hit "v2". Short keywords (4 chars or fewer) must be whole words; longer ones may
+     * continue (plurals such as "fuel tanks").
+     */
+    internal fun containsKeyword(q: String, keyword: String): Boolean {
+        val kw = keyword.trim()
+        if (kw.isEmpty()) return false
+        var from = 0
+        while (true) {
+            val i = q.indexOf(kw, from)
+            if (i < 0) return false
+            val leftOk = i == 0 || !q[i - 1].isLetterOrDigit()
+            val end = i + kw.length
+            val rightOk = kw.length > 4 || end == q.length || !q[end].isLetterOrDigit()
+            if (leftOk && rightOk) return true
+            from = i + 1
+        }
     }
 
     /** True when the prompt is clearly aviation / FTL / procedures study. */
