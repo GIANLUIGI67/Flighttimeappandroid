@@ -5,10 +5,14 @@ import android.os.Bundle
 import android.widget.ImageButton
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.card.MaterialCardView
+import kotlinx.coroutines.launch
 import it.grg.flighttimeapp.R
 
 class AletheiaHubActivity : AppCompatActivity() {
+    private lateinit var repo: AletheiaRepository
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (!AletheiaFeature.isEnabled) {
@@ -24,13 +28,8 @@ class AletheiaHubActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.aletheiaVersionLabel).text =
             getString(R.string.aletheia_version_format, AletheiaFeature.versionName)
 
-        val prefs = AletheiaPrefs(this)
-        findViewById<TextView>(R.id.aletheiaQuotaLabel).text = getString(
-            R.string.aletheia_quota_format,
-            prefs.cachedDailyRemaining,
-            AletheiaPrefs.FREE_DAILY_LIMIT,
-            prefs.cachedCreditsRemaining
-        )
+        repo = AletheiaRepository.create(this)
+        showQuota()
 
         findViewById<MaterialCardView>(R.id.aletheiaOpenChatCard).setOnClickListener {
             startActivity(Intent(this, AletheiaChatActivity::class.java))
@@ -42,11 +41,19 @@ class AletheiaHubActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        val prefs = AletheiaPrefs(this)
+        showQuota()
+        lifecycleScope.launch {
+            // Same server status as iOS (aletheiaGetStatus): plan limit, usage, credits.
+            if (repo.refreshStatus() != null) showQuota()
+        }
+    }
+
+    private fun showQuota() {
+        val prefs = repo.prefs
         findViewById<TextView>(R.id.aletheiaQuotaLabel).text = getString(
             R.string.aletheia_quota_format,
             prefs.cachedDailyRemaining,
-            AletheiaPrefs.FREE_DAILY_LIMIT,
+            prefs.cachedDailyLimit,
             prefs.cachedCreditsRemaining
         )
     }

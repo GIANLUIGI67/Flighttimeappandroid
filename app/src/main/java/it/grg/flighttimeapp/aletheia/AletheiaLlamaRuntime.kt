@@ -7,11 +7,19 @@ import kotlin.concurrent.thread
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.withContext
 
+/** On-device inference surface used by [AletheiaOfflineEngine] (fakes in unit tests). */
+interface AletheiaLocalRuntime {
+    /** True when the native library is linked on this device (null = not probed yet). */
+    suspend fun probeNative(): Boolean
+    suspend fun ensureLoaded(path: String, nCtx: Int): Boolean
+    suspend fun generate(prompt: String, maxTokens: Int): String
+}
+
 /**
- * Single-threaded llama.cpp runtime for Aletheia Offline GGUF.
- * Mirrors the iOS llmfarm / llama.cpp session pattern: load once, generate, clear KV.
+ * Single-threaded native runtime for the on-device Aletheia 1.5B file.
+ * Mirrors the iOS session pattern: load once, generate, clear KV.
  */
-class AletheiaLlamaRuntime private constructor() {
+class AletheiaLlamaRuntime private constructor() : AletheiaLocalRuntime {
     private val ready = AtomicBoolean(false)
     private val libraryOk = AtomicBoolean(false)
 
@@ -47,7 +55,9 @@ class AletheiaLlamaRuntime private constructor() {
         return libraryOk.get()
     }
 
-    suspend fun ensureLoaded(path: String, nCtx: Int = DEFAULT_N_CTX): Boolean =
+    override suspend fun probeNative(): Boolean = withContext(runLoop) { libraryOk.get() }
+
+    override suspend fun ensureLoaded(path: String, nCtx: Int): Boolean =
         withContext(runLoop) {
             if (!libraryOk.get()) return@withContext false
             if (model != 0L && loadedPath == path) return@withContext true
@@ -75,7 +85,7 @@ class AletheiaLlamaRuntime private constructor() {
                 sampler = s
                 loadedPath = path
                 ready.set(true)
-                Log.i(TAG, "Loaded GGUF $path")
+                Log.i(TAG, "Loaded on-device model $path")
                 true
             } catch (t: Throwable) {
                 Log.e(TAG, "ensureLoaded failed", t)
@@ -84,10 +94,16 @@ class AletheiaLlamaRuntime private constructor() {
             }
         }
 
-    suspend fun generate(prompt: String, maxTokens: Int = DEFAULT_MAX_TOKENS): String =
+    override suspend fun generate(prompt: String, maxTokens: Int): String =
         withContext(runLoop) {
             if (!ready.get() || context == 0L) {
-                throw IllegalStateException("GGUF model not loaded")
+                throw IllegalStateException("model not loaded")
+            }
+            // Fresh sampler per answer so repeat-penalty history never leaks across turns.
+            val fresh = AletheiaLlamaNative.nativeNewSampler()
+            if (fresh != 0L) {
+                if (sampler != 0L) AletheiaLlamaNative.nativeFreeSampler(sampler)
+                sampler = fresh
             }
             val nLen = maxTokens.coerceIn(16, 512)
             val ncur = AletheiaLlamaNative.IntVar(
@@ -124,7 +140,10 @@ class AletheiaLlamaRuntime private constructor() {
     companion object {
         private const val TAG = "AletheiaLlama"
         const val DEFAULT_N_CTX = 2048
-        const val DEFAULT_MAX_TOKENS = 256
+        const val LOW_RAM_N_CTX = 1024
+        /** iOS AIBox n_predict for the 1.5B. */
+        const val DEFAULT_MAX_TOKENS = 220
+        const val POWER_SAVE_MAX_TOKENS = 128
 
         @Volatile private var instance: AletheiaLlamaRuntime? = null
 

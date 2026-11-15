@@ -100,8 +100,8 @@ class AletheiaManualsTest {
         assertTrue(AletheiaProducts.isSubscription("aletheia_pro_monthly"))
         assertFalse(AletheiaProducts.isSubscription("aletheia_credits_m"))
         assertEquals(150, AletheiaProducts.creditsForPack("aletheia_credits_m"))
-        assertEquals(50, AletheiaProducts.creditsForPack("aletheia_credits_s"))
-        assertEquals(400, AletheiaProducts.creditsForPack("aletheia_credits_l"))
+        assertEquals(40, AletheiaProducts.creditsForPack("aletheia_credits_s"))
+        assertEquals(300, AletheiaProducts.creditsForPack("aletheia_credits_l"))
     }
 
     @Test

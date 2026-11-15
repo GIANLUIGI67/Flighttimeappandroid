@@ -5,7 +5,6 @@ import com.google.android.gms.tasks.Tasks
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.FirebaseFunctionsException
 import it.grg.flighttimeapp.crewl.CrewAuthManager
-import java.util.UUID
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -13,209 +12,291 @@ import kotlin.coroutines.suspendCoroutine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/**
- * Thin client for existing Firebase Functions on project flighttimeapp-6f816
- * (us-central1): aletheiaSetConsent, aletheiaChat, aletheiaSubmitFeedback, aletheiaLogTurn.
- */
-class AletheiaApi(
-    private val context: Context,
+/** One HTTPS callable round trip: name + request data -> response map. */
+fun interface AletheiaCallableTransport {
+    suspend fun call(name: String, data: Map<String, Any?>): Map<String, Any?>
+}
+
+/** Production transport: Firebase Functions us-central1 (same region as iOS). */
+class FirebaseCallableTransport(
     private val functions: FirebaseFunctions = FirebaseFunctions.getInstance("us-central1")
-) {
-    suspend fun ensureAuth(): String = suspendCoroutine { cont ->
-        CrewAuthManager.ensureSignedInDetailed(context) { result ->
-            if (result.isSuccess && !result.uid.isNullOrBlank()) {
-                cont.resume(result.uid!!)
-            } else {
-                cont.resumeWithException(
-                    AletheiaError.Network(result.message ?: "Sign-in required")
-                )
+) : AletheiaCallableTransport {
+    @Suppress("UNCHECKED_CAST")
+    override suspend fun call(name: String, data: Map<String, Any?>): Map<String, Any?> =
+        withContext(Dispatchers.IO) {
+            try {
+                val task = functions.getHttpsCallable(name).call(data)
+                val snapshot = Tasks.await(task, 120, TimeUnit.SECONDS)
+                when (val raw = snapshot.data) {
+                    is Map<*, *> -> raw as Map<String, Any?>
+                    else -> emptyMap()
+                }
+            } catch (e: Exception) {
+                throw AletheiaApi.mapException(e)
             }
         }
-    }
+}
 
-    suspend fun setConsent(granted: Boolean): Boolean {
+/**
+ * Client for the Firebase callables on flighttimeapp-6f816 (us-central1):
+ * aletheiaSetConsent, aletheiaGetStatus, aletheiaChat, aletheiaLogTurn,
+ * aletheiaSubmitFeedback, aletheiaDeleteMyData, aletheiaVerifyPlayPurchase.
+ * Payloads come from [AletheiaPayloads] so the contract tests check the exact bytes sent.
+ */
+class AletheiaApi(
+    private val transport: AletheiaCallableTransport,
+    private val clientInfo: AletheiaClientInfo,
+    private val ensureAuth: suspend () -> String
+) : AletheiaBackend {
+
+    constructor(context: Context) : this(
+        transport = FirebaseCallableTransport(),
+        clientInfo = AletheiaClientInfo.fromBuildConfig(),
+        ensureAuth = { anonymousAuth(context.applicationContext) }
+    )
+
+    override suspend fun setConsent(granted: Boolean, source: String): Boolean {
         ensureAuth()
-        val result = call("aletheiaSetConsent", mapOf("granted" to granted))
+        val result = transport.call("aletheiaSetConsent", AletheiaPayloads.setConsent(granted, source))
         val ok = result["ok"] as? Boolean ?: true
         if (!ok) throw AletheiaError.Backend("Consent update rejected")
         return result["trainingConsent"] as? Boolean ?: granted
     }
 
-    suspend fun chat(message: String, messageId: String = UUID.randomUUID().toString()): AletheiaChatResult {
+    override suspend fun getStatus(): AletheiaStatus {
         ensureAuth()
-        val result = call(
-            "aletheiaChat",
-            mapOf(
-                "message" to message,
-                "messageId" to messageId,
-                "platform" to "android",
-                "clientVersion" to AletheiaFeature.versionName,
-                // Hint for server (sibling Functions repo): manuals-first, no invented numbers.
-                "preferManuals" to true,
-                "clientRouting" to "manuals_first"
-            )
-        )
-        val route = result["route"] as? String
-        val rawAnswer = (result["answer"] as? String).orEmpty()
-        return AletheiaChatResult(
-            messageId = messageId,
-            answer = AletheiaAnswerFormatter.sanitize(rawAnswer, forOnline = true),
-            brand = (result["brand"] as? String) ?: AletheiaFeature.BRAND,
-            source = AletheiaSource.fromServer(result["source"] as? String, route),
-            route = route,
-            remainingDaily = (result["remainingDaily"] as? Number)?.toInt() ?: 0,
-            remainingHaiku = (result["remainingHaiku"] as? Number)?.toInt() ?: 0,
-            creditsRemaining = (result["creditsRemaining"] as? Number)?.toInt() ?: 0,
-            dailyUsed = (result["dailyUsed"] as? Number)?.toInt() ?: 0,
-            dailyLimit = (result["dailyLimit"] as? Number)?.toInt() ?: AletheiaPrefs.FREE_DAILY_LIMIT,
-            trainingConsent = result["trainingConsent"] as? Boolean ?: false
-        )
+        return AletheiaPayloads.parseStatus(transport.call("aletheiaGetStatus", emptyMap()))
     }
 
-    suspend fun submitFeedback(
-        messageId: String,
-        rating: AletheiaFeedbackRating,
-        note: String? = null
-    ): Boolean {
+    override suspend fun chat(request: AletheiaChatRequest): AletheiaChatResult {
         ensureAuth()
-        val payload = mutableMapOf<String, Any>(
-            "messageId" to messageId,
-            "rating" to rating.apiValue
+        val result = transport.call("aletheiaChat", AletheiaPayloads.chat(request, clientInfo))
+        return AletheiaPayloads.parseChat(result, request.clientRequestId)
+    }
+
+    override suspend fun logTurn(turn: AletheiaTurnLog): Boolean {
+        ensureAuth()
+        val result = transport.call("aletheiaLogTurn", AletheiaPayloads.logTurn(turn, clientInfo))
+        return result["ok"] as? Boolean ?: true
+    }
+
+    override suspend fun submitFeedback(feedback: AletheiaFeedbackPayload): Boolean {
+        ensureAuth()
+        val result = transport.call(
+            "aletheiaSubmitFeedback",
+            AletheiaPayloads.feedback(feedback, clientInfo)
         )
-        if (!note.isNullOrBlank()) {
-            payload["note"] = note.trim()
-        }
-        val result = call("aletheiaSubmitFeedback", payload)
         val ok = result["ok"] as? Boolean ?: false
         if (!ok) throw AletheiaError.Backend("Feedback rejected")
         return true
     }
 
-    /** Security log / offline outbox flush — always allowed; RL eligibility follows server consent. */
-    suspend fun logTurn(
-        prompt: String,
-        answer: String,
-        messageId: String,
-        source: AletheiaSource
-    ): Boolean {
+    override suspend fun deleteMyData(source: String): AletheiaDeleteResult {
         ensureAuth()
-        val result = call(
-            "aletheiaLogTurn",
-            mapOf(
-                "prompt" to prompt,
-                "answer" to answer,
-                "messageId" to messageId,
-                "source" to source.name.lowercase(),
-                "route" to source.name.lowercase(),
-                "platform" to "android",
-                "brand" to AletheiaFeature.BRAND
-            )
-        )
-        return result["ok"] as? Boolean ?: true
+        val result = transport.call("aletheiaDeleteMyData", AletheiaPayloads.deleteMyData(source, clientInfo))
+        val parsed = AletheiaPayloads.parseDelete(result)
+        if (!parsed.ok) throw AletheiaError.Backend("Delete request rejected")
+        return parsed
     }
 
     /**
-     * Play purchase verification — **verify-before-grant** hook used by [AletheiaBillingManager].
-     *
-     * ## Callable contract (Firebase project `flighttimeapp-6f816`, region `us-central1`)
-     *
-     * **Name:** `aletheiaVerifyPlayPurchase` (HTTPS callable)
-     *
-     * **Auth:** Firebase Auth required (anonymous OK, same as other Aletheia callables).
-     *
-     * **Request data:**
-     * ```
-     * {
-     *   "productId": string,       // e.g. aletheia_plus_monthly | aletheia_credits_s
-     *   "purchaseToken": string,   // Play Billing purchase token
-     *   "packageName": string,     // must be it.grg.flighttimeapp
-     *   "platform": "android"
-     * }
-     * ```
-     *
-     * **Success response:** `{ "ok": true, "productId"?: string, "creditsGranted"?: number }`
-     * Client treats truthy `ok` as verified. Optional `creditsGranted` is ignored today
-     * (client uses [AletheiaProducts.creditsForPack] locally after verify).
-     *
-     * **Failure:** `{ "ok": false, "error"?: string }` or Functions error codes
-     * `INVALID_ARGUMENT` / `PERMISSION_DENIED` / `FAILED_PRECONDITION`.
-     *
-     * **Server duties (not in this Android repo):**
-     * 1. Call Google Play Developer API `purchases.subscriptionsv2.get` or
-     *    `purchases.products.get` with a Play Console service account.
-     * 2. Confirm packageName, productId, purchase state PURCHASED, and token uniqueness.
-     * 3. Persist entitlement / credit ledger keyed by uid + purchaseToken (idempotent).
-     *
-     * TODO(backend): Deploy `aletheiaVerifyPlayPurchase` on `flighttimeapp-6f816`.
-     * Until then this client returns false on NOT_FOUND and does **not** grant locally.
-     * Do **not** invent a second Firebase project.
+     * Play purchase verification - verify-before-grant (server: aletheiaVerifyPlayPurchase).
+     * Request: productId, purchaseToken, packageName "it.grg.flighttimeapp", platform "android".
+     * Success: { ok: true, plan, creditsRemaining, ... }. NOT_FOUND = callable not deployed:
+     * the purchase stays pending and nothing is granted locally.
      */
-    suspend fun verifyPlayPurchase(
-        productId: String,
-        purchaseToken: String,
-        packageName: String = "it.grg.flighttimeapp"
-    ): Boolean {
+    override suspend fun verifyPlayPurchase(productId: String, purchaseToken: String): AletheiaPurchaseResult {
         ensureAuth()
         return try {
-            // Client hook ready — callable name and payload match the contract above.
-            val result = call(
-                "aletheiaVerifyPlayPurchase",
-                mapOf(
-                    "productId" to productId,
-                    "purchaseToken" to purchaseToken,
-                    "packageName" to packageName,
-                    "platform" to "android"
+            AletheiaPayloads.parsePurchase(
+                transport.call(
+                    "aletheiaVerifyPlayPurchase",
+                    AletheiaPayloads.verifyPlayPurchase(productId, purchaseToken, clientInfo)
                 )
             )
-            result["ok"] as? Boolean ?: false
         } catch (e: AletheiaError.Backend) {
             if (e.message?.contains("NOT_FOUND", ignoreCase = true) == true ||
                 e.message?.contains("404", ignoreCase = true) == true
             ) {
-                // Function not deployed yet on flighttimeapp-6f816 — keep purchase pending.
-                false
+                AletheiaPurchaseResult(ok = false, plan = null, creditsRemaining = null, notDeployed = true)
             } else {
                 throw e
             }
         }
     }
 
-    @Suppress("UNCHECKED_CAST")
-    private suspend fun call(name: String, data: Map<String, Any>): Map<String, Any> {
-        return withContext(Dispatchers.IO) {
-            try {
-                val task = functions.getHttpsCallable(name).call(data)
-                val snapshot = Tasks.await(task, 120, TimeUnit.SECONDS)
-                val raw = snapshot.data
-                when (raw) {
-                    is Map<*, *> -> raw as Map<String, Any>
-                    else -> emptyMap()
+    companion object {
+        const val PACKAGE_NAME = "it.grg.flighttimeapp"
+
+        private suspend fun anonymousAuth(context: Context): String = suspendCoroutine { cont ->
+            CrewAuthManager.ensureSignedInDetailed(context) { result ->
+                if (result.isSuccess && !result.uid.isNullOrBlank()) {
+                    cont.resume(result.uid!!)
+                } else {
+                    cont.resumeWithException(AletheiaError.Network(result.message ?: "Sign-in required"))
                 }
-            } catch (e: Exception) {
-                throw mapException(e)
             }
         }
+
+        fun mapException(e: Exception): Exception {
+            val functionsEx = e as? FirebaseFunctionsException
+                ?: (e.cause as? FirebaseFunctionsException)
+            if (functionsEx != null) {
+                val msg = functionsEx.message.orEmpty()
+                return mapFunctionsError(functionsEx.code.name, msg)
+            }
+            return if (e is AletheiaError) e else AletheiaError.Network(e.message ?: e.toString())
+        }
+
+        /** Pure mapping of a callable error (code name + message), unit-tested. */
+        fun mapFunctionsError(code: String, message: String): AletheiaError {
+            val lower = message.lowercase()
+            return when {
+                lower.contains("consent choice required") -> AletheiaError.ConsentRequired()
+                code == "RESOURCE_EXHAUSTED" ||
+                    lower.contains("daily online limit") ||
+                    lower.contains("limit") ||
+                    lower.contains("quota") -> AletheiaError.DailyLimitReached()
+                code == "NOT_FOUND" -> AletheiaError.Backend("NOT_FOUND")
+                code == "UNAUTHENTICATED" -> AletheiaError.Network("Sign in required.")
+                else -> AletheiaError.Backend(message.ifBlank { code })
+            }
+        }
+    }
+}
+
+/**
+ * Exact request bodies and response parsing for each callable. Kept pure (no Android
+ * types) so contract tests can compare them with the server in functions/aletheia.js.
+ */
+object AletheiaPayloads {
+    /** Server sanitizeClientRequestId (functions/aletheia.js): [a-zA-Z0-9_-], 8..64 chars. */
+    private val requestIdAllowed = Regex("[^a-zA-Z0-9_-]")
+
+    fun sanitizeClientRequestId(raw: String): String {
+        val id = raw.trim().take(64).replace(requestIdAllowed, "")
+        return if (id.length >= 8) id else ""
     }
 
-    private fun mapException(e: Exception): Exception {
-        val functionsEx = e as? FirebaseFunctionsException
-            ?: (e.cause as? FirebaseFunctionsException)
-        if (functionsEx != null) {
-            val msg = functionsEx.message.orEmpty()
-            return when {
-                msg.contains("Consent choice required", ignoreCase = true) ->
-                    AletheiaError.ConsentRequired()
-                msg.contains("limit", ignoreCase = true) ||
-                    msg.contains("quota", ignoreCase = true) ||
-                    functionsEx.code == FirebaseFunctionsException.Code.RESOURCE_EXHAUSTED ->
-                    AletheiaError.DailyLimitReached()
-                functionsEx.code == FirebaseFunctionsException.Code.NOT_FOUND ->
-                    AletheiaError.Backend("NOT_FOUND")
-                functionsEx.code == FirebaseFunctionsException.Code.UNAUTHENTICATED ->
-                    AletheiaError.Network("Sign in required.")
-                else -> AletheiaError.Backend(msg.ifBlank { functionsEx.code.name })
-            }
-        }
-        return if (e is AletheiaError) e else AletheiaError.Network(e.message ?: e.toString())
+    fun setConsent(granted: Boolean, source: String): Map<String, Any?> = linkedMapOf(
+        "granted" to granted,
+        "source" to source.take(64)
+    )
+
+    fun chat(request: AletheiaChatRequest, info: AletheiaClientInfo): Map<String, Any?> {
+        val history = request.history
+            .filter { (it.role == "user" || it.role == "assistant") && it.content.isNotBlank() }
+            .takeLast(AletheiaChatRequest.MAX_HISTORY)
+            .map { linkedMapOf("role" to it.role, "content" to it.content) }
+        val payload = linkedMapOf<String, Any?>(
+            "message" to request.message,
+            "history" to history,
+            "locale" to request.locale,
+            "preferHaiku" to request.preferHaiku
+        )
+        val rid = sanitizeClientRequestId(request.clientRequestId)
+        if (rid.isNotEmpty()) payload["clientRequestId"] = rid
+        payload.putAll(info.provenance())
+        return payload
     }
+
+    fun logTurn(turn: AletheiaTurnLog, info: AletheiaClientInfo): Map<String, Any?> {
+        val payload = linkedMapOf<String, Any?>(
+            "messageId" to turn.messageId.take(64),
+            "prompt" to turn.prompt,
+            "answer" to turn.answer,
+            "mode" to turn.mode,
+            "locale" to turn.locale
+        )
+        payload.putAll(info.provenance())
+        turn.engine?.let { engine ->
+            payload["engine"] = engine.apiEngine
+            engine.modelRoute?.let { payload["modelRoute"] = it }
+        }
+        return payload
+    }
+
+    fun feedback(fb: AletheiaFeedbackPayload, info: AletheiaClientInfo): Map<String, Any?> {
+        val payload = linkedMapOf<String, Any?>(
+            "messageId" to fb.messageId.take(64),
+            "rating" to fb.rating.apiValue,
+            "prompt" to fb.prompt,
+            "answer" to fb.answer,
+            "mode" to fb.mode,
+            "locale" to fb.locale
+        )
+        fb.note?.trim()?.takeIf { it.isNotEmpty() }?.let { payload["note"] = it }
+        payload.putAll(info.provenance())
+        fb.engine?.let { engine ->
+            payload["engine"] = engine.apiEngine
+            engine.modelRoute?.let { payload["modelRoute"] = it }
+        }
+        return payload
+    }
+
+    fun deleteMyData(source: String, info: AletheiaClientInfo): Map<String, Any?> {
+        val payload = linkedMapOf<String, Any?>("source" to source.take(64))
+        payload.putAll(info.provenance())
+        return payload
+    }
+
+    fun verifyPlayPurchase(productId: String, purchaseToken: String, info: AletheiaClientInfo): Map<String, Any?> {
+        val payload = linkedMapOf<String, Any?>(
+            "productId" to productId,
+            "purchaseToken" to purchaseToken,
+            "packageName" to AletheiaApi.PACKAGE_NAME
+        )
+        payload.putAll(info.provenance())
+        return payload
+    }
+
+    fun parseStatus(data: Map<String, Any?>): AletheiaStatus = AletheiaStatus(
+        trainingConsent = data["trainingConsent"] as? Boolean,
+        plan = (data["plan"] as? String)?.takeIf { it.isNotBlank() } ?: "free",
+        dailyUsed = intOf(data["dailyUsed"], 0),
+        dailyLimit = intOf(data["dailyLimit"], AletheiaPrefs.FREE_DAILY_LIMIT),
+        remainingDaily = intOf(data["remainingDaily"], AletheiaPrefs.FREE_DAILY_LIMIT),
+        remainingHaiku = intOf(data["remainingHaiku"], 0),
+        haikuMonthlyLimit = intOf(data["haikuMonthlyLimit"], 0),
+        creditsRemaining = intOf(data["creditsRemaining"], 0)
+    )
+
+    fun parseChat(data: Map<String, Any?>, clientRequestId: String): AletheiaChatResult {
+        val route = data["route"] as? String
+        val rawAnswer = data["answer"] as? String
+            ?: throw AletheiaError.Backend("Invalid response from Aletheia.")
+        val source = AletheiaSource.fromServer(data["source"] as? String, route)
+        // Server guarded answers (manuals package / refuse-invent) are deterministic: no model ran.
+        val engine = if (source == AletheiaSource.MANUALS) AletheiaEngine.DETERMINISTIC else AletheiaEngine.ONLINE
+        return AletheiaChatResult(
+            messageId = clientRequestId,
+            answer = AletheiaAnswerFormatter.sanitize(rawAnswer, forOnline = true),
+            brand = (data["brand"] as? String) ?: AletheiaFeature.BRAND,
+            source = if (source == AletheiaSource.OFFLINE) AletheiaSource.ONLINE else source,
+            route = route,
+            remainingDaily = intOf(data["remainingDaily"], 0),
+            remainingHaiku = intOf(data["remainingHaiku"], 0),
+            creditsRemaining = intOf(data["creditsRemaining"], 0),
+            dailyUsed = intOf(data["dailyUsed"], 0),
+            dailyLimit = intOf(data["dailyLimit"], AletheiaPrefs.FREE_DAILY_LIMIT),
+            trainingConsent = data["trainingConsent"] as? Boolean ?: false,
+            engine = engine
+        )
+    }
+
+    fun parseDelete(data: Map<String, Any?>): AletheiaDeleteResult = AletheiaDeleteResult(
+        ok = data["ok"] as? Boolean ?: false,
+        alreadyDeleted = data["alreadyDeleted"] as? Boolean ?: false,
+        turnsTombstoned = intOf(data["turnsTombstoned"], 0),
+        feedbackTombstoned = intOf(data["feedbackTombstoned"], 0),
+        cachedAnswersDeleted = intOf(data["cachedAnswersDeleted"], 0)
+    )
+
+    fun parsePurchase(data: Map<String, Any?>): AletheiaPurchaseResult = AletheiaPurchaseResult(
+        ok = data["ok"] as? Boolean ?: false,
+        plan = data["plan"] as? String,
+        creditsRemaining = (data["creditsRemaining"] as? Number)?.toInt()
+    )
+
+    private fun intOf(raw: Any?, default: Int): Int = (raw as? Number)?.toInt() ?: default
 }

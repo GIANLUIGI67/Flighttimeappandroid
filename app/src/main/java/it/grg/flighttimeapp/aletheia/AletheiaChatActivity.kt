@@ -54,7 +54,7 @@ class AletheiaChatActivity : AppCompatActivity() {
             return
         }
         setContentView(R.layout.activity_aletheia_chat)
-        repo = AletheiaRepository(this)
+        repo = AletheiaRepository.create(this)
 
         findViewById<ImageButton>(R.id.aletheiaChatBack).setOnClickListener { finish() }
         findViewById<ImageButton>(R.id.aletheiaChatSettings).setOnClickListener {
@@ -76,8 +76,11 @@ class AletheiaChatActivity : AppCompatActivity() {
 
         modeOnline.setOnClickListener { setOnlineMode(true) }
         modeOffline.setOnClickListener {
+            val wasOnline = repo.prefs.preferredModeOnline
             setOnlineMode(false)
-            maybeShowLowPowerWarning()
+            if (AletheiaUiRules.shouldShowLowPowerWarning(wasOnline, repo.prefs.lowPowerWarningDismissed)) {
+                showLowPowerWarning()
+            }
         }
         findViewById<ImageButton>(R.id.aletheiaSend).setOnClickListener { send() }
 
@@ -96,6 +99,10 @@ class AletheiaChatActivity : AppCompatActivity() {
         adapter.feedbackRequired = repo.prefs.trainingConsentGranted
         updateSubtitle()
         lifecycleScope.launch {
+            // iOS: status on open / return to foreground (plan, usage, credits, consent).
+            repo.refreshStatus()
+            adapter.feedbackRequired = repo.prefs.trainingConsentGranted
+            updateSubtitle()
             runCatching { repo.flushOutbox() }
         }
     }
@@ -113,12 +120,14 @@ class AletheiaChatActivity : AppCompatActivity() {
         } else {
             getString(R.string.aletheia_mode_offline)
         }
-        subtitle.text = getString(
-            R.string.aletheia_chat_subtitle_format,
-            AletheiaFeature.versionName,
-            mode,
-            repo.prefs.cachedDailyRemaining
-        )
+        val p = repo.prefs
+        val meter = when (AletheiaUiRules.meter(p.cachedCreditsRemaining)) {
+            AletheiaUiRules.Meter.FREE_TODAY ->
+                getString(R.string.aletheia_meter_free_today, p.cachedDailyRemaining, p.cachedDailyLimit)
+            AletheiaUiRules.Meter.WITH_CREDITS ->
+                getString(R.string.aletheia_meter_with_credits, p.cachedDailyRemaining, p.cachedDailyLimit, p.cachedCreditsRemaining)
+        }
+        subtitle.text = getString(R.string.aletheia_chat_subtitle_format, AletheiaFeature.versionName, mode, meter)
     }
 
     private fun maybeAskConsent() {
@@ -129,7 +138,7 @@ class AletheiaChatActivity : AppCompatActivity() {
             .setCancelable(false)
             .setPositiveButton(R.string.aletheia_yes) { _, _ ->
                 lifecycleScope.launch {
-                    runCatching { repo.setConsent(true) }
+                    runCatching { repo.setConsent(true, AletheiaRepository.SOURCE_FIRST_USE) }
                         .onSuccess { adapter.feedbackRequired = true }
                         .onFailure {
                             Toast.makeText(this@AletheiaChatActivity, it.message, Toast.LENGTH_LONG).show()
@@ -138,7 +147,7 @@ class AletheiaChatActivity : AppCompatActivity() {
             }
             .setNegativeButton(R.string.aletheia_no) { _, _ ->
                 lifecycleScope.launch {
-                    runCatching { repo.setConsent(false) }
+                    runCatching { repo.setConsent(false, AletheiaRepository.SOURCE_FIRST_USE) }
                         .onSuccess { adapter.feedbackRequired = false }
                         .onFailure {
                             Toast.makeText(this@AletheiaChatActivity, it.message, Toast.LENGTH_LONG).show()
@@ -148,8 +157,7 @@ class AletheiaChatActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun maybeShowLowPowerWarning() {
-        if (repo.prefs.lowPowerWarningDismissed) return
+    private fun showLowPowerWarning() {
         AlertDialog.Builder(this)
             .setTitle(R.string.aletheia_low_power_title)
             .setMessage(R.string.aletheia_low_power_body)
@@ -162,21 +170,29 @@ class AletheiaChatActivity : AppCompatActivity() {
 
     private fun send() {
         val text = input.text?.toString()?.trim().orEmpty()
-        if (text.isEmpty() || sendJob?.isActive == true) return
-        if (!repo.prefs.consentAnswered) {
-            maybeAskConsent()
-            return
-        }
-        // RL consent Yes: block the next question until feedback on the last assistant turn.
-        if (repo.prefs.trainingConsentGranted && hasPendingRequiredFeedback()) {
-            Toast.makeText(
-                this,
-                R.string.aletheia_feedback_required_before_next,
-                Toast.LENGTH_LONG
-            ).show()
-            return
+        when (
+            AletheiaUiRules.sendBlock(
+                text = text,
+                sending = sendJob?.isActive == true,
+                consentAnswered = repo.prefs.consentAnswered,
+                trainingConsent = repo.prefs.trainingConsentGranted,
+                messages = messages
+            )
+        ) {
+            AletheiaUiRules.SendBlock.EMPTY, AletheiaUiRules.SendBlock.BUSY -> return
+            AletheiaUiRules.SendBlock.CONSENT_MISSING -> {
+                maybeAskConsent()
+                return
+            }
+            AletheiaUiRules.SendBlock.FEEDBACK_PENDING -> {
+                // Consent Yes: block the next question until the last answer is rated.
+                Toast.makeText(this, R.string.aletheia_feedback_required_before_next, Toast.LENGTH_LONG).show()
+                return
+            }
+            AletheiaUiRules.SendBlock.NONE -> Unit
         }
 
+        val history = AletheiaUiRules.historyFor(messages)
         input.text = null
         val userMsg = AletheiaChatMessage(
             id = UUID.randomUUID().toString(),
@@ -198,7 +214,7 @@ class AletheiaChatActivity : AppCompatActivity() {
                         ).show()
                         repo.sendOffline(text)
                     } else {
-                        repo.sendOnline(text)
+                        repo.sendOnline(text, history)
                     }
                 } else {
                     repo.sendOffline(text)
@@ -208,11 +224,18 @@ class AletheiaChatActivity : AppCompatActivity() {
                         id = result.messageId,
                         role = AletheiaChatMessage.Role.ASSISTANT,
                         text = result.answer,
-                        source = result.source
+                        source = result.source,
+                        engine = result.engine,
+                        modelVerified = result.modelVerified,
+                        prompt = text
                     )
                 )
                 updateSubtitle()
             } catch (e: AletheiaError.DailyLimitReached) {
+                // iOS: no answer body; drop the unsent question and give the text back.
+                messages.remove(userMsg)
+                if (input.text.isNullOrBlank()) input.setText(text)
+                updateSubtitle()
                 startActivity(Intent(this@AletheiaChatActivity, AletheiaPaywallActivity::class.java))
             } catch (e: AletheiaError.ConsentRequired) {
                 maybeAskConsent()
@@ -259,8 +282,8 @@ class AletheiaChatActivity : AppCompatActivity() {
 
     private fun scheduleThinkingIndicator() {
         thinkingDelayRunnable?.let { mainHandler.removeCallbacks(it) }
-        // Show only when a turn takes longer than ~3–4s (product rule).
-        val delayMs = 3_500L
+        // Show only when a turn takes longer than ~3–4s (product rule, iOS parity).
+        val delayMs = AletheiaUiRules.THINKING_DELAY_MS
         thinkingDelayRunnable = Runnable { showThinking() }
         mainHandler.postDelayed(thinkingDelayRunnable!!, delayMs)
     }
@@ -283,17 +306,8 @@ class AletheiaChatActivity : AppCompatActivity() {
         thinkingRow.visibility = View.GONE
     }
 
-    /** True when RL consent Yes and an assistant answer still awaits a rating. */
-    private fun hasPendingRequiredFeedback(): Boolean {
-        if (!repo.prefs.trainingConsentGranted) return false
-        return messages.any {
-            it.role == AletheiaChatMessage.Role.ASSISTANT && !it.pending && !it.feedbackSent
-        }
-    }
-
     private fun promptFeedback(msg: AletheiaChatMessage, rating: AletheiaFeedbackRating) {
-        val needsNote = repo.prefs.trainingConsentGranted &&
-            (rating == AletheiaFeedbackRating.BAD || rating == AletheiaFeedbackRating.PARTIAL)
+        val needsNote = AletheiaUiRules.noteRequired(repo.prefs.trainingConsentGranted, rating)
         if (!needsNote) {
             submitFeedback(msg, rating, null)
             return
@@ -321,12 +335,17 @@ class AletheiaChatActivity : AppCompatActivity() {
     private fun submitFeedback(msg: AletheiaChatMessage, rating: AletheiaFeedbackRating, note: String?) {
         lifecycleScope.launch {
             try {
-                repo.feedback(msg.id, rating, note)
+                val outcome = repo.feedback(msg, rating, note)
                 msg.feedbackSent = true
                 refreshList()
-                Toast.makeText(this@AletheiaChatActivity, R.string.aletheia_feedback_thanks, Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    this@AletheiaChatActivity,
+                    if (outcome == AletheiaRepository.FeedbackOutcome.SENT) R.string.aletheia_feedback_thanks
+                    else R.string.aletheia_feedback_queued,
+                    Toast.LENGTH_SHORT
+                ).show()
             } catch (e: Exception) {
-                if (e.message == "NOTE_REQUIRED") {
+                if (e.message == AletheiaRepository.NOTE_REQUIRED) {
                     Toast.makeText(
                         this@AletheiaChatActivity,
                         R.string.aletheia_feedback_note_required,

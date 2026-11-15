@@ -23,7 +23,7 @@ class AletheiaPaywallActivity : AppCompatActivity(), AletheiaBillingManager.List
 
         findViewById<ImageButton>(R.id.aletheiaPaywallClose).setOnClickListener { finish() }
 
-        val api = AletheiaApi(this)
+        val api = AletheiaServiceLocator.backend(this)
         billing = AletheiaBillingManager(this, prefs, api, lifecycleScope)
         billing.listener = this
         billing.start()
@@ -47,50 +47,59 @@ class AletheiaPaywallActivity : AppCompatActivity(), AletheiaBillingManager.List
             billing.launchPurchase(this, AletheiaProducts.CREDITS_L)
         }
 
-        status.text = getString(
-            R.string.aletheia_paywall_status_format,
-            prefs.activePlanId ?: getString(R.string.aletheia_plan_free),
-            prefs.cachedCreditsRemaining
+        showPlanStatus(prefs.activePlanId, prefs.cachedCreditsRemaining)
+    }
+
+    /** Plan name from the server status when known, else from the Play subscription id. */
+    private fun showPlanStatus(activePlanId: String?, credits: Int) {
+        val plan = AletheiaProducts.planIdFor(activePlanId)
+            ?: prefs.serverPlan.takeIf { prefs.statusFromServer }
+        val name = getString(
+            when (AletheiaUiRules.planName(plan)) {
+                AletheiaUiRules.PlanName.FREE -> R.string.aletheia_plan_name_free
+                AletheiaUiRules.PlanName.PLUS -> R.string.aletheia_plan_name_plus
+                AletheiaUiRules.PlanName.PRO -> R.string.aletheia_plan_name_pro
+                AletheiaUiRules.PlanName.MAX -> R.string.aletheia_plan_name_max
+            }
         )
+        status.text = getString(R.string.aletheia_paywall_status_format, name, credits)
     }
 
     override fun onProductsUpdated(products: List<ProductDetails>) {
         runOnUiThread {
-            status.text = getString(
-                R.string.aletheia_paywall_products_loaded,
-                products.size,
-                AletheiaProducts.ALL_PRODUCT_IDS.size
-            )
+            if (products.size < AletheiaProducts.ALL_PRODUCT_IDS.size) {
+                status.setText(R.string.aletheia_paywall_products_partial)
+            } else {
+                showPlanStatus(prefs.activePlanId, prefs.cachedCreditsRemaining)
+            }
         }
     }
 
     override fun onPurchasesRestored(activePlanId: String?, creditsHint: Int) {
-        runOnUiThread {
-            status.text = getString(
-                R.string.aletheia_paywall_status_format,
-                activePlanId ?: getString(R.string.aletheia_plan_free),
-                creditsHint
-            )
-        }
+        runOnUiThread { showPlanStatus(activePlanId, creditsHint) }
     }
 
     override fun onPurchaseCompleted(activePlanId: String?, creditsHint: Int) {
         runOnUiThread {
             Toast.makeText(this, R.string.aletheia_purchase_continue, Toast.LENGTH_LONG).show()
-            status.text = getString(
-                R.string.aletheia_paywall_status_format,
-                activePlanId ?: getString(R.string.aletheia_plan_free),
-                creditsHint
-            )
+            showPlanStatus(activePlanId, creditsHint)
             setResult(RESULT_OK)
             finish()
         }
     }
 
-    override fun onBillingMessage(message: String) {
-        runOnUiThread {
-            status.text = message
-        }
+    override fun onBillingNotice(notice: AletheiaBillingNotice, detail: String?) {
+        runOnUiThread { status.text = noticeText(notice, detail) }
+    }
+
+    private fun noticeText(notice: AletheiaBillingNotice, detail: String?): String = when (notice) {
+        AletheiaBillingNotice.PRODUCT_UNAVAILABLE -> getString(R.string.aletheia_billing_product_unavailable)
+        AletheiaBillingNotice.RECONNECTING -> getString(R.string.aletheia_billing_reconnecting)
+        AletheiaBillingNotice.LAUNCH_FAILED -> getString(R.string.aletheia_billing_launch_failed, detail.orEmpty())
+        AletheiaBillingNotice.VERIFY_PENDING -> getString(R.string.aletheia_billing_verify_pending)
+        AletheiaBillingNotice.SUBS_STATUS_UNAVAILABLE -> getString(R.string.aletheia_billing_subs_unavailable)
+        AletheiaBillingNotice.DISCONNECTED -> getString(R.string.aletheia_billing_disconnected)
+        AletheiaBillingNotice.BILLING_ERROR -> getString(R.string.aletheia_billing_error, detail.orEmpty())
     }
 
     override fun onDestroy() {

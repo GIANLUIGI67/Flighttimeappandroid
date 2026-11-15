@@ -137,8 +137,12 @@ Java_it_grg_flighttimeapp_aletheia_AletheiaLlamaNative_nativeNewSampler(JNIEnv *
     auto sparams = llama_sampler_chain_default_params();
     sparams.no_perf = true;
     llama_sampler *smpl = llama_sampler_chain_init(sparams);
-    llama_sampler_chain_add(smpl, llama_sampler_init_temp(0.7f));
-    llama_sampler_chain_add(smpl, llama_sampler_init_top_p(0.9f, 1));
+    // Same sampling as the iOS on-device Aletheia 1.5B (AletheiaLocalGGUFRuntime AIBox):
+    // repeat_penalty 1.28 over the last 128 tokens, top_k 40, top_p 0.95, temp 0.2.
+    llama_sampler_chain_add(smpl, llama_sampler_init_penalties(128, 1.28f, 0.0f, 0.0f));
+    llama_sampler_chain_add(smpl, llama_sampler_init_top_k(40));
+    llama_sampler_chain_add(smpl, llama_sampler_init_top_p(0.95f, 1));
+    llama_sampler_chain_add(smpl, llama_sampler_init_temp(0.2f));
     llama_sampler_chain_add(smpl, llama_sampler_init_dist(LLAMA_DEFAULT_SEED));
     return reinterpret_cast<jlong>(smpl);
 }

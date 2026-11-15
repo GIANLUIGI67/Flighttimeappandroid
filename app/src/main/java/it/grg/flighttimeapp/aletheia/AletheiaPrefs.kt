@@ -3,19 +3,26 @@ package it.grg.flighttimeapp.aletheia
 import android.content.Context
 import android.content.SharedPreferences
 
-class AletheiaPrefs(context: Context) {
-    private val prefs: SharedPreferences =
+class AletheiaPrefs(private val prefs: SharedPreferences) {
+    constructor(context: Context) : this(
         context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    )
+
     private val tokenLock = Any()
 
     var consentAnswered: Boolean
         get() = prefs.getBoolean(KEY_CONSENT_ANSWERED, false)
         set(value) = prefs.edit().putBoolean(KEY_CONSENT_ANSWERED, value).apply()
 
-    /** True = Yes to RL training; false = No (full AI still allowed). */
+    /** True = Yes to training use; false = No (full AI still allowed). */
     var trainingConsentGranted: Boolean
         get() = prefs.getBoolean(KEY_TRAINING_CONSENT, false)
         set(value) = prefs.edit().putBoolean(KEY_TRAINING_CONSENT, value).apply()
+
+    /** True when the latest local consent choice has not reached the server yet. */
+    var consentSyncPending: Boolean
+        get() = prefs.getBoolean(KEY_CONSENT_SYNC_PENDING, false)
+        set(value) = prefs.edit().putBoolean(KEY_CONSENT_SYNC_PENDING, value).apply()
 
     var lowPowerWarningDismissed: Boolean
         get() = prefs.getBoolean(KEY_LOW_POWER_DISMISSED, false)
@@ -29,6 +36,10 @@ class AletheiaPrefs(context: Context) {
         get() = prefs.getInt(KEY_DAILY_REMAINING, FREE_DAILY_LIMIT)
         set(value) = prefs.edit().putInt(KEY_DAILY_REMAINING, value).apply()
 
+    var cachedDailyLimit: Int
+        get() = prefs.getInt(KEY_DAILY_LIMIT, FREE_DAILY_LIMIT)
+        set(value) = prefs.edit().putInt(KEY_DAILY_LIMIT, value).apply()
+
     var cachedCreditsRemaining: Int
         get() = prefs.getInt(KEY_CREDITS_REMAINING, 0)
         set(value) = prefs.edit().putInt(KEY_CREDITS_REMAINING, value).apply()
@@ -37,9 +48,23 @@ class AletheiaPrefs(context: Context) {
         get() = prefs.getInt(KEY_HAIKU_REMAINING, 0)
         set(value) = prefs.edit().putInt(KEY_HAIKU_REMAINING, value).apply()
 
+    var cachedHaikuMonthlyLimit: Int
+        get() = prefs.getInt(KEY_HAIKU_LIMIT, 0)
+        set(value) = prefs.edit().putInt(KEY_HAIKU_LIMIT, value).apply()
+
     var lastDailyUsed: Int
         get() = prefs.getInt(KEY_LAST_DAILY_USED, 0)
         set(value) = prefs.edit().putInt(KEY_LAST_DAILY_USED, value).apply()
+
+    /** Server plan id from aletheiaGetStatus: free / plus / pro / max. */
+    var serverPlan: String
+        get() = prefs.getString(KEY_SERVER_PLAN, null) ?: "free"
+        set(value) = prefs.edit().putString(KEY_SERVER_PLAN, value).apply()
+
+    /** True once aletheiaGetStatus answered at least once on this install. */
+    var statusFromServer: Boolean
+        get() = prefs.getBoolean(KEY_STATUS_FROM_SERVER, false)
+        set(value) = prefs.edit().putBoolean(KEY_STATUS_FROM_SERVER, value).apply()
 
     var activePlanId: String?
         get() = prefs.getString(KEY_ACTIVE_PLAN, null)
@@ -52,6 +77,30 @@ class AletheiaPrefs(context: Context) {
     var pendingOnlineMessageId: String?
         get() = prefs.getString(KEY_PENDING_MESSAGE_ID, null)
         set(value) = prefs.edit().putString(KEY_PENDING_MESSAGE_ID, value).apply()
+
+    fun applyStatus(status: AletheiaStatus) {
+        prefs.edit()
+            .putInt(KEY_LAST_DAILY_USED, status.dailyUsed)
+            .putInt(KEY_DAILY_LIMIT, status.dailyLimit)
+            .putInt(KEY_DAILY_REMAINING, status.remainingDaily)
+            .putInt(KEY_HAIKU_REMAINING, status.remainingHaiku)
+            .putInt(KEY_HAIKU_LIMIT, status.haikuMonthlyLimit)
+            .putInt(KEY_CREDITS_REMAINING, status.creditsRemaining)
+            .putString(KEY_SERVER_PLAN, status.plan)
+            .putBoolean(KEY_STATUS_FROM_SERVER, true)
+            .apply()
+    }
+
+    fun cachedStatus(): AletheiaStatus = AletheiaStatus(
+        trainingConsent = if (consentAnswered) trainingConsentGranted else null,
+        plan = serverPlan,
+        dailyUsed = lastDailyUsed,
+        dailyLimit = cachedDailyLimit,
+        remainingDaily = cachedDailyRemaining,
+        remainingHaiku = cachedHaikuRemaining,
+        haikuMonthlyLimit = cachedHaikuMonthlyLimit,
+        creditsRemaining = cachedCreditsRemaining
+    )
 
     fun clearPendingOnline() {
         prefs.edit()
@@ -81,7 +130,7 @@ class AletheiaPrefs(context: Context) {
     }
 
     private fun grantedTokens(): Set<String> {
-        // Copy — SharedPreferences may return a live mutable StringSet.
+        // Copy - SharedPreferences may return a live mutable StringSet.
         return prefs.getStringSet(KEY_GRANTED_TOKENS, emptySet()).orEmpty().toSet()
     }
 
@@ -89,20 +138,26 @@ class AletheiaPrefs(context: Context) {
         prefs.edit()
             .remove(KEY_CONSENT_ANSWERED)
             .remove(KEY_TRAINING_CONSENT)
+            .remove(KEY_CONSENT_SYNC_PENDING)
             .apply()
     }
 
     companion object {
         const val FREE_DAILY_LIMIT = 20
-        private const val PREFS = "aletheia_beta_prefs"
+        const val PREFS = "aletheia_beta_prefs"
         private const val KEY_CONSENT_ANSWERED = "consent_answered"
         private const val KEY_TRAINING_CONSENT = "training_consent"
+        private const val KEY_CONSENT_SYNC_PENDING = "consent_sync_pending"
         private const val KEY_LOW_POWER_DISMISSED = "low_power_dismissed"
         private const val KEY_MODE_ONLINE = "mode_online"
         private const val KEY_DAILY_REMAINING = "daily_remaining"
+        private const val KEY_DAILY_LIMIT = "daily_limit"
         private const val KEY_CREDITS_REMAINING = "credits_remaining"
         private const val KEY_HAIKU_REMAINING = "haiku_remaining"
+        private const val KEY_HAIKU_LIMIT = "haiku_monthly_limit"
         private const val KEY_LAST_DAILY_USED = "last_daily_used"
+        private const val KEY_SERVER_PLAN = "server_plan"
+        private const val KEY_STATUS_FROM_SERVER = "status_from_server"
         private const val KEY_ACTIVE_PLAN = "active_plan"
         private const val KEY_PENDING_PROMPT = "pending_online_prompt"
         private const val KEY_PENDING_MESSAGE_ID = "pending_online_message_id"

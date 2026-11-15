@@ -41,6 +41,33 @@ class AletheiaMessageAdapter(
         holder.bind(items[position])
     }
 
+    companion object {
+        /**
+         * Label = the engine that REALLY produced the reply (PR-5): Aletheia online,
+         * Aletheia 1.5B on the phone (verified or not), or fixed checks without a model.
+         * Only a reply without engine information falls back to the channel badge.
+         */
+        fun badgeTextRes(msg: AletheiaChatMessage): Int? {
+            val label = msg.engineLabel
+            if (label != null) {
+                return when (label) {
+                    AletheiaEngineLabel.ONLINE -> R.string.aletheia_engine_online
+                    AletheiaEngineLabel.LOCAL_VERIFIED -> R.string.aletheia_engine_local
+                    AletheiaEngineLabel.LOCAL_UNVERIFIED -> R.string.aletheia_engine_local_unverified
+                    AletheiaEngineLabel.DETERMINISTIC ->
+                        if (msg.source == AletheiaSource.MANUALS) R.string.aletheia_engine_fixed_manuals
+                        else R.string.aletheia_engine_fixed
+                }
+            }
+            return when (msg.source) {
+                AletheiaSource.ONLINE -> R.string.aletheia_badge_online
+                AletheiaSource.OFFLINE -> R.string.aletheia_badge_offline
+                AletheiaSource.MANUALS -> R.string.aletheia_badge_manuals
+                null -> null
+            }
+        }
+    }
+
     inner class VH(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val badge: TextView = itemView.findViewById(R.id.aletheiaSourceBadge)
         private val text: TextView = itemView.findViewById(R.id.aletheiaMessageText)
@@ -55,14 +82,10 @@ class AletheiaMessageAdapter(
             val isUser = msg.role == AletheiaChatMessage.Role.USER
             text.gravity = if (isUser) Gravity.END else Gravity.START
 
-            val source = msg.source
-            if (!isUser && source != null) {
+            val label = if (isUser) null else badgeTextRes(msg)
+            if (label != null) {
                 badge.visibility = View.VISIBLE
-                badge.text = when (source) {
-                    AletheiaSource.ONLINE -> itemView.context.getString(R.string.aletheia_badge_online)
-                    AletheiaSource.OFFLINE -> itemView.context.getString(R.string.aletheia_badge_offline)
-                    AletheiaSource.MANUALS -> itemView.context.getString(R.string.aletheia_badge_manuals)
-                }
+                badge.text = itemView.context.getString(label)
             } else {
                 badge.visibility = View.GONE
             }

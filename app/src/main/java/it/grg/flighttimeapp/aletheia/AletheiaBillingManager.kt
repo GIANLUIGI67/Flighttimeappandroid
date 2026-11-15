@@ -35,7 +35,7 @@ import kotlin.math.min
 class AletheiaBillingManager(
     context: Context,
     private val prefs: AletheiaPrefs,
-    private val api: AletheiaApi,
+    private val api: AletheiaBackend,
     private val scope: CoroutineScope
 ) {
     interface Listener {
@@ -44,7 +44,8 @@ class AletheiaBillingManager(
         fun onPurchasesRestored(activePlanId: String?, creditsHint: Int)
         /** A newly verified purchase completed — paywall may continue/finish. */
         fun onPurchaseCompleted(activePlanId: String?, creditsHint: Int)
-        fun onBillingMessage(message: String)
+        /** User-facing notice; the Activity maps it to a localized string (no internal names). */
+        fun onBillingNotice(notice: AletheiaBillingNotice, detail: String? = null)
     }
 
     private val appContext = context.applicationContext
@@ -65,7 +66,7 @@ class AletheiaBillingManager(
                     )
                 }
             } else if (result.responseCode != BillingClient.BillingResponseCode.USER_CANCELED) {
-                listener?.onBillingMessage(result.debugMessage.ifBlank { "Billing error ${result.responseCode}" })
+                listener?.onBillingNotice(AletheiaBillingNotice.BILLING_ERROR, result.responseCode.toString())
             }
         }
         .enablePendingPurchases(
@@ -73,6 +74,7 @@ class AletheiaBillingManager(
         )
         .build()
 
+    private val grantLogic = AletheiaPurchaseGrantLogic(prefs) { pid, token -> api.verifyPlayPurchase(pid, token) }
     private var productDetails: List<ProductDetails> = emptyList()
     private var reconnectAttempts = 0
     private var destroyed = false
@@ -93,11 +95,11 @@ class AletheiaBillingManager(
     fun launchPurchase(activity: Activity, productId: String) {
         val details = productDetails.firstOrNull { it.productId == productId }
         if (details == null) {
-            listener?.onBillingMessage("Product not available yet in Play Console: $productId")
+            listener?.onBillingNotice(AletheiaBillingNotice.PRODUCT_UNAVAILABLE)
             return
         }
         if (!client.isReady) {
-            listener?.onBillingMessage("Billing not ready — reconnecting…")
+            listener?.onBillingNotice(AletheiaBillingNotice.RECONNECTING)
             connectBilling()
             return
         }
@@ -112,9 +114,7 @@ class AletheiaBillingManager(
             .build()
         val launchResult = client.launchBillingFlow(activity, flow)
         if (launchResult.responseCode != BillingClient.BillingResponseCode.OK) {
-            listener?.onBillingMessage(
-                launchResult.debugMessage.ifBlank { "Unable to start purchase (${launchResult.responseCode})" }
-            )
+            listener?.onBillingNotice(AletheiaBillingNotice.LAUNCH_FAILED, launchResult.responseCode.toString())
         }
     }
 
@@ -133,9 +133,7 @@ class AletheiaBillingManager(
             allowPlanClear = subs.ok
         )
         if (!subs.ok) {
-            listener?.onBillingMessage(
-                "Subscription status temporarily unavailable. Existing plan kept until Play responds."
-            )
+            listener?.onBillingNotice(AletheiaBillingNotice.SUBS_STATUS_UNAVAILABLE)
         }
     }
 
@@ -150,7 +148,7 @@ class AletheiaBillingManager(
                         refreshPurchases()
                     }
                 } else {
-                    listener?.onBillingMessage(billingResult.debugMessage)
+                    listener?.onBillingNotice(AletheiaBillingNotice.BILLING_ERROR, billingResult.responseCode.toString())
                     scheduleReconnect()
                 }
             }
@@ -165,7 +163,7 @@ class AletheiaBillingManager(
     private fun scheduleReconnect() {
         if (destroyed) return
         if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-            listener?.onBillingMessage("Billing disconnected. Close and reopen plans to retry.")
+            listener?.onBillingNotice(AletheiaBillingNotice.DISCONNECTED)
             return
         }
         val delayMs = min(1_000L * (1L shl reconnectAttempts), 8_000L)
@@ -224,78 +222,25 @@ class AletheiaBillingManager(
         fromUserPurchase: Boolean,
         allowPlanClear: Boolean
     ) = purchasesMutex.withLock {
-        var plan: String? = null
-        var sawSubscription = false
-        var credits = prefs.cachedCreditsRemaining
-        var grantedSomething = false
+        val byToken = purchases.associateBy { it.purchaseToken }
+        val outcome = grantLogic.process(
+            purchases = purchases.map {
+                AletheiaOwnedPurchase(
+                    token = it.purchaseToken,
+                    products = it.products,
+                    purchased = it.purchaseState == Purchase.PurchaseState.PURCHASED
+                )
+            },
+            allowPlanClear = allowPlanClear
+        )
+        outcome.notices.forEach { listener?.onBillingNotice(it) }
+        outcome.acknowledgeTokens.forEach { t -> byToken[t]?.let { acknowledge(it) } }
+        outcome.consumeTokens.forEach { t -> byToken[t]?.let { consume(it) } }
 
-        for (purchase in purchases) {
-            if (purchase.purchaseState != Purchase.PurchaseState.PURCHASED) continue
-            val token = purchase.purchaseToken
-            for (pid in purchase.products) {
-                val alreadyGranted = prefs.isPurchaseTokenGranted(token)
-                if (alreadyGranted) {
-                    if (AletheiaProducts.isSubscription(pid)) {
-                        plan = pid
-                        sawSubscription = true
-                        acknowledge(purchase)
-                    } else {
-                        // Ensure consumables are released so the pack can be bought again.
-                        consume(purchase)
-                    }
-                    continue
-                }
-
-                val verified = try {
-                    api.verifyPlayPurchase(pid, token)
-                } catch (e: Exception) {
-                    Log.w(TAG, "verify failed for $pid: ${e.message}")
-                    false
-                }
-                if (!verified) {
-                    listener?.onBillingMessage(
-                        "Purchase pending server verification (aletheiaVerifyPlayPurchase). Entitlement not granted yet."
-                    )
-                    continue
-                }
-
-                // Mutex + atomic mark: overlapping refresh/purchase callbacks must not double-grant.
-                if (!prefs.markPurchaseTokenGranted(token)) {
-                    if (AletheiaProducts.isSubscription(pid)) {
-                        plan = pid
-                        sawSubscription = true
-                    }
-                    continue
-                }
-
-                grantedSomething = true
-                if (AletheiaProducts.isSubscription(pid)) {
-                    plan = pid
-                    sawSubscription = true
-                    acknowledge(purchase)
-                } else {
-                    credits += AletheiaProducts.creditsForPack(pid)
-                    consume(purchase)
-                }
-            }
-        }
-
-        if (sawSubscription) {
-            prefs.activePlanId = plan
-        } else if (allowPlanClear) {
-            // Full successful SUBS inventory with no active subscription → expired/canceled.
-            plan = null
-            prefs.activePlanId = null
+        if (fromUserPurchase && outcome.grantedSomething) {
+            listener?.onPurchaseCompleted(outcome.plan, outcome.credits)
         } else {
-            // Partial purchase callback or failed SUBS query — keep cached plan.
-            plan = prefs.activePlanId
-        }
-        prefs.cachedCreditsRemaining = credits
-
-        if (fromUserPurchase && grantedSomething) {
-            listener?.onPurchaseCompleted(plan, credits)
-        } else {
-            listener?.onPurchasesRestored(plan, credits)
+            listener?.onPurchasesRestored(outcome.plan, outcome.credits)
         }
     }
 
@@ -325,5 +270,112 @@ class AletheiaBillingManager(
     companion object {
         private const val TAG = "AletheiaBilling"
         private const val MAX_RECONNECT_ATTEMPTS = 5
+    }
+}
+
+/** Billing states shown to the user (mapped to string resources by the paywall). */
+enum class AletheiaBillingNotice {
+    PRODUCT_UNAVAILABLE,
+    RECONNECTING,
+    LAUNCH_FAILED,
+    VERIFY_PENDING,
+    SUBS_STATUS_UNAVAILABLE,
+    DISCONNECTED,
+    BILLING_ERROR
+}
+
+/** A Play purchase reduced to what the grant decision needs (testable without Play). */
+data class AletheiaOwnedPurchase(val token: String, val products: List<String>, val purchased: Boolean)
+
+/**
+ * Verify-before-grant decision (CT-BUY-SUBSCRIPTION / CT-BUY-CREDITS / CT-PURCHASE-VERIFY /
+ * CT-RESTORE). Nothing is granted unless aletheiaVerifyPlayPurchase confirms it; a token is
+ * granted once; the server credit balance wins over the local estimate; subscriptions are
+ * acknowledged, credit packs consumed; a failed inventory never clears an active plan.
+ */
+class AletheiaPurchaseGrantLogic(
+    private val prefs: AletheiaPrefs,
+    private val verify: suspend (productId: String, token: String) -> AletheiaPurchaseResult
+) {
+    data class Outcome(
+        val plan: String?,
+        val credits: Int,
+        val grantedSomething: Boolean,
+        val acknowledgeTokens: List<String>,
+        val consumeTokens: List<String>,
+        val notices: List<AletheiaBillingNotice>
+    )
+
+    suspend fun process(purchases: List<AletheiaOwnedPurchase>, allowPlanClear: Boolean): Outcome {
+        var plan: String? = null
+        var sawSubscription = false
+        var credits = prefs.cachedCreditsRemaining
+        var serverCredits: Int? = null
+        var grantedSomething = false
+        val ack = linkedSetOf<String>()
+        val consume = linkedSetOf<String>()
+        val notices = mutableListOf<AletheiaBillingNotice>()
+
+        for (purchase in purchases) {
+            if (!purchase.purchased) continue
+            val token = purchase.token
+            for (pid in purchase.products) {
+                if (prefs.isPurchaseTokenGranted(token)) {
+                    if (AletheiaProducts.isSubscription(pid)) {
+                        plan = pid
+                        sawSubscription = true
+                        ack += token
+                    } else {
+                        // Ensure consumables are released so the pack can be bought again.
+                        consume += token
+                    }
+                    continue
+                }
+
+                val verification = try {
+                    verify(pid, token)
+                } catch (_: Exception) {
+                    null
+                }
+                if (verification == null || !verification.ok) {
+                    notices += AletheiaBillingNotice.VERIFY_PENDING
+                    continue
+                }
+                serverCredits = verification.creditsRemaining ?: serverCredits
+
+                // Atomic mark: overlapping refresh/purchase callbacks must not double-grant.
+                if (!prefs.markPurchaseTokenGranted(token)) {
+                    if (AletheiaProducts.isSubscription(pid)) {
+                        plan = pid
+                        sawSubscription = true
+                    }
+                    continue
+                }
+
+                grantedSomething = true
+                if (AletheiaProducts.isSubscription(pid)) {
+                    plan = pid
+                    sawSubscription = true
+                    ack += token
+                } else {
+                    // The server granted the pack; its balance is the truth when it sends one.
+                    credits = serverCredits ?: (credits + AletheiaProducts.creditsForPack(pid))
+                    consume += token
+                }
+            }
+        }
+
+        if (sawSubscription) {
+            prefs.activePlanId = plan
+        } else if (allowPlanClear) {
+            // Full successful SUBS inventory with no active subscription: expired/canceled.
+            plan = null
+            prefs.activePlanId = null
+        } else {
+            // Partial purchase callback or failed SUBS query: keep cached plan.
+            plan = prefs.activePlanId
+        }
+        prefs.cachedCreditsRemaining = credits
+        return Outcome(plan, credits, grantedSomething, ack.toList(), consume.toList(), notices.distinct())
     }
 }

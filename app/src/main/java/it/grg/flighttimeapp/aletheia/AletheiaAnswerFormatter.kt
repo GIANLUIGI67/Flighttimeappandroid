@@ -17,6 +17,10 @@ object AletheiaAnswerFormatter {
     private val systemLeakRegex = Regex(
         """(?is)(?:/assistant\.system|example\s+system|\bsystem\s+system\b|\bc_limit\b|<\|.*?\|>)"""
     )
+    private val vendorNames = Regex(
+        """(?i)\b(?:qwen[\w.-]*|groq|claude|anthropic|openai|chatgpt|gpt-?\d[\w.]*|gemini|llama\.cpp|llama[\w.-]*|gguf|hugging\s?face|aviationqa)\b"""
+    )
+    private val CHAT_MARKERS = listOf("<|im_end|>", "<|im_start|>", "</think>", "<think>", "/no_think")
     private val offlineStubWhileOnline = Regex(
         """(?is)(?:aviation/ftl\s+assistant\s+offline|switch\s+to\s+online|place\s+it\s+in\s+documents/models|temporary\s+faq)"""
     )
@@ -58,6 +62,34 @@ object AletheiaAnswerFormatter {
         return text.trim().ifBlank { gracefulDegradedMessage(forOnline) }
     }
 
+    /**
+     * On-device model output (iOS AletheiaLocalGGUFRuntime.sanitizeBrand + isGarbageOutput):
+     * never show upstream model / vendor / runtime names, strip leaked ChatML or think
+     * markers and forced brand intros. Returns null when the text is unusable (decode loop,
+     * role-token spill, placeholder tokens, empty) so the caller answers deterministically.
+     */
+    fun sanitizeLocalModelOutput(raw: String): String? {
+        var text = raw
+        for (marker in CHAT_MARKERS) text = text.replace(marker, "")
+        if (looksLikeSystemLeak(text)) return null
+        if (looksLikeDecodeLoop(text)) return null
+        text = vendorNames.replace(text, "Aletheia")
+        text = text.trim().removePrefix("assistant").trim()
+        if (text.isBlank()) return null
+        val cleaned = sanitize(text, forOnline = false)
+        if (cleaned.isBlank() || cleaned == gracefulDegradedMessage(false)) return null
+        if (looksLikeDecodeLoop(cleaned)) return null
+        return cleaned
+    }
+
+    /** True when one short line repeats so often the answer is a decode loop. */
+    fun looksLikeDecodeLoop(text: String): Boolean {
+        val lines = text.lines().map { it.trim().lowercase() }.filter { it.isNotEmpty() }
+        if (lines.size < 6) return false
+        val top = lines.groupingBy { it }.eachCount().maxByOrNull { it.value }?.value ?: 0
+        return top * 2 > lines.size
+    }
+
     fun looksLikeSystemLeak(raw: String): Boolean =
         systemLeakRegex.containsMatchIn(raw) || raw.contains("C_LIMIT", ignoreCase = true)
 
@@ -82,7 +114,7 @@ object AletheiaAnswerFormatter {
         return out.joinToString("\n")
     }
 
-    private fun gracefulDegradedMessage(forOnline: Boolean): String {
+    internal fun gracefulDegradedMessage(forOnline: Boolean): String {
         return if (forOnline) {
             "I could not produce a clean answer for that turn. Please rephrase the aviation question, or ask again in a moment."
         } else {
