@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
    Auto Backup rules (API < 31 uses full-backup-content).
-   Exclude Aletheia offline outbox chat content from backup.
+   Exclude Aletheia offline outbox + billing/consent prefs (purchase tokens).
 -->
 <full-backup-content>
     <exclude domain="sharedpref" path="aletheia_outbox.xml" />
+    <exclude domain="sharedpref" path="aletheia_beta_prefs.xml" />
 </full-backup-content>
