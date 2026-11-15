@@ -1,8 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
    Auto Backup rules (API < 31 uses full-backup-content).
-   Exclude Aletheia offline outbox chat content from backup.
+   Only salary_storage.xml is included, so every other SharedPreferences file
+   (including the Aletheia offline outbox, aletheia_outbox.xml) is never backed up.
+   An explicit exclude here would trip lint FullBackupContent ("not in an included path").
 -->
 <full-backup-content>
-    <exclude domain="sharedpref" path="aletheia_outbox.xml" />
+    <!-- Salary months and settings are user-created records. Keep this file
+         eligible for encrypted Android Auto Backup without restoring device
+         identity or authentication preferences onto another installation. -->
+    <include
+        domain="sharedpref"
+        path="salary_storage.xml"
+        requireFlags="clientSideEncryption" />
 </full-backup-content>

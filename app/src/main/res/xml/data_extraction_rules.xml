@@ -1,13 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
    Cloud backup / device transfer rules (API 31+).
-   Exclude Aletheia offline outbox chat content.
+   Only salary_storage.xml is included, so the Aletheia offline outbox
+   (aletheia_outbox.xml) and device/auth preferences are never backed up or transferred.
 -->
 <data-extraction-rules>
     <cloud-backup>
-        <exclude domain="sharedpref" path="aletheia_outbox.xml" />
+        <!-- Preserve Salary history while excluding device/auth identity by
+             allowing only the dedicated Salary SharedPreferences file. -->
+        <include domain="sharedpref" path="salary_storage.xml" />
     </cloud-backup>
     <device-transfer>
-        <exclude domain="sharedpref" path="aletheia_outbox.xml" />
+        <include domain="sharedpref" path="salary_storage.xml" />
     </device-transfer>
 </data-extraction-rules>

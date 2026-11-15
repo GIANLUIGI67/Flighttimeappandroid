@@ -28,6 +28,19 @@ val hasUploadSigning = !uploadStoreFilePath.isNullOrBlank() &&
     !uploadKeyPassword.isNullOrBlank() &&
     rootProject.file(uploadStoreFilePath!!).isFile
 
+val packageReleaseNativeSymbolFallback by tasks.registering(Zip::class) {
+    group = "build"
+    description = "Packages exported symbols from pre-stripped native dependencies for Play Console."
+    dependsOn("mergeReleaseNativeLibs")
+    from(layout.buildDirectory.dir("intermediates/merged_native_libs/release/mergeReleaseNativeLibs/out/lib"))
+    archiveFileName.set("native-debug-symbols.zip")
+    destinationDirectory.set(layout.buildDirectory.dir("outputs/native-debug-symbols/release"))
+}
+
+tasks.matching { it.name == "bundleRelease" }.configureEach {
+    finalizedBy(packageReleaseNativeSymbolFallback)
+}
+
 android {
     namespace = "it.grg.flighttimeapp"
     compileSdk = 36
@@ -52,10 +65,11 @@ android {
         minSdk = 24
         targetSdk = 36
 
-        // Must exceed Play Production (highest known: versionCode 35 / 1.12.13).
-        // vc36 was rejected after Billing < 8; ship 37 with Billing 8.3.0.
-        versionCode = 37
-        versionName = "1.12.15"
+        // Must exceed every code already on Play: production 35 (1.12.13),
+        // internal test 37 (1.12.15). 1.12.16/38 = API 36 production line + Aletheia
+        // Crew Tools aligned with iOS (Billing 8.3.0).
+        versionCode = 38
+        versionName = "1.12.16"
 
         // Aletheia Beta (Crew Tools). Product ships enabled.
         // Rollback: set this AND every buildType override below to false (buildType fields win).
@@ -107,8 +121,13 @@ android {
             buildConfigField("boolean", "ALETHEIA_ENABLED", "true")
         }
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             isShrinkResources = false
+            // Package native symbols automatically whenever dependencies provide them.
+            // AndroidX DataStore currently ships its shared-counter library already stripped.
+            ndk {
+                debugSymbolLevel = "SYMBOL_TABLE"
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -129,12 +148,6 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
         isCoreLibraryDesugaringEnabled = true
-    }
-
-    packaging {
-        jniLibs {
-            keepDebugSymbols += "**/libdatastore_shared_counter.so"
-        }
     }
 }
 
