@@ -15,6 +15,7 @@
     <color name="iosRed">#FF453A</color>
     <color name="iosBackground">#000000</color>
     <color name="iosButtonGrey">#2C2C2E</color>
+    <color name="aletheiaBadgeBg">#2C2C2E</color>
 
     <color name="qbOptionNormalBg">@color/iosCardBg</color>
     <color name="qbOptionNormalStroke">@color/iosCardStroke</color>
