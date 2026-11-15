@@ -14,7 +14,7 @@ SDK for target-API mail: **`compileSdk` / `targetSdk` = 36**, `minSdk` = 24. Mer
 1. Clone `GIANLUIGI67/Flighttimeappandroid` and open the project root in Android Studio (Ladybug+ / AGP 9).
 2. Place `app/google-services.json` for `it.grg.flighttimeapp` / project `flighttimeapp-6f816` (**gitignored**, not tracked). Download from Firebase Console → Project settings → your Android app.
 3. Install **NDK 27.0.12077973** and **CMake 3.22.1** (SDK Manager). Native Offline GGUF needs them.
-4. Sync Gradle. Min SDK 24, compile/target 36. First native build compiles vendored llama.cpp (`app/src/main/cpp/third_party/llama.cpp`, tag `b5215`).
+4. Sync Gradle. Min SDK 24, compile/target 36. First native build fetches llama.cpp tag **`b5215`** via CMake `FetchContent` (or use `./scripts/sync-llama-cpp.sh` for a local gitignored tree).
 5. Run configuration: module `app`, debug build.
 6. Sideload: `./gradlew :app:assembleDebug` then  
    `adb install -r app/build/outputs/apk/debug/app-debug.apk`
@@ -105,7 +105,7 @@ Wired end-to-end:
 | Layer | Location |
 |-------|----------|
 | JNI + CMake | `app/src/main/cpp/` → `libaletheia_llama.so` |
-| Vendored llama.cpp | `app/src/main/cpp/third_party/llama.cpp` (tag `b5215`) |
+| llama.cpp | CMake `FetchContent` tag **`b5215`** (optional local sync via `scripts/sync-llama-cpp.sh`) |
 | Kotlin runtime | `AletheiaLlamaRuntime` / `AletheiaLlamaNative` |
 | Engine | `AletheiaOfflineEngine` — manuals first, then GGUF |
 | Installer | Settings → Download Offline model (Wi‑Fi) → `filesDir/aletheia/offline.gguf` |
