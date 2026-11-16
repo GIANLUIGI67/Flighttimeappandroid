@@ -92,6 +92,15 @@ class AletheiaBillingManager(
 
     fun products(): List<ProductDetails> = productDetails
 
+    /** Store price as Play formats it: base plan's recurring phase for subscriptions, one-time price for packs. */
+    fun formattedPrice(productId: String): String? {
+        val details = productDetails.firstOrNull { it.productId == productId } ?: return null
+        details.oneTimePurchaseOfferDetails?.formattedPrice?.let { return it }
+        val offers = details.subscriptionOfferDetails ?: return null
+        val offer = offers.firstOrNull { it.offerId == null } ?: offers.firstOrNull() ?: return null
+        return offer.pricingPhases.pricingPhaseList.lastOrNull()?.formattedPrice
+    }
+
     fun launchPurchase(activity: Activity, productId: String) {
         val details = productDetails.firstOrNull { it.productId == productId }
         if (details == null) {
@@ -106,7 +115,10 @@ class AletheiaBillingManager(
         val productParams = BillingFlowParams.ProductDetailsParams.newBuilder()
             .setProductDetails(details)
             .apply {
-                details.subscriptionOfferDetails?.firstOrNull()?.offerToken?.let { setOfferToken(it) }
+                details.subscriptionOfferDetails
+                    ?.map { it.offerId to it.offerToken }
+                    ?.let { AletheiaUiRules.chooseOfferToken(it) }
+                    ?.let { setOfferToken(it) }
             }
             .build()
         val flow = BillingFlowParams.newBuilder()

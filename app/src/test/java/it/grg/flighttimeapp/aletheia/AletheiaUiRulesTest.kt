@@ -113,4 +113,18 @@ class AletheiaUiRulesTest {
         assertEquals(AletheiaUiRules.PlanName.FREE, AletheiaUiRules.planName("platinum"))
         assertEquals(AletheiaUiRules.PlanName.FREE, AletheiaUiRules.planName(null))
     }
+
+    @Test
+    fun buyButton_showsStorePriceOnlyWhenPlayReturnedIt() {
+        assertEquals("Plus", AletheiaUiRules.buyButtonLabel("Plus", null))
+        assertEquals("Plus", AletheiaUiRules.buyButtonLabel("Plus", " "))
+        assertEquals("Plus · €0.99", AletheiaUiRules.buyButtonLabel("Plus", "€0.99"))
+    }
+
+    @Test
+    fun subscription_buysBasePlan_notAPromoOffer() {
+        assertEquals("base", AletheiaUiRules.chooseOfferToken(listOf("intro-trial" to "promo", null to "base")))
+        assertEquals("only", AletheiaUiRules.chooseOfferToken(listOf("winback" to "only")))
+        assertEquals(null, AletheiaUiRules.chooseOfferToken(emptyList()))
+    }
 }

@@ -67,6 +67,19 @@ class AletheiaPaywallActivity : AppCompatActivity(), AletheiaBillingManager.List
 
     override fun onProductsUpdated(products: List<ProductDetails>) {
         runOnUiThread {
+            // D13: each button shows the price Play returns for that exact product id.
+            listOf(
+                R.id.aletheiaBuyPlus to (R.string.aletheia_plan_plus to AletheiaProducts.PLUS_MONTHLY),
+                R.id.aletheiaBuyPro to (R.string.aletheia_plan_pro to AletheiaProducts.PRO_MONTHLY),
+                R.id.aletheiaBuyMax to (R.string.aletheia_plan_max to AletheiaProducts.MAX_MONTHLY),
+                R.id.aletheiaBuyCreditsS to (R.string.aletheia_credits_s to AletheiaProducts.CREDITS_S),
+                R.id.aletheiaBuyCreditsM to (R.string.aletheia_credits_m to AletheiaProducts.CREDITS_M),
+                R.id.aletheiaBuyCreditsL to (R.string.aletheia_credits_l to AletheiaProducts.CREDITS_L),
+            ).forEach { (buttonId, textAndProduct) ->
+                val (textId, productId) = textAndProduct
+                findViewById<MaterialButton>(buttonId).text =
+                    AletheiaUiRules.buyButtonLabel(getString(textId), billing.formattedPrice(productId))
+            }
             if (products.size < AletheiaProducts.ALL_PRODUCT_IDS.size) {
                 status.setText(R.string.aletheia_paywall_products_partial)
             } else {

@@ -93,4 +93,12 @@ object AletheiaUiRules {
         "max" -> PlanName.MAX
         else -> PlanName.FREE
     }
+
+    /** Buy button text: plan text plus the real store price once Play has returned it (never a fixed price). */
+    fun buyButtonLabel(base: String, formattedPrice: String?): String =
+        if (formattedPrice.isNullOrBlank()) base else "$base · $formattedPrice"
+
+    /** Subscription offer to buy: the base plan (offerId == null) first, never an arbitrary promotional offer. */
+    fun chooseOfferToken(offers: List<Pair<String?, String>>): String? =
+        offers.firstOrNull { it.first == null }?.second ?: offers.firstOrNull()?.second
 }
