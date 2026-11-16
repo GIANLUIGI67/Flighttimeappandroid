@@ -26,11 +26,13 @@ class AletheiaPurchaseGrantLogicTest {
         assertEquals(AletheiaProducts.PRO_MONTHLY, first.plan)
         assertEquals(listOf("tok-sub-1"), first.acknowledgeTokens)
         assertEquals(AletheiaProducts.PRO_MONTHLY, prefs.activePlanId)
-        // Restore / refresh: same token is not verified again, plan kept, still acknowledged.
+        // Restore / refresh: the subscription token is re-verified so the server learns the renewed expiry,
+        // but nothing is granted again; plan kept, still acknowledged.
         val again = logic(prefs).process(listOf(p), allowPlanClear = true)
         assertFalse(again.grantedSomething)
         assertEquals(AletheiaProducts.PRO_MONTHLY, again.plan)
-        assertEquals(1, verifyCalls.size)
+        assertEquals(listOf(AletheiaProducts.PRO_MONTHLY to "tok-sub-1", AletheiaProducts.PRO_MONTHLY to "tok-sub-1"), verifyCalls)
+        assertEquals(listOf("tok-sub-1"), again.acknowledgeTokens)
     }
 
     @Test
@@ -81,5 +83,26 @@ class AletheiaPurchaseGrantLogicTest {
         val expired = logic(prefs).process(emptyList(), allowPlanClear = true)
         assertNull(expired.plan)
         assertNull(prefs.activePlanId)
+    }
+
+    @Test
+    fun grantedCreditPack_isNotReverified_onRefresh() = runBlocking {
+        val prefs = AletheiaPrefs(InMemoryPrefs())
+        answer = AletheiaPurchaseResult(true, null, 40)
+        val pack = AletheiaOwnedPurchase("tok-pack", listOf(AletheiaProducts.CREDITS_S), true)
+        logic(prefs).process(listOf(pack), true)
+        logic(prefs).process(listOf(pack), true)
+        assertEquals(1, verifyCalls.size)
+    }
+
+    @Test
+    fun renewalRefresh_failingVerification_keepsLocalPlan_grantsNothing() = runBlocking {
+        val prefs = AletheiaPrefs(InMemoryPrefs())
+        val sub = AletheiaOwnedPurchase("tok-sub-2", listOf(AletheiaProducts.PLUS_MONTHLY), true)
+        logic(prefs).process(listOf(sub), true)
+        answer = null // server unreachable during the refresh
+        val again = logic(prefs).process(listOf(sub), true)
+        assertFalse(again.grantedSomething)
+        assertEquals(AletheiaProducts.PLUS_MONTHLY, again.plan)
     }
 }

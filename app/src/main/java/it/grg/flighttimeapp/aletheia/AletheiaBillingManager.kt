@@ -325,6 +325,15 @@ class AletheiaPurchaseGrantLogic(
                         plan = pid
                         sawSubscription = true
                         ack += token
+                        // Founder 16/11/2026: the server enforces subscription expiry. Play keeps the same token
+                        // across renewals, so re-verify it on every refresh to give the server the new expiry.
+                        // Nothing is granted twice: the token is already marked granted.
+                        val refreshed = try {
+                            verify(pid, token)
+                        } catch (_: Exception) {
+                            null
+                        }
+                        if (refreshed?.ok == true) serverCredits = refreshed.creditsRemaining ?: serverCredits
                     } else {
                         // Ensure consumables are released so the pack can be bought again.
                         consume += token
