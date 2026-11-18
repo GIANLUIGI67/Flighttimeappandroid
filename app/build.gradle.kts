@@ -42,6 +42,8 @@ tasks.matching { it.name == "bundleRelease" }.configureEach {
 }
 
 android {
+    // Founder 17/11/2026: the Aletheia 1.5B offline model ships as an install-time asset pack.
+    assetPacks.add(":aletheia_model")
     namespace = "it.grg.flighttimeapp"
     compileSdk = 36
 
@@ -195,4 +197,14 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+}
+
+// Founder 17/11/2026: a release bundle without the Aletheia 1.5B model would ship a broken Offline mode.
+val aletheiaModelAsset = rootProject.file("aletheia_model/src/main/assets/aletheia/aletheia-1_5b-qwen32-factualrepair-v3-ggufdetail-q4_k_m.gguf")
+tasks.matching { it.name == "bundleRelease" }.configureEach {
+    doFirst {
+        check(aletheiaModelAsset.isFile && aletheiaModelAsset.length() == 986_048_000L) {
+            "Aletheia 1.5B model missing or wrong size at " + aletheiaModelAsset
+        }
+    }
 }

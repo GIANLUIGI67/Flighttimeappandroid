@@ -24,3 +24,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "FlightTimeApp"
 include(":app")
+include(":aletheia_model")

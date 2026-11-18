@@ -122,4 +122,43 @@ class AletheiaOfflineEngineTest {
         assertEquals(AletheiaOfflineTexts.offDomain("it"), bible.text)
         assertTrue(env.runtime.prompts.isEmpty())
     }
+
+    // Founder 17/11/2026: the model ships with the app; no user import is needed.
+
+    @Test
+    fun bundledModel_isInstalledOnFirstOfflineAnswer_andVerified() = runBlocking {
+        val env = TestEnv()
+        val bytes = TestFiles.fakeGguf()
+        val store = AletheiaLocalModelStore(
+            env.modelsDir, expectedSha256 = TestFiles.sha256(bytes), expectedSize = bytes.size.toLong()
+        )
+        assertFalse(store.isInstalled())
+        val engine = AletheiaOfflineEngine(store, env.runtime, bundledModel = { bytes.inputStream() })
+        val r = engine.answer("Explain crew rest after a long duty", "en")
+        assertEquals(AletheiaEngine.LOCAL_MODEL, r.engine)
+        assertTrue(r.modelVerified)
+        assertTrue(store.isInstalled())
+        assertEquals(store.modelFile.absolutePath, env.runtime.loadedPaths.single().first)
+    }
+
+    @Test
+    fun bundledModel_isCopiedOnlyOnce() = runBlocking {
+        val env = TestEnv()
+        var opened = 0
+        val bytes = TestFiles.fakeGguf()
+        val engine = AletheiaOfflineEngine(env.store, env.runtime, bundledModel = { opened++; bytes.inputStream() })
+        engine.answer("Explain crew rest", "en")
+        engine.answer("Explain crew rest again", "en")
+        assertEquals(1, opened)
+    }
+
+    @Test
+    fun bundledFileThatIsNotAModel_isRejected_andTheNoticeStays() = runBlocking {
+        val env = TestEnv()
+        val engine = AletheiaOfflineEngine(env.store, env.runtime, bundledModel = { ByteArray(2_000_000).inputStream() })
+        val r = engine.answer("Explain crew rest", "en")
+        assertEquals(AletheiaEngine.DETERMINISTIC, r.engine)
+        assertFalse(env.store.isInstalled())
+        assertTrue(env.runtime.loadedPaths.isEmpty())
+    }
 }

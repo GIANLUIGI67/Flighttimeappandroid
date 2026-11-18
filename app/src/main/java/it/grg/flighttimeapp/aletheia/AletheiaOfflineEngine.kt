@@ -13,7 +13,8 @@ import kotlinx.coroutines.withContext
  * Path, in order - the reply records which engine REALLY answered:
  * 1. Manuals package ([AletheiaManuals]) -> Manuali, deterministic.
  * 2. Clearly off-domain -> fixed refusal, deterministic.
- * 3. Aletheia 1.5B imported by the user -> native on-device generation, LOCAL_MODEL
+ * 3. Aletheia 1.5B (shipped with the app in the install-time asset pack and copied into the model slot
+ *    on first use, or imported by the user) -> native on-device generation, LOCAL_MODEL
  *    (labelled verified only when the file matched the recorded SHA-256).
  * 4. Otherwise (no model, engine unavailable, failed or unusable output) -> fixed text,
  *    deterministic. Nothing is ever downloaded and no other model is ever loaded.
@@ -22,7 +23,9 @@ class AletheiaOfflineEngine(
     private val store: AletheiaLocalModelStore,
     private val runtime: AletheiaLocalRuntime,
     private val powerSave: () -> Boolean = { false },
-    private val lowRam: () -> Boolean = { false }
+    private val lowRam: () -> Boolean = { false },
+    /** The model shipped with the app (install-time asset pack); null when this build has none. */
+    private val bundledModel: () -> java.io.InputStream? = { null }
 ) {
     fun isModelInstalled(): Boolean = store.isInstalled()
 
@@ -41,6 +44,7 @@ class AletheiaOfflineEngine(
         }
 
         val record = store.installedModel()
+            ?: installBundledModel()
             ?: return@withContext fixed(AletheiaOfflineTexts.modelMissing(locale))
 
         val nCtx = if (powerSave() || lowRam()) AletheiaLlamaRuntime.LOW_RAM_N_CTX else AletheiaLlamaRuntime.DEFAULT_N_CTX
@@ -73,11 +77,35 @@ class AletheiaOfflineEngine(
         )
     }
 
+    private val installLock = Any()
+
+    /**
+     * Founder 17/11/2026: copy the model shipped with the app into the model slot, once, through the same
+     * SHA-256-checked import as a manual import. Returns null when the build has no bundled model.
+     */
+    fun installBundledModel(): AletheiaLocalModelStore.ModelRecord? = synchronized(installLock) {
+        store.installedModel()?.let { return it }
+        val input = try {
+            bundledModel()
+        } catch (t: Throwable) {
+            null
+        } ?: return null
+        when (val result = store.import(AletheiaLocalModelStore.ALETHEIA_15B_FILE_NAME, input)) {
+            is AletheiaLocalModelStore.ImportResult.Imported -> result.record
+            else -> {
+                Log.w(TAG, "bundled model not installed: $result")
+                null
+            }
+        }
+    }
+
     private fun fixed(text: String) =
         AletheiaEngineReply(text, AletheiaSource.OFFLINE, AletheiaEngine.DETERMINISTIC)
 
     companion object {
         private const val TAG = "AletheiaOffline"
+        /** Path of the model inside the install-time asset pack :aletheia_model. */
+        const val BUNDLED_MODEL_ASSET = "aletheia/" + AletheiaLocalModelStore.ALETHEIA_15B_FILE_NAME
 
         fun fromContext(context: Context): AletheiaOfflineEngine {
             val app = context.applicationContext
@@ -96,6 +124,13 @@ class AletheiaOfflineEngine(
                     val info = ActivityManager.MemoryInfo()
                     am?.getMemoryInfo(info)
                     info.totalMem in 1 until 6_000_000_000L
+                },
+                bundledModel = {
+                    try {
+                        app.assets.open(BUNDLED_MODEL_ASSET)
+                    } catch (e: java.io.IOException) {
+                        null
+                    }
                 }
             )
         }
