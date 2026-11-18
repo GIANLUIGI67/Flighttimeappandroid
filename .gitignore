@@ -26,3 +26,4 @@ keystore.properties
 
 # Aletheia 1.5B model (986 MB) lives outside git, see aletheia_model/build.gradle.kts
 aletheia_model/src/main/assets/aletheia/*.gguf
+aletheia_model/build/
