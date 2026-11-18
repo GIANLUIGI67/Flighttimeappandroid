@@ -117,10 +117,18 @@ class AletheiaCrewToolsUiTest {
     }
 
     /** Offline reply when no model file is installed (EN or IT, depending on the emulator language). */
+    /**
+     * The deterministic offline notice: "model missing" on a plain APK, or, since the 17/11/2026 asset pack ships
+     * the model, "on the phone but the engine could not open it" in these test builds without the native engine.
+     * The first offline answer copies the 986 MB model, hence the longer wait.
+     */
     private fun waitForModelMissing() {
-        val end = SystemClock.uptimeMillis() + 10_000
+        val end = SystemClock.uptimeMillis() + 90_000
         while (SystemClock.uptimeMillis() < end) {
-            for (t in listOf("not on this phone yet", "non e' ancora sul telefono")) {
+            for (t in listOf(
+                "not on this phone yet", "non e' ancora sul telefono",
+                "could not open it", "non e' riuscito ad aprirlo"
+            )) {
                 try {
                     onView(withText(containsString(t))).check(matches(isDisplayed()))
                     return
@@ -129,7 +137,7 @@ class AletheiaCrewToolsUiTest {
             }
             Thread.sleep(150)
         }
-        throw AssertionError("offline model-missing reply not shown")
+        throw AssertionError("offline notice not shown")
     }
 
     // Not covered by any study card: Online sends it to the server, Offline answers locally.
