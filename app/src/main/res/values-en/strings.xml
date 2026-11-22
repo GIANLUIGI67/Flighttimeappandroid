@@ -202,6 +202,7 @@
     <string name="aletheia_purchase_continue">Purchase recorded — continue until the next limit.</string>
     <string name="aletheia_offline_model_title">Aletheia 1.5B on this phone (Offline)</string>
     <string name="aletheia_error_generic">Something went wrong. Try again.</string>
+    <string name="aletheia_error_online_service_problem">The online service had a problem answering. Try again in a moment, or switch to Offline.</string>
     <string name="aletheia_consent_sync_retry">Consent is saved on device but not synced yet. Retrying with the server…</string>
     <string name="aletheia_consent_sync_failed">Consent kept on device; server sync failed: %1$s. Retry when online.</string>
     <string name="aletheia_paywall_products_partial">Some plans are not available on Google Play right now. Try again later.</string>

@@ -295,6 +295,21 @@ class AletheiaRepositoryTest {
     )
 
     @Test
+    fun onlineAnswer_ratingUsesTheChatClientRequestId_soTheServerJoinsTheTurn() = runBlocking {
+        val env = TestEnv()
+        consented(env)
+        val result = env.repo.sendOnline("What is minimum rest?")
+        val sentId = env.backend.chatRequests.single().clientRequestId
+        // Same construction as AletheiaChatActivity.send() for the assistant bubble.
+        val bubble = AletheiaChatMessage(
+            id = result.messageId, role = AletheiaChatMessage.Role.ASSISTANT, text = result.answer,
+            source = result.source, engine = result.engine, prompt = "What is minimum rest?"
+        )
+        env.repo.feedback(bubble, AletheiaFeedbackRating.GOOD, null)
+        assertEquals(sentId, env.backend.feedbacks.single().messageId)
+    }
+
+    @Test
     fun feedback_sendsPromptAnswerModeLocaleEngine() = runBlocking {
         val env = TestEnv(locale = "it")
         consented(env)

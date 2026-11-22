@@ -1,8 +1,11 @@
 package it.grg.flighttimeapp.aletheia
 
+import com.google.firebase.functions.FirebaseFunctionsException
 import com.google.gson.GsonBuilder
 import it.grg.flighttimeapp.BuildConfig
 import java.io.File
+import java.net.UnknownHostException
+import java.util.concurrent.ExecutionException
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -222,6 +225,90 @@ class AletheiaPayloadContractTest {
         assertTrue(AletheiaApi.mapFunctionsError("UNAUTHENTICATED", "") is AletheiaError.Network)
         assertEquals("Aletheia unavailable. Try again shortly.",
             AletheiaApi.mapFunctionsError("INTERNAL", "Aletheia unavailable. Try again shortly.").message)
+    }
+
+    // ---- Founder test 22/11/2026: HTTP 500 is a server problem, not a network one ----
+
+    @Test
+    fun callableErrors_internalOrUnknown_areServerProblems_notNetwork() {
+        // HTTP 500 from aletheiaChat: firebase-functions reports code INTERNAL, message "INTERNAL".
+        assertTrue(AletheiaApi.mapFunctionsError("INTERNAL", "INTERNAL") is AletheiaError.ServiceProblem)
+        // Server HttpsError("internal", ...) keeps its text (logs); the chat shows the localized copy.
+        val named = AletheiaApi.mapFunctionsError("INTERNAL", "Aletheia online path unavailable. Try again shortly.")
+        assertTrue(named is AletheiaError.ServiceProblem)
+        assertEquals("Aletheia online path unavailable. Try again shortly.", named.message)
+        // Unmapped HTTP status (e.g. 502) arrives as UNKNOWN.
+        val unknown = AletheiaApi.mapFunctionsError("UNKNOWN", "")
+        assertTrue(unknown is AletheiaError.ServiceProblem)
+        assertEquals("UNKNOWN", unknown.message)
+        // A failed connection is ALSO code INTERNAL in firebase-functions 22.x: it stays a network
+        // error with its existing text.
+        val net = AletheiaApi.mapFunctionsError("INTERNAL", "INTERNAL", transportFailure = true)
+        assertTrue(net is AletheiaError.Network)
+        assertEquals("INTERNAL", net.message)
+        // Limit and consent answers still win over the code; other codes are unchanged.
+        assertTrue(AletheiaApi.mapFunctionsError("INTERNAL", "Daily online limit reached") is AletheiaError.DailyLimitReached)
+        assertTrue(AletheiaApi.mapFunctionsError("INTERNAL", "Consent choice required before using Aletheia.") is AletheiaError.ConsentRequired)
+        assertTrue(AletheiaApi.mapFunctionsError("DEADLINE_EXCEEDED", "DEADLINE_EXCEEDED") is AletheiaError.Backend)
+        assertTrue(AletheiaApi.mapFunctionsError("UNAVAILABLE", "x") is AletheiaError.Backend)
+    }
+
+    /**
+     * The SDK's own exception, built like FirebaseFunctions 22.1.1 does: an HTTP error answer uses
+     * the (message, code, details) constructor, a failed connection the one with the IOException cause.
+     */
+    private fun sdkException(code: FirebaseFunctionsException.Code, cause: Throwable?): FirebaseFunctionsException {
+        val cls = FirebaseFunctionsException::class.java
+        return if (cause == null) {
+            cls.getDeclaredConstructor(String::class.java, FirebaseFunctionsException.Code::class.java, Any::class.java)
+                .apply { isAccessible = true }
+                .newInstance(code.name, code, null)
+        } else {
+            cls.getDeclaredConstructor(
+                String::class.java, FirebaseFunctionsException.Code::class.java, Any::class.java, Throwable::class.java
+            ).apply { isAccessible = true }.newInstance(code.name, code, null, cause)
+        }
+    }
+
+    @Test
+    fun mapException_realSdkException_http500_vs_failedConnection() {
+        // Tasks.await wraps the SDK exception in an ExecutionException, as in FirebaseCallableTransport.
+        val http500 = sdkException(FirebaseFunctionsException.Code.INTERNAL, null)
+        assertTrue(AletheiaApi.mapException(ExecutionException(http500)) is AletheiaError.ServiceProblem)
+        assertTrue(AletheiaApi.mapException(http500) is AletheiaError.ServiceProblem)
+
+        val noConnection = sdkException(FirebaseFunctionsException.Code.INTERNAL, UnknownHostException("no route"))
+        val mapped = AletheiaApi.mapException(ExecutionException(noConnection))
+        assertTrue(mapped is AletheiaError.Network)
+        assertEquals("INTERNAL", mapped.message)
+
+        val unknown = sdkException(FirebaseFunctionsException.Code.UNKNOWN, null)
+        assertTrue(AletheiaApi.mapException(ExecutionException(unknown)) is AletheiaError.ServiceProblem)
+    }
+
+    // ---- Founder test 22/11/2026: the rating joins the Online turn on the same id ----
+
+    @Test
+    fun onlineRating_sendsTheIdTheServerStoresTheChatTurnUnder() = runBlocking {
+        nextResponse = mapOf("answer" to "Risposta.", "route" to "online", "source" to "online",
+            "remainingDaily" to 18, "dailyLimit" to 20)
+        val rid = "6f1c2d3e-aaaa-4bbb-8ccc-1234567890ab"
+        val result = api.chat(AletheiaChatRequest("Quanto e' l'FDP?", emptyList(), "it", false, rid))
+        val chat = sent.single().second
+        // Server aletheiaChat: messageId = sanitize(data.messageId) || sanitize(data.clientRequestId).
+        val serverTurnId = AletheiaPayloads.sanitizeClientRequestId(chat["messageId"] as? String ?: "")
+            .ifEmpty { AletheiaPayloads.sanitizeClientRequestId(chat["clientRequestId"] as? String ?: "") }
+        assertEquals(rid, serverTurnId)
+        // The assistant bubble takes result.messageId; its rating sends that id as messageId.
+        assertEquals(rid, result.messageId)
+        nextResponse = mapOf("ok" to true)
+        api.submitFeedback(
+            AletheiaFeedbackPayload(result.messageId, AletheiaFeedbackRating.GOOD, "nota dopo il voto",
+                "Quanto e' l'FDP?", result.answer, result.source.logMode, "it", result.engine)
+        )
+        val (name, fb) = sent.last()
+        assertEquals("aletheiaSubmitFeedback", name)
+        assertEquals(serverTurnId, fb["messageId"])
     }
 
     private fun record(name: String, payload: Map<String, Any?>) {

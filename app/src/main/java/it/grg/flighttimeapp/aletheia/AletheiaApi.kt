@@ -143,15 +143,23 @@ class AletheiaApi(
                 ?: (e.cause as? FirebaseFunctionsException)
             if (functionsEx != null) {
                 val msg = functionsEx.message.orEmpty()
-                return mapFunctionsError(functionsEx.code.name, msg)
+                // firebase-functions 22.x reports a failed connection (an IOException from OkHttp)
+                // with code INTERNAL too; only the IOException cause tells it apart from a server 500.
+                val transportFailure = functionsEx.cause is java.io.IOException
+                return mapFunctionsError(functionsEx.code.name, msg, transportFailure)
             }
             return if (e is AletheiaError) e else AletheiaError.Network(e.message ?: e.toString())
         }
 
-        /** Pure mapping of a callable error (code name + message), unit-tested. */
-        fun mapFunctionsError(code: String, message: String): AletheiaError {
+        /**
+         * Pure mapping of a callable error (code name + message), unit-tested.
+         * [transportFailure] = the request never got an HTTP answer (network problem).
+         */
+        fun mapFunctionsError(code: String, message: String, transportFailure: Boolean = false): AletheiaError {
             val lower = message.lowercase()
             return when {
+                // Network problem: keeps the text it had before (no server-problem copy).
+                transportFailure -> AletheiaError.Network(message.ifBlank { code })
                 lower.contains("consent choice required") -> AletheiaError.ConsentRequired()
                 code == "RESOURCE_EXHAUSTED" ||
                     lower.contains("daily online limit") ||
@@ -159,6 +167,8 @@ class AletheiaApi(
                     lower.contains("quota") -> AletheiaError.DailyLimitReached()
                 code == "NOT_FOUND" -> AletheiaError.Backend("NOT_FOUND")
                 code == "UNAUTHENTICATED" -> AletheiaError.Network("Sign in required.")
+                // HTTP 500 / unmapped status: the server failed while the network worked.
+                code == "INTERNAL" || code == "UNKNOWN" -> AletheiaError.ServiceProblem(message.ifBlank { code })
                 else -> AletheiaError.Backend(message.ifBlank { code })
             }
         }

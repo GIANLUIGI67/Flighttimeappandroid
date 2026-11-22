@@ -333,6 +333,7 @@
     <string name="aletheia_purchase_continue">Acquisto registrato — continua fino al prossimo limite.</string>
     <string name="aletheia_offline_model_title">Aletheia 1.5B sul telefono (Offline)</string>
     <string name="aletheia_error_generic">Qualcosa è andato storto. Riprova.</string>
+    <string name="aletheia_error_online_service_problem">Il servizio online ha avuto un problema nel rispondere. Riprova tra poco oppure passa a Offline.</string>
     <string name="aletheia_consent_sync_retry">Consenso salvato sul dispositivo ma non ancora sincronizzato. Nuovo tentativo con il server…</string>
     <string name="aletheia_consent_sync_failed">Consenso mantenuto sul dispositivo; sync server non riuscita: %1$s. Riprova online.</string>
     <string name="aletheia_paywall_products_partial">Alcuni piani non sono disponibili su Google Play in questo momento. Riprova più tardi.</string>

@@ -239,6 +239,13 @@ class AletheiaChatActivity : AppCompatActivity() {
                 startActivity(Intent(this@AletheiaChatActivity, AletheiaPaywallActivity::class.java))
             } catch (e: AletheiaError.ConsentRequired) {
                 maybeAskConsent()
+            } catch (e: AletheiaError.ServiceProblem) {
+                // Server error (e.g. HTTP 500) while the network works: never a connection hint.
+                Toast.makeText(
+                    this@AletheiaChatActivity,
+                    R.string.aletheia_error_online_service_problem,
+                    Toast.LENGTH_LONG
+                ).show()
             } catch (e: Exception) {
                 val msg = e.message.orEmpty()
                 when {

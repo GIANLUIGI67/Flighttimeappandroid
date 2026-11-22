@@ -110,4 +110,9 @@ sealed class AletheiaError(message: String) : Exception(message) {
     class DailyLimitReached(val remaining: Int = 0) : AletheiaError("Daily online limit reached.")
     class Network(message: String) : AletheiaError(message)
     class Backend(message: String) : AletheiaError(message)
+    /**
+     * The callable answered INTERNAL / UNKNOWN (for example HTTP 500): the server failed while
+     * the network worked. The UI shows "the online service had a problem", never a network hint.
+     */
+    class ServiceProblem(message: String) : AletheiaError(message)
 }
