@@ -40,3 +40,7 @@ target_link_libraries(aletheia_llama
         common
         android
         log)
+
+# Google Play (obbligo dal 01/11/2025): le librerie native devono supportare pagine di memoria da 16 KB.
+# NDK 27 allinea ancora a 4 KB: forziamo i segmenti caricabili a 16 KB.
+target_link_options(aletheia_llama PRIVATE "-Wl,-z,max-page-size=16384")
