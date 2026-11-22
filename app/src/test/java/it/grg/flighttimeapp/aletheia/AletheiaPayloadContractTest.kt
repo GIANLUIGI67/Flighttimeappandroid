@@ -52,9 +52,9 @@ class AletheiaPayloadContractTest {
     }
 
     @Test
-    fun buildIdentity_is_1_12_16_build_38_aletheia_1_2() {
-        assertEquals("1.12.16", BuildConfig.VERSION_NAME)
-        assertEquals(38, BuildConfig.VERSION_CODE)
+    fun buildIdentity_is_1_12_18_build_40_aletheia_1_7() {
+        assertEquals("1.12.18", BuildConfig.VERSION_NAME)
+        assertEquals(40, BuildConfig.VERSION_CODE)
         assertEquals("1.7", BuildConfig.ALETHEIA_VERSION)
     }
 
