@@ -70,8 +70,8 @@ android {
         // Must exceed every code already on Play: production 35 (1.12.13),
         // internal test 37 (1.12.15). 1.12.16/38 = API 36 production line + Aletheia
         // Crew Tools aligned with iOS (Billing 8.3.0).
-        versionCode = 38
-        versionName = "1.12.16"
+        versionCode = 39
+        versionName = "1.12.17"
 
         // Aletheia Beta (Crew Tools). Product ships enabled.
         // Rollback: set this AND every buildType override below to false (buildType fields win).
