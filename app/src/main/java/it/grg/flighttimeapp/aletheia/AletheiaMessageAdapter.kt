@@ -41,6 +41,13 @@ class AletheiaMessageAdapter(
         holder.bind(items[position])
     }
 
+    override fun onViewAttachedToWindow(holder: VH) {
+        super.onViewAttachedToWindow(holder)
+        // Questions and answers are selectable (long press -> Copy). A selectable TextView that
+        // RecyclerView detached and re-attached loses its selection handles until re-enabled.
+        holder.reenableTextSelection()
+    }
+
     companion object {
         /**
          * Label = the engine that REALLY produced the reply (PR-5): Aletheia online,
@@ -76,6 +83,11 @@ class AletheiaMessageAdapter(
         private val good: ImageButton = itemView.findViewById(R.id.aletheiaFbGood)
         private val partial: ImageButton = itemView.findViewById(R.id.aletheiaFbPartial)
         private val bad: ImageButton = itemView.findViewById(R.id.aletheiaFbBad)
+
+        fun reenableTextSelection() {
+            text.isEnabled = false
+            text.isEnabled = true
+        }
 
         fun bind(msg: AletheiaChatMessage) {
             text.text = msg.text

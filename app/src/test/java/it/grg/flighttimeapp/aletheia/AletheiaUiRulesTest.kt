@@ -2,10 +2,14 @@ package it.grg.flighttimeapp.aletheia
 
 import it.grg.flighttimeapp.BuildConfig
 import it.grg.flighttimeapp.R
+import java.io.File
+import javax.xml.parsers.DocumentBuilderFactory
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.w3c.dom.Document
+import org.w3c.dom.Element
 
 /**
  * Screen decisions (same functions the Activities call): CT-HOME-TILE, CT-FEATURE-FLAG,
@@ -126,5 +130,37 @@ class AletheiaUiRulesTest {
         assertEquals("base", AletheiaUiRules.chooseOfferToken(listOf("intro-trial" to "promo", null to "base")))
         assertEquals("only", AletheiaUiRules.chooseOfferToken(listOf("winback" to "only")))
         assertEquals(null, AletheiaUiRules.chooseOfferToken(emptyList()))
+    }
+
+    // ---- Founder test 22/11/2026: questions and answers can be copied; paste into the input ----
+
+    private val androidNs = "http://schemas.android.com/apk/res/android"
+
+    private fun layout(name: String): Document {
+        val f = listOf(File("src/main/res/layout/$name"), File("app/src/main/res/layout/$name")).first { it.isFile }
+        return DocumentBuilderFactory.newInstance().apply { isNamespaceAware = true }.newDocumentBuilder().parse(f)
+    }
+
+    private fun Document.viewWithId(tag: String, id: String): Element {
+        val nodes = getElementsByTagName(tag)
+        return (0 until nodes.length).map { nodes.item(it) as Element }
+            .single { it.getAttributeNS(androidNs, "id") == "@+id/$id" }
+    }
+
+    @Test
+    fun chatBubbleText_isSelectable_forLongPressCopy() {
+        // The same TextView shows the user's question and Aletheia's answer.
+        val text = layout("item_aletheia_message.xml").viewWithId("TextView", "aletheiaMessageText")
+        assertEquals("true", text.getAttributeNS(androidNs, "textIsSelectable"))
+    }
+
+    @Test
+    fun chatInput_keepsLongPressPaste() {
+        val input = layout("activity_aletheia_chat.xml").viewWithId("EditText", "aletheiaInput")
+        assertFalse(input.getAttributeNS(androidNs, "longClickable") == "false")
+        assertFalse(input.getAttributeNS(androidNs, "enabled") == "false")
+        // The rule "rate the previous answer first" stays (founder 22/11): it blocks Send, not typing/paste.
+        val pending = listOf(user("q"), ans("a"))
+        assertEquals(AletheiaUiRules.SendBlock.FEEDBACK_PENDING, AletheiaUiRules.sendBlock("pasted", false, true, true, pending))
     }
 }
